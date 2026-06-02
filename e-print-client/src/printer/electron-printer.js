@@ -1,6 +1,12 @@
 'use strict';
 
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
 const { BrowserWindow } = require('electron');
+
+const PRINT_TEMP_DIR = path.join(os.tmpdir(), 'e-print-client');
+const LAST_PRINT_FILE = path.join(PRINT_TEMP_DIR, 'last-print.html');
 
 function createElectronPrinter() {
   return {
@@ -11,7 +17,7 @@ function createElectronPrinter() {
 }
 
 function printHtml(html, options) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     const opts = options || {};
     const win = new BrowserWindow({
       show: opts.silent === false,
@@ -22,7 +28,17 @@ function printHtml(html, options) {
       }
     });
 
-    win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    try {
+      await writePrintHtml(html);
+    } catch (error) {
+      win.close();
+      reject(error);
+      return;
+    }
+
+    win.loadFile(LAST_PRINT_FILE)
+      .then(() => waitForImages(win))
+      .then(() => waitForPaint(win))
       .then(() => {
         win.webContents.print({
           silent: opts.silent !== false,
@@ -45,7 +61,40 @@ function printHtml(html, options) {
   });
 }
 
+async function writePrintHtml(html) {
+  await fs.mkdir(PRINT_TEMP_DIR, { recursive: true });
+  await fs.writeFile(LAST_PRINT_FILE, String(html || ''), 'utf8');
+  return LAST_PRINT_FILE;
+}
+
+function waitForImages(win) {
+  return win.webContents.executeJavaScript(`
+    Promise.all(Array.from(document.images).map((img) => {
+      if (img.complete && img.naturalWidth > 0) {
+        return Promise.resolve();
+      }
+      if (typeof img.decode === 'function') {
+        return img.decode().catch(() => undefined);
+      }
+      return new Promise((resolve) => {
+        img.addEventListener('load', resolve, { once: true });
+        img.addEventListener('error', resolve, { once: true });
+      });
+    }))
+  `);
+}
+
+function waitForPaint(win) {
+  return win.webContents.executeJavaScript(`
+    new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  `);
+}
+
 module.exports = {
   createElectronPrinter,
-  printHtml
+  LAST_PRINT_FILE,
+  printHtml,
+  waitForImages,
+  waitForPaint,
+  writePrintHtml
 };

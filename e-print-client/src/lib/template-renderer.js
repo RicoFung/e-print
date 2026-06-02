@@ -21,6 +21,10 @@ async function renderTemplate(templateHtml, data, options) {
     renderData.barcode[field] = await (opts.createBarcodeDataUrl || assets.createBarcodeDataUrl)(data[field]);
   }
 
+  if (!renderData.barcode.barcodeText && data && data.sku) {
+    renderData.barcode.barcodeText = await (opts.createBarcodeDataUrl || assets.createBarcodeDataUrl)(data.sku);
+  }
+
   const compile = opts.compile || defaultCompile;
   return compile(String(templateHtml || ''))(renderData);
 }

@@ -86,7 +86,8 @@ npm test
       "productName": "MacBook Pro",
       "sku": "MBP-001",
       "price": "19999",
-      "qrText": "https://example.com/p/MBP-001"
+      "qrText": "https://example.com/p/MBP-001",
+      "barcodeText": "MBP-001"
     }
   }
 }
@@ -116,6 +117,6 @@ Handlebars 模板可以使用任务数据，也可以引用自动生成的图片
   <h1>{{productName}}</h1>
   <p>{{sku}}</p>
   <img src="{{qr.qrText}}" />
-  <img src="{{barcode.sku}}" />
+  <img src="{{barcode.barcodeText}}" />
 </section>
 ```

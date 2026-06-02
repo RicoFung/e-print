@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 12px;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      color: #111827;
+    }
+    .label {
+      width: 80mm;
+      min-height: 50mm;
+      border: 1px solid #111827;
+      padding: 10px;
+    }
+    .title {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .row {
+      margin: 4px 0;
+      font-size: 12px;
+    }
+    .media {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .qr {
+      width: 26mm;
+      height: 26mm;
+    }
+    .barcode {
+      width: 42mm;
+      max-height: 18mm;
+    }
+  </style>
+</head>
+<body>
+  <section class="label">
+    <h1 class="title">{{productName}}</h1>
+    <p class="row">SKU: {{sku}}</p>
+    <p class="row">Price: {{price}}</p>
+    <div class="media">
+      <img class="qr" src="{{qr.qrText}}" alt="QR Code">
+      <img class="barcode" src="{{barcode.barcodeText}}" alt="Barcode">
+    </div>
+  </section>
+</body>
+</html>

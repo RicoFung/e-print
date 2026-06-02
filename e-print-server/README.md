@@ -23,9 +23,36 @@
     "productName": "MacBook Pro",
     "sku": "MBP-001",
     "price": "19999",
-    "qrText": "https://example.com/p/MBP-001"
+    "qrText": "https://example.com/p/MBP-001",
+    "barcodeText": "MBP-001"
   }
 }
+```
+
+内置 `product-label` 模板会使用：
+
+- `{{qr.qrText}}` 渲染二维码图片
+- `{{barcode.barcodeText}}` 渲染条码图片
+
+## 模板目录
+
+打印模板以 HTML 文件存放在 resources 中：
+
+```text
+src/main/resources/templates/print/
+└── product-label.html
+```
+
+接口中的 `templateCode` 对应模板文件名，不包含 `.html` 后缀：
+
+```text
+GET /api/templates/product-label
+```
+
+实际读取：
+
+```text
+classpath:templates/print/product-label.html
 ```
 
 ## 运行

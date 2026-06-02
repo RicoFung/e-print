@@ -112,7 +112,8 @@ HTML 渲染
     "productName": "MacBook Pro",
     "sku": "MBP-001",
     "price": "19999",
-    "qrText": "https://example.com/p/MBP-001"
+    "qrText": "https://example.com/p/MBP-001",
+    "barcodeText": "MBP-001"
   }
 }
 ```
@@ -128,42 +129,14 @@ HTML 渲染
 - `e-print-client/config.json` 中 `clientId` 为 `CLIENT-001`
 - 如需观察打印弹窗，将 `silent` 设置为 `false`
 
-## 用例 1：健康检查
+## 用例：创建商品标签打印任务
 
-请求：
+目标：
 
-```text
-GET http://localhost:9090/api/health
-```
-
-预期结果：
-
-```json
-{
-  "code": 200,
-  "msg": "ok",
-  "data": {
-    "service": "e-print-server",
-    "status": "UP"
-  }
-}
-```
-
-## 用例 2：获取打印模板
-
-请求：
-
-```text
-GET http://localhost:9090/api/templates/product-label
-```
-
-预期结果：
-
-- `code` 为 `200`
-- `data.templateCode` 为 `product-label`
-- `data.content` 返回 HTML 模板内容
-
-## 用例 3：创建打印任务
+- 业务系统通过 HTTP 创建打印任务
+- `e-print-server` 根据 `clientId` 将任务推送给指定 `e-print-client`
+- `e-print-client` 下载 `product-label` 模板，渲染商品信息、二维码和条码
+- 本地打印机执行打印，并由客户端回传结果
 
 请求：
 
@@ -183,7 +156,8 @@ Content-Type: application/json
     "productName": "MacBook Pro",
     "sku": "MBP-001",
     "price": "19999",
-    "qrText": "https://example.com/p/MBP-001"
+    "qrText": "https://example.com/p/MBP-001",
+    "barcodeText": "MBP-001"
   }
 }
 ```
@@ -192,55 +166,42 @@ Content-Type: application/json
 
 - `code` 为 `200`
 - 返回 `taskId`
-- 如果客户端已连接，`status` 为 `DISPATCHED`
-- 如果客户端未连接，`status` 为 `CREATED`
+- `status` 为 `DISPATCHED`
+- 客户端弹出打印窗口或执行静默打印
+- 打印完成后，任务状态更新为 `SUCCESS`
 
-## 用例 4：查询打印任务
-
-请求：
+查询任务状态：
 
 ```text
 GET http://localhost:9090/api/print/tasks/{taskId}
 ```
 
-预期结果：
+## 调用时序图
 
-- 能查询到刚创建的打印任务
-- 打印完成后，`status` 应更新为 `SUCCESS`
-- 打印失败时，`status` 应更新为 `FAILED`，并返回 `resultMessage`
+```mermaid
+sequenceDiagram
+    participant Biz as 业务系统
+    participant Server as e-print-server
+    participant Client as e-print-client
+    participant Template as 模板接口
+    participant Printer as 本地打印机
 
-## 用例 5：模拟客户端回传打印结果
+    Client->>Server: WebSocket 连接 /ws/print?clientId=CLIENT-001
+    Server-->>Client: CONNECTED
 
-请求：
+    Biz->>Server: POST /api/print/tasks
+    Server->>Server: 创建内存打印任务
+    Server->>Client: WebSocket 推送 print-task
+    Server-->>Biz: 返回 taskId，status=DISPATCHED
 
-```text
-POST http://localhost:9090/api/print/tasks/{taskId}/result
-Content-Type: application/json
+    Client->>Template: GET /api/templates/product-label
+    Template-->>Client: 返回 HTML 模板
+    Client->>Client: 渲染数据、二维码、条码
+    Client->>Printer: 调用 Electron 打印
+    Printer-->>Client: 打印结果
+    Client->>Server: 回传 print-result
+    Server->>Server: 更新任务状态
 ```
-
-成功请求体：
-
-```json
-{
-  "status": "SUCCESS",
-  "message": "打印完成"
-}
-```
-
-失败请求体：
-
-```json
-{
-  "status": "FAILED",
-  "message": "打印机离线"
-}
-```
-
-预期结果：
-
-- `code` 为 `200`
-- 任务状态更新为请求中的结果状态
-- `resultMessage` 更新为请求中的 `message`
 
 ---
 
