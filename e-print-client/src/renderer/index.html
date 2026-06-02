@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>e-print client</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="header">
+        <div>
+          <h1>e-print client</h1>
+          <p id="configPath"></p>
+        </div>
+        <div class="status" id="statusBadge">
+          <span class="dot"></span>
+          <span id="statusText">Idle</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panelHeader">
+          <h2>Connection</h2>
+          <button type="button" id="reconnectButton" class="secondary">Reconnect</button>
+        </div>
+
+        <form id="configForm">
+          <label for="serverUrl">WebSocket URL</label>
+          <div class="inputRow">
+            <input id="serverUrl" name="serverUrl" type="url" placeholder="ws://localhost:9090/ws/print" required>
+            <button type="submit">Save and connect</button>
+          </div>
+
+          <label for="clientId">Client ID</label>
+          <input id="clientId" name="clientId" type="text" placeholder="CLIENT-001" required>
+
+          <div class="readonly">
+            <span>Template API</span>
+            <strong id="templateBaseUrl"></strong>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panelHeader">
+          <h2>Printer</h2>
+          <button type="button" id="refreshPrintersButton" class="secondary">Refresh</button>
+        </div>
+
+        <div class="printerGrid">
+          <label for="printerName">Printer</label>
+          <div class="inputRow">
+            <select id="printerName" name="printerName">
+              <option value="">System default printer</option>
+            </select>
+            <button type="button" id="testPrintButton">Print test page</button>
+          </div>
+
+          <label class="checkRow">
+            <input id="silent" name="silent" type="checkbox">
+            <span>Silent printing</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Connection status</h2>
+        <dl class="details">
+          <div>
+            <dt>URL</dt>
+            <dd id="statusUrl">-</dd>
+          </div>
+          <div>
+            <dt>Message</dt>
+            <dd id="statusMessage">-</dd>
+          </div>
+          <div>
+            <dt>Updated</dt>
+            <dd id="statusUpdatedAt">-</dd>
+          </div>
+        </dl>
+        <p class="feedback" id="feedback"></p>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>
