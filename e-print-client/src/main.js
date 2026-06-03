@@ -1,7 +1,7 @@
 ﻿'use strict';
 
 const path = require('node:path');
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron');
 const { deriveTemplateBaseUrl, loadConfig, saveConfig, resolveConfigPath } = require('./lib/config');
 const { startPrintClient } = require('./lib/ws-client');
 const { createElectronPrinter } = require('./printer/electron-printer');
@@ -47,36 +47,42 @@ const TEST_PAGE_HTML = `<!doctype html>
   </body>
 </html>`;
 
+const DEFAULT_WINDOW_BACKGROUND = '#f4f6f7';
+const START_HIDDEN_ARG = '--hidden';
+
 let client;
 let mainWindow;
+let tray;
 let currentConfig;
 let currentLanguage = 'en';
+let isQuitting = false;
 
 app.whenReady().then(() => {
   currentConfig = loadConfig();
   currentLanguage = detectLanguage();
   saveConfig(currentConfig);
   registerIpcHandlers();
+  enableAutoLaunch();
   applyApplicationMenu(currentLanguage);
+  createTray(currentLanguage);
   createMainWindow();
   restartClient(currentConfig);
 });
 
 app.on('before-quit', () => {
+  isQuitting = true;
   if (client && typeof client.stop === 'function') {
     client.stop();
   }
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+app.on('window-all-closed', () => {});
 
 app.on('activate', () => {
   if (!mainWindow) {
     createMainWindow();
+  } else {
+    showMainWindow();
   }
 });
 
@@ -87,12 +93,23 @@ function createMainWindow() {
     minWidth: 680,
     minHeight: 410,
     title: 'E-PRINT-CLIENT',
+    icon: path.join(__dirname, '..', 'assets', 'e-print-icon.png'),
+    backgroundColor: DEFAULT_WINDOW_BACKGROUND,
+    show: !shouldStartHidden(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false
     }
+  });
+
+  mainWindow.on('close', (event) => {
+    if (isQuitting) {
+      return;
+    }
+    event.preventDefault();
+    hideMainWindow();
   });
 
   mainWindow.on('closed', () => {
@@ -153,8 +170,98 @@ function registerIpcHandlers() {
   ipcMain.handle('app:set-language', (_event, language) => {
     currentLanguage = normalizeLanguage(language);
     applyApplicationMenu(currentLanguage);
+    updateTrayMenu(currentLanguage);
     return currentLanguage;
   });
+
+  ipcMain.handle('app:set-theme', (_event, theme) => {
+    const backgroundColor = themeWindowBackgrounds[theme] || DEFAULT_WINDOW_BACKGROUND;
+    if (mainWindow && typeof mainWindow.setBackgroundColor === 'function') {
+      mainWindow.setBackgroundColor(backgroundColor);
+    }
+    return backgroundColor;
+  });
+}
+
+function createTray(language) {
+  if (tray) {
+    updateTrayMenu(language);
+    return;
+  }
+
+  tray = new Tray(path.join(__dirname, '..', 'assets', 'e-print-icon.png'));
+  tray.on('click', showMainWindow);
+  tray.on('double-click', showMainWindow);
+  updateTrayMenu(language);
+}
+
+function updateTrayMenu(language) {
+  if (!tray) {
+    return;
+  }
+
+  const labels = menuLabels[normalizeLanguage(language)];
+  tray.setToolTip(labels.trayTooltip);
+  tray.setContextMenu(Menu.buildFromTemplate([
+    {
+      label: labels.showWindow,
+      click: showMainWindow
+    },
+    {
+      label: labels.hideWindow,
+      click: hideMainWindow
+    },
+    { type: 'separator' },
+    {
+      label: labels.quit,
+      click: quitApplication
+    }
+  ]));
+}
+
+function showMainWindow() {
+  if (!mainWindow) {
+    createMainWindow();
+    return;
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function hideMainWindow() {
+  if (mainWindow) {
+    mainWindow.hide();
+  }
+}
+
+function quitApplication() {
+  isQuitting = true;
+  app.quit();
+}
+
+function enableAutoLaunch() {
+  if (typeof app.setLoginItemSettings !== 'function') {
+    return;
+  }
+
+  const args = app.isPackaged
+    ? [START_HIDDEN_ARG]
+    : [app.getAppPath(), START_HIDDEN_ARG];
+
+  app.setLoginItemSettings({
+    openAtLogin: true,
+    openAsHidden: true,
+    path: process.execPath,
+    args
+  });
+}
+
+function shouldStartHidden() {
+  return process.argv.includes(START_HIDDEN_ARG);
 }
 
 function applyApplicationMenu(language) {
@@ -252,7 +359,10 @@ const menuLabels = {
     minimize: 'Minimize',
     close: 'Close',
     help: 'Help',
-    about: 'About E-PRINT-CLIENT'
+    about: 'About E-PRINT-CLIENT',
+    showWindow: 'Show E-PRINT-CLIENT',
+    hideWindow: 'Hide window',
+    trayTooltip: 'E-PRINT-CLIENT is running'
   },
   'zh-CN': {
     file: '\u6587\u4ef6',
@@ -276,8 +386,24 @@ const menuLabels = {
     minimize: '\u6700\u5c0f\u5316',
     close: '\u5173\u95ed',
     help: '\u5e2e\u52a9',
-    about: '\u5173\u4e8e E-PRINT-CLIENT'
+    about: '\u5173\u4e8e E-PRINT-CLIENT',
+    showWindow: '\u663e\u793a E-PRINT-CLIENT',
+    hideWindow: '\u9690\u85cf\u7a97\u53e3',
+    trayTooltip: 'E-PRINT-CLIENT \u6b63\u5728\u8fd0\u884c'
   }
+};
+
+const themeWindowBackgrounds = {
+  ocean: '#edf6f5',
+  sunset: '#fff5ea',
+  forest: '#f2f4ec',
+  minimalist: '#f4f6f7',
+  golden: '#fbf2e6',
+  arctic: '#eef5fd',
+  desert: '#f8eee9',
+  tech: '#f1f7ff',
+  botanical: '#f5f3ed',
+  midnight: '#f1eef7'
 };
 
 async function listPrinters() {

@@ -410,6 +410,9 @@ function applyTheme(theme) {
   currentTheme = availableThemes.includes(normalizedTheme) ? normalizedTheme : 'minimalist';
   document.documentElement.dataset.theme = currentTheme;
   localStorage.setItem('ePrintTheme', currentTheme);
+  if (typeof api.setTheme === 'function') {
+    api.setTheme(currentTheme).catch(() => {});
+  }
   themeButton.setAttribute('aria-label', themeLabels[currentTheme]);
   themeSwatch.className = `themeSwatch ${themeClassName(currentTheme)}`;
 

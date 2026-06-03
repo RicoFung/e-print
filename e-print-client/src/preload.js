@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('ePrintClient', {
   listPrinters: () => ipcRenderer.invoke('printers:list'),
   printTestPage: (options) => ipcRenderer.invoke('printer:test', options),
   setLanguage: (language) => ipcRenderer.invoke('app:set-language', language),
+  setTheme: (theme) => ipcRenderer.invoke('app:set-theme', theme),
   onStatusChange: (callback) => {
     const listener = (_event, status) => callback(status);
     ipcRenderer.on('connection:status', listener);

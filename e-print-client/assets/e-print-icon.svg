@@ -1,0 +1,49 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Soft hand-drawn printer icon">
+  <defs>
+    <linearGradient id="bodyGrad" x1="46" y1="75" x2="210" y2="206" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F2ECD8"/>
+      <stop offset="1" stop-color="#D9D1B9"/>
+    </linearGradient>
+    <linearGradient id="darkGrad" x1="75" y1="122" x2="187" y2="201" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#415762"/>
+      <stop offset="1" stop-color="#243842"/>
+    </linearGradient>
+    <filter id="softShadow" x="20" y="36" width="216" height="194" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#6C6252" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <g filter="url(#softShadow)" stroke="#6A5F4E" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round">
+    <!-- rear paper -->
+    <path d="M88 29H168C174.6 29 180 34.4 180 41V93H76V41C76 34.4 81.4 29 88 29Z" fill="#FFF5D9"/>
+    <path d="M92 47H164" stroke="#D6C9AC" stroke-width="3" opacity="0.55"/>
+    <path d="M92 62H154" stroke="#D6C9AC" stroke-width="3" opacity="0.45"/>
+
+    <!-- side supports -->
+    <path d="M66 77H88V112H66V77Z" fill="#4C6571"/>
+    <path d="M168 77H190V112H168V77Z" fill="#4C6571"/>
+
+    <!-- main printer body -->
+    <path d="M48 91H208C219 91 228 100 228 111V171C228 183.7 217.7 194 205 194H51C38.3 194 28 183.7 28 171V111C28 100 37 91 48 91Z" fill="url(#bodyGrad)"/>
+    <path d="M30 156H226V171C226 183.2 216.2 193 204 193H52C39.8 193 30 183.2 30 171V156Z" fill="#425963" opacity="0.92"/>
+
+    <!-- output slot -->
+    <path d="M70 130H186C193.2 130 199 135.8 199 143V160H57V143C57 135.8 62.8 130 70 130Z" fill="#263942"/>
+    <path d="M72 137H184" stroke="#5E737B" stroke-width="3" opacity="0.5"/>
+
+    <!-- output tray -->
+    <path d="M76 159H180L188 213H68L76 159Z" fill="url(#darkGrad)"/>
+
+    <!-- front paper -->
+    <path d="M80 153H176C180.4 153 184.2 156.2 185 160.5L192 202.5C192.9 207.4 189.1 212 184.1 212H71.9C66.9 212 63.1 207.4 64 202.5L71 160.5C71.8 156.2 75.6 153 80 153Z" fill="#FFF5D8"/>
+    <path d="M92 174H164" stroke="#BEB49D" stroke-width="5" opacity="0.75"/>
+    <path d="M92 191H164" stroke="#BEB49D" stroke-width="5" opacity="0.75"/>
+
+    <!-- indicator light -->
+    <circle cx="60" cy="119" r="10" fill="#9DD67E"/>
+    <circle cx="57" cy="116" r="4" fill="#D8F2B7" opacity="0.85" stroke="none"/>
+
+    <!-- hand-drawn highlights -->
+    <path d="M47 103C80 98 171 98 209 104" stroke="#FFF9E7" stroke-width="2.2" opacity="0.6"/>
+    <path d="M202 101C214 107 219 119 218 135" stroke="#F8EED3" stroke-width="2" opacity="0.45"/>
+  </g>
+</svg>
