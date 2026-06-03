@@ -9,29 +9,8 @@
   <body>
     <main class="shell">
       <section class="header">
-        <div class="brand">
-          <div>
-            <h1>E-PRINT-CLIENT</h1>
-            <p class="subtitle" data-i18n="appSubtitle">Local print bridge</p>
-          </div>
-        </div>
         <div class="headerActions">
-          <div class="status" id="statusBadge">
-            <span class="dot"></span>
-            <span id="statusText">Idle</span>
-          </div>
           <div class="controlRow">
-            <div class="themeField">
-              <button type="button" id="themeButton" class="themeSelectButton" aria-haspopup="listbox" aria-expanded="false">
-                <span class="visuallyHidden" data-i18n="theme">Theme</span>
-                <span id="themeSwatch" class="themeSwatch" aria-hidden="true"></span>
-              </button>
-              <div id="themeMenu" class="themeMenu" role="listbox" hidden>
-                <button type="button" class="themeOption themeMint" data-theme-value="mint" role="option" aria-label="Mint"></button>
-                <button type="button" class="themeOption themeSky" data-theme-value="sky" role="option" aria-label="Sky"></button>
-                <button type="button" class="themeOption themePeach" data-theme-value="peach" role="option" aria-label="Peach"></button>
-              </div>
-            </div>
             <div class="languageField">
               <button type="button" id="languageButton" class="dropdownButton" aria-haspopup="listbox" aria-expanded="false">
                 <span class="visuallyHidden" data-i18n="language">Language</span>
@@ -40,6 +19,24 @@
               <div id="languageMenu" class="dropdownMenu languageMenu" role="listbox" hidden>
                 <button type="button" class="languageOption" data-language-value="zh-CN" role="option">中文</button>
                 <button type="button" class="languageOption" data-language-value="en" role="option">EN</button>
+              </div>
+            </div>
+            <div class="themeField">
+              <button type="button" id="themeButton" class="themeSelectButton" aria-haspopup="listbox" aria-expanded="false">
+                <span class="visuallyHidden" data-i18n="theme">Theme</span>
+                <span id="themeSwatch" class="themeSwatch" aria-hidden="true"></span>
+              </button>
+              <div id="themeMenu" class="themeMenu" role="listbox" hidden>
+                <button type="button" class="themeOption themeOcean" data-theme-value="ocean" role="option" aria-label="Ocean Depths"></button>
+                <button type="button" class="themeOption themeSunset" data-theme-value="sunset" role="option" aria-label="Sunset Boulevard"></button>
+                <button type="button" class="themeOption themeForest" data-theme-value="forest" role="option" aria-label="Forest Canopy"></button>
+                <button type="button" class="themeOption themeMinimalist" data-theme-value="minimalist" role="option" aria-label="Modern Minimalist"></button>
+                <button type="button" class="themeOption themeGolden" data-theme-value="golden" role="option" aria-label="Golden Hour"></button>
+                <button type="button" class="themeOption themeArctic" data-theme-value="arctic" role="option" aria-label="Arctic Frost"></button>
+                <button type="button" class="themeOption themeDesert" data-theme-value="desert" role="option" aria-label="Desert Rose"></button>
+                <button type="button" class="themeOption themeTech" data-theme-value="tech" role="option" aria-label="Tech Innovation"></button>
+                <button type="button" class="themeOption themeBotanical" data-theme-value="botanical" role="option" aria-label="Botanical Garden"></button>
+                <button type="button" class="themeOption themeMidnight" data-theme-value="midnight" role="option" aria-label="Midnight Galaxy"></button>
               </div>
             </div>
           </div>
@@ -52,7 +49,6 @@
             <div>
               <h2 data-i18n="connection">Connection</h2>
             </div>
-            <button type="button" id="reconnectButton" class="secondary" data-i18n="reconnect">Reconnect</button>
           </div>
 
           <form id="configForm">
@@ -66,6 +62,7 @@
 
             <div class="cardActions">
               <button type="submit" class="primaryAction" data-i18n="saveConnect">Save and connect</button>
+              <button type="button" id="reconnectButton" class="secondary" data-i18n="reconnect">Reconnect</button>
             </div>
           </form>
         </section>
@@ -75,7 +72,6 @@
             <div>
               <h2 data-i18n="device">Device</h2>
             </div>
-            <button type="button" id="refreshPrintersButton" class="secondary" data-i18n="refresh">Refresh</button>
           </div>
 
           <div class="printerGrid">
@@ -84,39 +80,25 @@
               <option value="">System default printer</option>
             </select>
 
-            <label class="checkRow">
-              <input id="silent" name="silent" type="checkbox">
-              <span data-i18n="silentPrinting">Silent printing</span>
-            </label>
+            <label for="silent" data-i18n="silentPrinting">Silent printing</label>
+            <select id="silent" name="silent">
+              <option value="true" data-i18n="silentEnabled">Enabled</option>
+              <option value="false" data-i18n="silentDisabled">Disabled</option>
+            </select>
 
             <div class="cardActions">
               <button type="button" id="testPrintButton" class="primaryAction" data-i18n="printTest">Print test page</button>
+              <button type="button" id="refreshPrintersButton" class="secondary" data-i18n="refresh">Refresh</button>
             </div>
           </div>
         </section>
+      </section>
 
-        <section class="panel statusPanel">
-          <div class="panelHeader compact">
-            <div>
-              <h2 data-i18n="connectionStatus">Connection status</h2>
-            </div>
-          </div>
-          <dl class="details">
-            <div>
-              <dt data-i18n="url">URL</dt>
-              <dd id="statusUrl">-</dd>
-            </div>
-            <div>
-              <dt data-i18n="message">Message</dt>
-              <dd id="statusMessage">-</dd>
-            </div>
-            <div>
-              <dt data-i18n="updated">Updated</dt>
-              <dd id="statusUpdatedAt">-</dd>
-            </div>
-          </dl>
-          <p class="feedback" id="feedback"></p>
-        </section>
+      <section class="statusBar">
+        <div class="status" id="statusBadge">
+          <span class="dot"></span>
+          <span id="statusText">Idle</span>
+        </div>
       </section>
     </main>
     <script src="./app.js"></script>

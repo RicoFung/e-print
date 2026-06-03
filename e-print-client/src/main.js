@@ -1,7 +1,7 @@
 ﻿'use strict';
 
 const path = require('node:path');
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const { deriveTemplateBaseUrl, loadConfig, saveConfig, resolveConfigPath } = require('./lib/config');
 const { startPrintClient } = require('./lib/ws-client');
 const { createElectronPrinter } = require('./printer/electron-printer');
@@ -50,11 +50,14 @@ const TEST_PAGE_HTML = `<!doctype html>
 let client;
 let mainWindow;
 let currentConfig;
+let currentLanguage = 'en';
 
 app.whenReady().then(() => {
   currentConfig = loadConfig();
+  currentLanguage = detectLanguage();
   saveConfig(currentConfig);
   registerIpcHandlers();
+  applyApplicationMenu(currentLanguage);
   createMainWindow();
   restartClient(currentConfig);
 });
@@ -79,10 +82,10 @@ app.on('activate', () => {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 820,
-    height: 680,
+    width: 680,
+    height: 410,
     minWidth: 680,
-    minHeight: 560,
+    minHeight: 410,
     title: 'E-PRINT-CLIENT',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -147,7 +150,135 @@ function registerIpcHandlers() {
     };
   });
 
+  ipcMain.handle('app:set-language', (_event, language) => {
+    currentLanguage = normalizeLanguage(language);
+    applyApplicationMenu(currentLanguage);
+    return currentLanguage;
+  });
 }
+
+function applyApplicationMenu(language) {
+  const labels = menuLabels[normalizeLanguage(language)];
+  const template = [
+    {
+      label: labels.file,
+      submenu: [
+        {
+          label: labels.quit,
+          role: 'quit'
+        }
+      ]
+    },
+    {
+      label: labels.edit,
+      submenu: [
+        { label: labels.undo, role: 'undo' },
+        { label: labels.redo, role: 'redo' },
+        { type: 'separator' },
+        { label: labels.cut, role: 'cut' },
+        { label: labels.copy, role: 'copy' },
+        { label: labels.paste, role: 'paste' },
+        { label: labels.selectAll, role: 'selectAll' }
+      ]
+    },
+    {
+      label: labels.view,
+      submenu: [
+        { label: labels.reload, role: 'reload' },
+        { label: labels.forceReload, role: 'forceReload' },
+        { label: labels.toggleDevTools, role: 'toggleDevTools' },
+        { type: 'separator' },
+        { label: labels.resetZoom, role: 'resetZoom' },
+        { label: labels.zoomIn, role: 'zoomIn' },
+        { label: labels.zoomOut, role: 'zoomOut' },
+        { type: 'separator' },
+        { label: labels.toggleFullScreen, role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: labels.window,
+      submenu: [
+        { label: labels.minimize, role: 'minimize' },
+        { label: labels.close, role: 'close' }
+      ]
+    },
+    {
+      label: labels.help,
+      submenu: [
+        {
+          label: labels.about,
+          click: () => {
+            if (mainWindow && mainWindow.webContents) {
+              mainWindow.webContents.send('app:about');
+            }
+          }
+        }
+      ]
+    }
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function detectLanguage() {
+  const locale = typeof app.getLocale === 'function' ? app.getLocale() : '';
+  return normalizeLanguage(locale);
+}
+
+function normalizeLanguage(language) {
+  return String(language || '').toLowerCase().startsWith('zh') ? 'zh-CN' : 'en';
+}
+
+const menuLabels = {
+  en: {
+    file: 'File',
+    quit: 'Quit',
+    edit: 'Edit',
+    undo: 'Undo',
+    redo: 'Redo',
+    cut: 'Cut',
+    copy: 'Copy',
+    paste: 'Paste',
+    selectAll: 'Select All',
+    view: 'View',
+    reload: 'Reload',
+    forceReload: 'Force Reload',
+    toggleDevTools: 'Toggle Developer Tools',
+    resetZoom: 'Actual Size',
+    zoomIn: 'Zoom In',
+    zoomOut: 'Zoom Out',
+    toggleFullScreen: 'Toggle Full Screen',
+    window: 'Window',
+    minimize: 'Minimize',
+    close: 'Close',
+    help: 'Help',
+    about: 'About E-PRINT-CLIENT'
+  },
+  'zh-CN': {
+    file: '\u6587\u4ef6',
+    quit: '\u9000\u51fa',
+    edit: '\u7f16\u8f91',
+    undo: '\u64a4\u9500',
+    redo: '\u91cd\u505a',
+    cut: '\u526a\u5207',
+    copy: '\u590d\u5236',
+    paste: '\u7c98\u8d34',
+    selectAll: '\u5168\u9009',
+    view: '\u89c6\u56fe',
+    reload: '\u91cd\u65b0\u52a0\u8f7d',
+    forceReload: '\u5f3a\u5236\u91cd\u65b0\u52a0\u8f7d',
+    toggleDevTools: '\u5f00\u53d1\u8005\u5de5\u5177',
+    resetZoom: '\u5b9e\u9645\u5927\u5c0f',
+    zoomIn: '\u653e\u5927',
+    zoomOut: '\u7f29\u5c0f',
+    toggleFullScreen: '\u5207\u6362\u5168\u5c4f',
+    window: '\u7a97\u53e3',
+    minimize: '\u6700\u5c0f\u5316',
+    close: '\u5173\u95ed',
+    help: '\u5e2e\u52a9',
+    about: '\u5173\u4e8e E-PRINT-CLIENT'
+  }
+};
 
 async function listPrinters() {
   if (!mainWindow || !mainWindow.webContents || typeof mainWindow.webContents.getPrintersAsync !== 'function') {

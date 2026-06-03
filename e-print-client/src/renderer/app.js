@@ -6,14 +6,10 @@ const form = document.getElementById('configForm');
 const serverUrlInput = document.getElementById('serverUrl');
 const clientIdInput = document.getElementById('clientId');
 const printerNameSelect = document.getElementById('printerName');
-const silentInput = document.getElementById('silent');
+const silentSelect = document.getElementById('silent');
 const templateBaseUrl = document.getElementById('templateBaseUrl');
 const statusBadge = document.getElementById('statusBadge');
 const statusText = document.getElementById('statusText');
-const statusUrl = document.getElementById('statusUrl');
-const statusMessage = document.getElementById('statusMessage');
-const statusUpdatedAt = document.getElementById('statusUpdatedAt');
-const feedback = document.getElementById('feedback');
 const reconnectButton = document.getElementById('reconnectButton');
 const refreshPrintersButton = document.getElementById('refreshPrintersButton');
 const testPrintButton = document.getElementById('testPrintButton');
@@ -51,6 +47,8 @@ const messages = {
     refresh: 'Refresh',
     printTest: 'Print test page',
     silentPrinting: 'Silent printing',
+    silentEnabled: 'Enabled',
+    silentDisabled: 'Disabled',
     connectionStatus: 'Status',
     statusHint: 'Live connection diagnostics.',
     url: 'URL',
@@ -96,6 +94,8 @@ const messages = {
     refresh: '\u5237\u65b0',
     printTest: '\u6253\u5370\u6d4b\u8bd5\u9875',
     silentPrinting: '\u9759\u9ed8\u6253\u5370',
+    silentEnabled: '\u5f00\u542f',
+    silentDisabled: '\u5173\u95ed',
     connectionStatus: '\u72b6\u6001',
     statusHint: '\u5b9e\u65f6\u8fde\u63a5\u8bca\u65ad\u3002',
     url: '\u5730\u5740',
@@ -123,6 +123,25 @@ const messages = {
     noPrintersFound: '\u672a\u627e\u5230\u6253\u5370\u673a\u3002',
     loadPrintersFailed: '\u52a0\u8f7d\u6253\u5370\u673a\u5931\u8d25\u3002'
   }
+};
+
+const themeLabels = {
+  ocean: 'Ocean Depths',
+  sunset: 'Sunset Boulevard',
+  forest: 'Forest Canopy',
+  minimalist: 'Modern Minimalist',
+  golden: 'Golden Hour',
+  arctic: 'Arctic Frost',
+  desert: 'Desert Rose',
+  tech: 'Tech Innovation',
+  botanical: 'Botanical Garden',
+  midnight: 'Midnight Galaxy'
+};
+
+const legacyThemeMap = {
+  mint: 'botanical',
+  sky: 'arctic',
+  peach: 'sunset'
 };
 
 init();
@@ -165,7 +184,7 @@ testPrintButton.addEventListener('click', async () => {
     await saveConfig('', '');
     const result = await api.printTestPage({
       printerName: printerNameSelect.value,
-      silent: silentInput.checked
+      silent: isSilentSelected()
     });
     const printerLabel = result.printerName || t('systemDefaultPrinter');
     setFeedback(t('testPageSent', { printer: printerLabel }));
@@ -223,10 +242,10 @@ printerNameSelect.addEventListener('change', () => {
   };
 });
 
-silentInput.addEventListener('change', () => {
+silentSelect.addEventListener('change', () => {
   currentConfig = {
     ...currentConfig,
-    silent: silentInput.checked
+    silent: isSilentSelected()
   };
 });
 
@@ -240,7 +259,7 @@ async function saveConfig(startMessage, successMessage) {
     serverUrl: serverUrlInput.value.trim(),
     clientId: clientIdInput.value.trim(),
     printerName: printerNameSelect.value,
-    silent: silentInput.checked
+    silent: isSilentSelected()
   });
 
   currentConfig = result.config;
@@ -268,9 +287,13 @@ async function loadPrinters() {
 function renderConfig(result) {
   serverUrlInput.value = result.config.serverUrl || '';
   clientIdInput.value = result.config.clientId || '';
-  silentInput.checked = result.config.silent !== false;
+  silentSelect.value = result.config.silent === false ? 'false' : 'true';
   templateBaseUrl.textContent = result.config.templateBaseUrl || '';
   renderPrinters();
+}
+
+function isSilentSelected() {
+  return silentSelect.value !== 'false';
 }
 
 function renderPrinters() {
@@ -305,20 +328,33 @@ function renderStatus(status) {
   const state = status && status.state ? status.state : 'idle';
   statusBadge.className = `status ${state}`;
   statusText.textContent = statusLabel(state);
-  statusUrl.textContent = status && status.serverUrl ? status.serverUrl : '-';
-  statusMessage.textContent = status && status.message ? status.message : '-';
-  statusUpdatedAt.textContent = status && status.updatedAt
-    ? new Date(status.updatedAt).toLocaleString()
-    : '-';
+  statusBadge.title = createStatusTitle(status);
 }
 
 function statusLabel(state) {
   return t(state) || state;
 }
 
-function setFeedback(message, isError) {
-  feedback.textContent = message;
-  feedback.className = isError ? 'feedback error' : 'feedback';
+function setFeedback() {
+  // The UI intentionally only shows the connection state color box.
+}
+
+function createStatusTitle(status) {
+  if (!status) {
+    return '';
+  }
+
+  const details = [];
+  if (status.serverUrl) {
+    details.push(`${t('url')}: ${status.serverUrl}`);
+  }
+  if (status.message) {
+    details.push(`${t('message')}: ${status.message}`);
+  }
+  if (status.updatedAt) {
+    details.push(`${t('updated')}: ${new Date(status.updatedAt).toLocaleString()}`);
+  }
+  return details.join('\n');
 }
 
 function deriveTemplateBaseUrl(serverUrl) {
@@ -332,6 +368,9 @@ function deriveTemplateBaseUrl(serverUrl) {
 
 function applyLanguage(language) {
   currentLanguage = messages[language] ? language : 'en';
+  if (typeof api.setLanguage === 'function') {
+    api.setLanguage(currentLanguage).catch(() => {});
+  }
   document.documentElement.lang = currentLanguage;
   languageText.textContent = currentLanguage === 'zh-CN' ? '\u4e2d\u6587' : 'EN';
 
@@ -362,15 +401,17 @@ function detectLanguage() {
 }
 
 function loadTheme() {
-  return localStorage.getItem('ePrintTheme') || 'mint';
+  return localStorage.getItem('ePrintTheme') || 'minimalist';
 }
 
 function applyTheme(theme) {
-  const availableThemes = ['mint', 'sky', 'peach'];
-  currentTheme = availableThemes.includes(theme) ? theme : 'mint';
+  const availableThemes = Object.keys(themeLabels);
+  const normalizedTheme = legacyThemeMap[theme] || theme;
+  currentTheme = availableThemes.includes(normalizedTheme) ? normalizedTheme : 'minimalist';
   document.documentElement.dataset.theme = currentTheme;
   localStorage.setItem('ePrintTheme', currentTheme);
-  themeSwatch.className = `themeSwatch theme${capitalize(currentTheme)}`;
+  themeButton.setAttribute('aria-label', themeLabels[currentTheme]);
+  themeSwatch.className = `themeSwatch ${themeClassName(currentTheme)}`;
 
   for (const option of themeOptions) {
     const isSelected = option.dataset.themeValue === currentTheme;
@@ -399,6 +440,10 @@ function toggleLanguageMenu(isOpen) {
 
 function capitalize(value) {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
+}
+
+function themeClassName(theme) {
+  return `theme${capitalize(theme)}`;
 }
 
 function t(key, params) {
