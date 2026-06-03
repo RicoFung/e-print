@@ -1,88 +1,125 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>e-print client</title>
+    <title>E-PRINT-CLIENT</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
     <main class="shell">
       <section class="header">
-        <div>
-          <h1>e-print client</h1>
-          <p id="configPath"></p>
+        <div class="brand">
+          <div>
+            <h1>E-PRINT-CLIENT</h1>
+            <p class="subtitle" data-i18n="appSubtitle">Local print bridge</p>
+          </div>
         </div>
-        <div class="status" id="statusBadge">
-          <span class="dot"></span>
-          <span id="statusText">Idle</span>
+        <div class="headerActions">
+          <div class="status" id="statusBadge">
+            <span class="dot"></span>
+            <span id="statusText">Idle</span>
+          </div>
+          <div class="controlRow">
+            <div class="themeField">
+              <button type="button" id="themeButton" class="themeSelectButton" aria-haspopup="listbox" aria-expanded="false">
+                <span class="visuallyHidden" data-i18n="theme">Theme</span>
+                <span id="themeSwatch" class="themeSwatch" aria-hidden="true"></span>
+              </button>
+              <div id="themeMenu" class="themeMenu" role="listbox" hidden>
+                <button type="button" class="themeOption themeMint" data-theme-value="mint" role="option" aria-label="Mint"></button>
+                <button type="button" class="themeOption themeSky" data-theme-value="sky" role="option" aria-label="Sky"></button>
+                <button type="button" class="themeOption themePeach" data-theme-value="peach" role="option" aria-label="Peach"></button>
+              </div>
+            </div>
+            <div class="languageField">
+              <button type="button" id="languageButton" class="dropdownButton" aria-haspopup="listbox" aria-expanded="false">
+                <span class="visuallyHidden" data-i18n="language">Language</span>
+                <span id="languageText">中文</span>
+              </button>
+              <div id="languageMenu" class="dropdownMenu languageMenu" role="listbox" hidden>
+                <button type="button" class="languageOption" data-language-value="zh-CN" role="option">中文</button>
+                <button type="button" class="languageOption" data-language-value="en" role="option">EN</button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section class="panel">
-        <div class="panelHeader">
-          <h2>Connection</h2>
-          <button type="button" id="reconnectButton" class="secondary">Reconnect</button>
-        </div>
+      <section class="contentGrid">
+        <section class="panel">
+          <div class="panelHeader">
+            <div>
+              <h2 data-i18n="connection">Connection</h2>
+            </div>
+            <button type="button" id="reconnectButton" class="secondary" data-i18n="reconnect">Reconnect</button>
+          </div>
 
-        <form id="configForm">
-          <label for="serverUrl">WebSocket URL</label>
-          <div class="inputRow">
+          <form id="configForm">
+            <label for="serverUrl" data-i18n="websocketUrl">WebSocket URL</label>
             <input id="serverUrl" name="serverUrl" type="url" placeholder="ws://localhost:9090/ws/print" required>
-            <button type="submit">Save and connect</button>
+
+            <label for="clientId" data-i18n="clientId">Client ID</label>
+            <input id="clientId" name="clientId" type="text" placeholder="CLIENT-001" required>
+
+            <strong id="templateBaseUrl" hidden></strong>
+
+            <div class="cardActions">
+              <button type="submit" class="primaryAction" data-i18n="saveConnect">Save and connect</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panelHeader">
+            <div>
+              <h2 data-i18n="device">Device</h2>
+            </div>
+            <button type="button" id="refreshPrintersButton" class="secondary" data-i18n="refresh">Refresh</button>
           </div>
 
-          <label for="clientId">Client ID</label>
-          <input id="clientId" name="clientId" type="text" placeholder="CLIENT-001" required>
-
-          <div class="readonly">
-            <span>Template API</span>
-            <strong id="templateBaseUrl"></strong>
-          </div>
-        </form>
-      </section>
-
-      <section class="panel">
-        <div class="panelHeader">
-          <h2>Printer</h2>
-          <button type="button" id="refreshPrintersButton" class="secondary">Refresh</button>
-        </div>
-
-        <div class="printerGrid">
-          <label for="printerName">Printer</label>
-          <div class="inputRow">
+          <div class="printerGrid">
+            <label for="printerName" data-i18n="choosePrinter">Choose printer</label>
             <select id="printerName" name="printerName">
               <option value="">System default printer</option>
             </select>
-            <button type="button" id="testPrintButton">Print test page</button>
-          </div>
 
-          <label class="checkRow">
-            <input id="silent" name="silent" type="checkbox">
-            <span>Silent printing</span>
-          </label>
-        </div>
-      </section>
+            <label class="checkRow">
+              <input id="silent" name="silent" type="checkbox">
+              <span data-i18n="silentPrinting">Silent printing</span>
+            </label>
 
-      <section class="panel">
-        <h2>Connection status</h2>
-        <dl class="details">
-          <div>
-            <dt>URL</dt>
-            <dd id="statusUrl">-</dd>
+            <div class="cardActions">
+              <button type="button" id="testPrintButton" class="primaryAction" data-i18n="printTest">Print test page</button>
+            </div>
           </div>
-          <div>
-            <dt>Message</dt>
-            <dd id="statusMessage">-</dd>
+        </section>
+
+        <section class="panel statusPanel">
+          <div class="panelHeader compact">
+            <div>
+              <h2 data-i18n="connectionStatus">Connection status</h2>
+            </div>
           </div>
-          <div>
-            <dt>Updated</dt>
-            <dd id="statusUpdatedAt">-</dd>
-          </div>
-        </dl>
-        <p class="feedback" id="feedback"></p>
+          <dl class="details">
+            <div>
+              <dt data-i18n="url">URL</dt>
+              <dd id="statusUrl">-</dd>
+            </div>
+            <div>
+              <dt data-i18n="message">Message</dt>
+              <dd id="statusMessage">-</dd>
+            </div>
+            <div>
+              <dt data-i18n="updated">Updated</dt>
+              <dd id="statusUpdatedAt">-</dd>
+            </div>
+          </dl>
+          <p class="feedback" id="feedback"></p>
+        </section>
       </section>
     </main>
     <script src="./app.js"></script>
   </body>
 </html>
+

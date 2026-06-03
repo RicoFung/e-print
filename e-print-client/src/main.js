@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 const path = require('node:path');
 const { app, BrowserWindow, ipcMain } = require('electron');
@@ -83,7 +83,7 @@ function createMainWindow() {
     height: 680,
     minWidth: 680,
     minHeight: 560,
-    title: 'e-print client',
+    title: 'E-PRINT-CLIENT',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -146,6 +146,7 @@ function registerIpcHandlers() {
       silent
     };
   });
+
 }
 
 async function listPrinters() {
@@ -212,3 +213,4 @@ function validateWebSocketUrl(value) {
     throw new Error('WebSocket URL must start with ws:// or wss://');
   }
 }
+
