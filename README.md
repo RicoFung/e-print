@@ -1,152 +1,121 @@
 # e-print
 
-企业级本地打印解决方案。
+企业级本地打印桥接方案。业务系统通过 HTTP 创建打印任务，`e-print-server` 将任务通过 WebSocket 推送给指定的 `e-print-client`，客户端在本机渲染 HTML 打印模板并调用本地打印机。
 
-支持：
-
-- 本地静默打印
-- 标签打印
-- 二维码打印
-- HTML 模板打印
-
----
-
-# 项目结构
+## 项目结构
 
 ```text
 e-print
-├── e-print-client
-├── e-print-server
-└── e-print-admin
+├── e-print-client      # Electron 本地打印客户端
+├── e-print-server      # Spring Boot 打印服务
+├── e-print-admin       # 模板管理后台，规划中
+└── minio               # 本地 MinIO 配置和初始化资源
 ```
 
-| 模块 | 技术栈 | 功能 |
-|---|---|---|
-| e-print-client | Node.js + Electron | 本地打印客户端 |
-| e-print-server | Spring Boot | 打印服务 |
-| e-print-admin | 待定 | 模板管理后台 |
+| 模块 | 技术栈 | 说明 |
+| --- | --- | --- |
+| `e-print-client` | Electron、Node.js、Handlebars、qrcode、bwip-js | 本地打印桥接器 |
+| `e-print-server` | Spring Boot、niko-boot、WebSocket、MyBatis、Oracle、MinIO | 打印任务服务 |
+| `e-print-admin` | 待定 | 模板管理后台 |
 
----
-
-# 架构
+## 调用链路
 
 ```text
 业务系统
-    ↓ REST API
+  -> POST /task
 e-print-server
-    ↓ WebSocket
+  -> WebSocket /ws/print
 e-print-client
-    ↓
+  -> 下载模板、渲染二维码/条码
 本地打印机
-```
-
----
-
-# e-print-client
-
-功能：
-
-- 配置本地打印机
-- 连接 e-print-server
-- 接收打印任务
-- 下载打印模板
-- 生成二维码 / 条码
-- HTML 渲染
-- 静默打印
-- 回传打印结果
-
----
-
-# e-print-server
-
-功能：
-
-- 提供打印 API
-- 管理 WebSocket 连接
-- 下发打印任务
-- 提供模板接口
-- 接收打印结果
-
----
-
-# e-print-admin
-
-功能：
-
-- 模板管理
-- 模板预览
-- 模板发布
-
----
-
-# 打印流程
-
-```text
-业务系统创建打印任务
-        ↓
+  -> 打印结果回传
 e-print-server
-        ↓
-WebSocket 推送
-        ↓
-e-print-client
-        ↓
-下载模板
-        ↓
-生成二维码
-        ↓
-HTML 渲染
-        ↓
-静默打印
 ```
 
----
+## 本地启动
 
-# 打印任务示例
+### 1. 启动 MinIO
 
-```json
-{
-  "clientId": "CLIENT-001",
-  "templateCode": "product-label",
-  "copies": 1,
-  "data": {
-    "productName": "MacBook Pro",
-    "sku": "MBP-001",
-    "price": "19999",
-    "qrText": "https://example.com/p/MBP-001",
-    "barcodeText": "MBP-001"
-  }
-}
+本地对象存储使用 Docker Compose 启动，默认创建 `e-print` bucket。
+
+```bash
+docker compose -f minio/docker-compose.minio.yml up -d
 ```
 
----
+停止：
 
-# 测试用例说明
+```bash
+docker compose -f minio/docker-compose.minio.yml down
+```
 
-## 前置条件
+| 项 | 值 |
+| --- | --- |
+| S3 API | `http://localhost:9000` |
+| 控制台 | `http://localhost:9001` |
+| Access Key | `eprint_minio` |
+| Secret Key | `eprint_minio_123` |
+| Bucket | `e-print` |
 
-- `e-print-server` 已启动，例如：`http://localhost:9090`
-- `e-print-client` 已启动，并连接到：`ws://localhost:9090/ws/print`
-- `e-print-client/config.json` 中 `clientId` 为 `CLIENT-001`
-- 如需观察打印弹窗，将 `silent` 设置为 `false`
+### 2. 启动 e-print-server
 
-## 用例：创建商品标签打印任务
+要求 Java 21。
 
-目标：
+```bash
+cd e-print-server
+mvn spring-boot:run
+```
 
-- 业务系统通过 HTTP 创建打印任务
-- `e-print-server` 根据 `clientId` 将任务推送给指定 `e-print-client`
-- `e-print-client` 下载 `product-label` 模板，渲染商品信息、二维码和条码
-- 本地打印机执行打印，并由客户端回传结果
-
-请求：
+默认地址：
 
 ```text
-POST http://localhost:9090/api/print/tasks
+http://localhost:9090
+```
+
+### 3. 启动 e-print-client
+
+```bash
+cd e-print-client
+npm install
+npm start
+```
+
+客户端启动后会连接 `ws://localhost:9090/ws/print`，默认 `clientId` 为 `CLIENT-001`。
+
+## 接口安全
+
+除健康检查外，服务端接口都启用 Basic 认证。
+
+| 接口 | 是否需要认证 |
+| --- | --- |
+| `GET /health` | 否 |
+| `POST /task` | 是 |
+| `GET /task` | 是 |
+| `GET /task/{taskId}` | 是 |
+| `POST /task/{taskId}/result` | 是 |
+| `GET /template/{templateCode}` | 是 |
+| `WS /ws/print?clientId=CLIENT-001` | 是 |
+
+本地默认账号：
+
+| 项 | 值 |
+| --- | --- |
+| 用户名 | `eprint` |
+| 密码 | `eprint123` |
+
+请求示例：
+
+```bash
+curl -u eprint:eprint123 http://localhost:9090/template/product-label
+```
+
+## 打印任务示例
+
+```http
+POST http://localhost:9090/task
+Authorization: Basic base64(username:password)
 Content-Type: application/json
 ```
 
-请求体：
-
 ```json
 {
   "clientId": "CLIENT-001",
@@ -162,87 +131,236 @@ Content-Type: application/json
 }
 ```
 
-预期结果：
+成功响应中会返回 `taskId`，任务状态通常为 `DISPATCHED`。客户端打印完成后会回传结果，服务端任务状态更新为 `SUCCESS` 或 `FAILED`。
 
-- `code` 为 `200`
-- 返回 `taskId`
-- `status` 为 `DISPATCHED`
-- 客户端弹出打印窗口或执行静默打印
-- 打印完成后，任务状态更新为 `SUCCESS`
+查询任务：
 
-查询任务状态：
-
-```text
-GET http://localhost:9090/api/print/tasks/{taskId}
+```http
+GET http://localhost:9090/task/{taskId}
 ```
 
-## 调用时序图
+## 时序图
 
 ```mermaid
 sequenceDiagram
     participant Biz as 业务系统
     participant Server as e-print-server
     participant Client as e-print-client
-    participant Template as 模板接口
+    participant MinIO as MinIO
     participant Printer as 本地打印机
 
-    Client->>Server: WebSocket 连接 /ws/print?clientId=CLIENT-001
+    Client->>Server: WS /ws/print?clientId=CLIENT-001 + Basic Auth
     Server-->>Client: CONNECTED
 
-    Biz->>Server: POST /api/print/tasks
-    Server->>Server: 创建内存打印任务
+    Biz->>Server: POST /task + Basic Auth
+    Server->>Server: 校验客户端连接
+    Server->>MinIO: 读取 templateCode 对应模板
+    MinIO-->>Server: HTML 模板
     Server->>Client: WebSocket 推送 print-task
-    Server-->>Biz: 返回 taskId，status=DISPATCHED
+    Server-->>Biz: 返回 taskId/status=DISPATCHED
 
-    Client->>Template: GET /api/templates/product-label
-    Template-->>Client: 返回 HTML 模板
+    Client->>Server: GET /template/{templateCode} + Basic Auth
+    Server->>MinIO: 读取模板
+    Server-->>Client: HTML 模板
     Client->>Client: 渲染数据、二维码、条码
-    Client->>Printer: 调用 Electron 打印
+    Client->>Printer: Electron 打印
     Printer-->>Client: 打印结果
     Client->>Server: 回传 print-result
     Server->>Server: 更新任务状态
 ```
 
----
+## 模板存储
 
-# 技术栈
+打印模板不再内置在 `e-print-server` 中。当前方案：
 
-## e-print-client
+1. HTML 模板上传到 MinIO。
+2. Oracle 表 `E_PRINT_TEMPLATE` 存储模板元数据。
+3. `templateCode` 对应数据库记录，再由记录中的 `BUCKET_NAME` 和 `OBJECT_NAME` 读取 MinIO 文件。
 
-- Electron
-- Node.js
-- Handlebars
-- qrcode
-- bwip-js
+核心表脚本：
 
-## e-print-server
+```text
+e-print-server/src/main/resources/db/oracle/print_template.sql
+```
 
-- Spring Boot
-- WebSocket
-- DB
+示例模板记录：
 
----
+```sql
+INSERT INTO E_PRINT_TEMPLATE (
+    ID,
+    TEMPLATE_CODE,
+    BUCKET_NAME,
+    OBJECT_NAME,
+    STATUS
+) VALUES (
+    SEQ_E_PRINT_TEMPLATE.NEXTVAL,
+    'product-label',
+    'e-print',
+    'templates/print/product-label.html',
+    1
+);
+```
 
-# MVP
+模板中可使用业务数据字段，也可使用客户端自动生成的二维码和条码资源：
 
-## 第一版功能
+```html
+<section class="label">
+  <h1>{{productName}}</h1>
+  <p>{{sku}}</p>
+  <img src="{{qr.qrText}}" alt="QR Code">
+  <img src="{{barcode.barcodeText}}" alt="Barcode">
+</section>
+```
+
+## 多环境配置
+
+统一环境名：
+
+| 环境 | 用途 |
+| --- | --- |
+| `loc` | 本地开发 |
+| `dev` | 开发联调 |
+| `uat` | 用户验收测试 |
+| `prd` | 生产 |
+
+### e-print-server
+
+服务端使用 Spring Profile：
+
+```powershell
+$env:E_PRINT_PROFILE="uat"
+java -jar e-print-server.jar
+```
+
+配置文件结构：
+
+| 文件 | 作用 |
+| --- | --- |
+| `application.yml` | 公共配置 |
+| `application-loc.yml` | 本地认证、Oracle、MinIO、Graylog |
+| `application-dev.yml` | 开发环境认证、Oracle、MinIO、Graylog |
+| `application-uat.yml` | UAT 环境认证、Oracle、MinIO、Graylog |
+| `application-prd.yml` | 生产环境认证、Oracle、MinIO、Graylog |
+
+服务端关键环境变量：
+
+| 变量 | 用途 |
+| --- | --- |
+| `E_PRINT_PROFILE` | 激活环境，默认 `loc` |
+| `E_PRINT_SERVER_PORT` | HTTP 端口，默认 `9090` |
+| `E_PRINT_APP_BASE_URI` | SpringDoc Server 地址 |
+| `E_PRINT_BASIC_USERNAME` | Basic 用户名 |
+| `E_PRINT_BASIC_PASSWORD` | Basic 密码 |
+| `E_PRINT_DB_URL` | Oracle JDBC URL |
+| `E_PRINT_DB_USERNAME` | Oracle 用户名 |
+| `E_PRINT_DB_PASSWORD` | Oracle 密码 |
+| `E_PRINT_DB_MINIMUM_IDLE` | Hikari 最小空闲连接 |
+| `E_PRINT_DB_MAXIMUM_POOL_SIZE` | Hikari 最大连接数 |
+| `E_PRINT_MINIO_ENDPOINT` | MinIO 地址 |
+| `E_PRINT_MINIO_ACCESS_KEY` | MinIO Access Key |
+| `E_PRINT_MINIO_SECRET_KEY` | MinIO Secret Key |
+| `E_PRINT_GRAYLOG_HOST` | Graylog 地址 |
+| `E_PRINT_GRAYLOG_PORT` | Graylog GELF UDP 端口 |
+
+测试和生产环境不建议在配置文件中写死密码，应通过环境变量、启动脚本或配置中心注入。
+
+### e-print-client
+
+客户端使用 `config.json` 的 `env + environments` 结构：
+
+```json
+{
+  "env": "loc",
+  "environments": {
+    "loc": {
+      "serverUrl": "ws://localhost:9090/ws/print",
+      "basicUsername": "eprint",
+      "basicPassword": "eprint123"
+    },
+    "prd": {
+      "serverUrl": "wss://e-print.example.com/ws/print",
+      "basicUsername": "eprint-prd",
+      "basicPassword": "change-me"
+    }
+  }
+}
+```
+
+客户端会根据 `serverUrl` 自动推导模板接口地址：
+
+| WebSocket 地址 | 模板接口地址 |
+| --- | --- |
+| `ws://host/ws/print` | `http://host/template` |
+| `wss://host/ws/print` | `https://host/template` |
+
+客户端关键环境变量：
+
+| 变量 | 用途 |
+| --- | --- |
+| `E_PRINT_ENV` | 当前环境，优先级高于 `config.json.env` |
+| `NODE_ENV` | `E_PRINT_ENV` 未设置时作为环境名 |
+| `E_PRINT_CLIENT_ID` | 客户端编号 |
+| `E_PRINT_SERVER_URL` | WebSocket 地址 |
+| `E_PRINT_TEMPLATE_BASE_URL` | 模板接口地址，通常无需配置 |
+| `E_PRINT_BASIC_USERNAME` | Basic 用户名 |
+| `E_PRINT_BASIC_PASSWORD` | Basic 密码 |
+| `E_PRINT_PRINTER_NAME` | 默认打印机 |
+
+客户端配置优先级：
+
+1. 显式环境变量，例如 `E_PRINT_BASIC_USERNAME`
+2. `E_PRINT_ENV` 或 `NODE_ENV` 对应的 `environments.{env}`
+3. `config.json` 顶层配置
+4. 程序默认值
+
+客户端和服务端环境应成对切换：
+
+| 客户端环境 | 服务端环境 | 要求 |
+| --- | --- | --- |
+| `loc` | `loc` | 可使用本地默认账号密码 |
+| `dev` | `dev` | Basic 账号密码一致 |
+| `uat` | `uat` | Basic 账号密码一致 |
+| `prd` | `prd` | 使用 HTTPS/WSS，密码从外部注入 |
+
+## 验证
+
+服务端编译：
+
+```bash
+cd e-print-server
+mvn -DskipTests clean compile
+```
+
+客户端测试：
+
+```bash
+cd e-print-client
+npm test
+```
+
+## MVP 范围
 
 ### e-print-client
 
 - 打印机配置
 - WebSocket 连接
-- 标签打印
-- 二维码打印
-- 静默打印
+- HTML 模板下载和渲染
+- 二维码、条码渲染
+- 静默打印和非静默打印
+- 打印结果回传
 
 ### e-print-server
 
 - 打印任务 API
-- WebSocket 推送
-- 模板接口
+- WebSocket 任务推送
+- MinIO 模板读取
+- Oracle 模板元数据读取
+- Basic 认证
+- Graylog 日志输出
 
 ### e-print-admin
 
 - 模板新增
 - 模板编辑
 - 模板预览
+- 模板发布

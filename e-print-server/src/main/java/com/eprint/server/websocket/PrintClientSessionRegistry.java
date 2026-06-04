@@ -1,6 +1,6 @@
 package com.eprint.server.websocket;
 
-import com.eprint.server.model.PrintTask;
+import com.eprint.server.module.task.model.Task;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -29,7 +29,7 @@ public class PrintClientSessionRegistry {
         sessions.entrySet().removeIf(entry -> entry.getValue().getId().equals(session.getId()));
     }
 
-    public boolean sendPrintTask(String clientId, PrintTask task) {
+    public boolean sendPrintTask(String clientId, Task task) {
         WebSocketSession session = sessions.get(clientId);
         if (session == null || !session.isOpen()) {
             return false;

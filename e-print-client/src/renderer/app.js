@@ -360,7 +360,7 @@ function createStatusTitle(status) {
 function deriveTemplateBaseUrl(serverUrl) {
   const url = new URL(serverUrl);
   url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
-  url.pathname = '/api/templates';
+  url.pathname = '/template';
   url.search = '';
   url.hash = '';
   return url.toString().replace(/\/$/, '');

@@ -46,7 +46,7 @@ function startPrintClient(config, dependencies) {
 
   function connect() {
     setStatus('connecting', 'Connecting to e-print server');
-    socket = new WebSocketImpl(buildClientUrl(config.serverUrl, config.clientId));
+    socket = new WebSocketImpl(buildClientUrl(config.serverUrl, config.clientId), buildWebSocketOptions(config));
 
     socket.on('open', () => {
       setStatus('connected', 'Connected');
@@ -113,6 +113,27 @@ function startPrintClient(config, dependencies) {
   }
 }
 
+function buildWebSocketOptions(config) {
+  const authorization = buildBasicAuthorization(config);
+  if (!authorization) {
+    return undefined;
+  }
+
+  return {
+    headers: {
+      Authorization: authorization
+    }
+  };
+}
+
+function buildBasicAuthorization(config) {
+  if (!config || !config.basicUsername || !config.basicPassword) {
+    return '';
+  }
+
+  return `Basic ${Buffer.from(`${config.basicUsername}:${config.basicPassword}`, 'utf8').toString('base64')}`;
+}
+
 function sendJson(socket, payload) {
   socket.send(JSON.stringify(payload));
 }
@@ -164,6 +185,8 @@ function formatConnectionError(error) {
 
 module.exports = {
   buildClientUrl,
+  buildBasicAuthorization,
+  buildWebSocketOptions,
   formatConnectionError,
   isControlMessage,
   sendJson,

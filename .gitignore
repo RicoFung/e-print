@@ -12,6 +12,7 @@ target/
 dist/
 release/
 out/
+.docker/
 
 # Runtime logs
 *.log

@@ -28,9 +28,7 @@ async function fetchTemplate(templateCode, config, options) {
 
   const url = `${config.templateBaseUrl.replace(/\/$/, '')}/${encodeURIComponent(templateCode)}`;
   const response = await fetchImpl(url, {
-    headers: {
-      accept: 'text/html, application/json'
-    }
+    headers: buildTemplateHeaders(config)
   });
 
   if (!response.ok) {
@@ -44,6 +42,27 @@ async function fetchTemplate(templateCode, config, options) {
   }
 
   return response.text();
+}
+
+function buildTemplateHeaders(config) {
+  const headers = {
+    accept: 'text/html, application/json'
+  };
+
+  const authorization = buildBasicAuthorization(config);
+  if (authorization) {
+    headers.authorization = authorization;
+  }
+
+  return headers;
+}
+
+function buildBasicAuthorization(config) {
+  if (!config || !config.basicUsername || !config.basicPassword) {
+    return '';
+  }
+
+  return `Basic ${Buffer.from(`${config.basicUsername}:${config.basicPassword}`, 'utf8').toString('base64')}`;
 }
 
 function extractTemplateHtml(body) {
@@ -80,6 +99,8 @@ async function readIfExists(filePath) {
 
 module.exports = {
   extractTemplateHtml,
+  buildBasicAuthorization,
+  buildTemplateHeaders,
   fetchTemplate,
   getTemplate,
   getTemplatePath,

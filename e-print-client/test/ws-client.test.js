@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const EventEmitter = require('node:events');
 const test = require('node:test');
-const { buildClientUrl, startPrintClient } = require('../src/lib/ws-client');
+const { buildClientUrl, buildWebSocketOptions, startPrintClient } = require('../src/lib/ws-client');
 
 test('handles websocket connection errors without throwing and schedules reconnect', () => {
   const sockets = [];
@@ -88,6 +88,17 @@ test('connects with clientId query parameter', () => {
   sockets[0].emit('open');
   assert.equal(sockets[0].url, 'ws://localhost:9090/ws/print?clientId=CLIENT-001');
   assert.equal(sockets[0].sent.length, 0);
+});
+
+test('builds basic authorization header for websocket handshake', () => {
+  assert.deepEqual(buildWebSocketOptions({
+    basicUsername: 'eprint',
+    basicPassword: 'eprint123'
+  }), {
+    headers: {
+      Authorization: 'Basic ZXByaW50OmVwcmludDEyMw=='
+    }
+  });
 });
 
 test('reports websocket connection status changes', () => {

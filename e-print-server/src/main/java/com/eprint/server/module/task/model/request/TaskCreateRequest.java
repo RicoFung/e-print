@@ -1,4 +1,4 @@
-package com.eprint.server.model;
+package com.eprint.server.module.task.model.request;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class CreatePrintTaskRequest {
+public class TaskCreateRequest {
 
     @NotBlank
     private String clientId;

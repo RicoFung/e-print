@@ -1,11 +1,11 @@
-package com.eprint.server.service;
+package com.eprint.server.module.task.service;
 
-import com.eprint.server.model.CreatePrintTaskRequest;
-import com.eprint.server.model.PrintResultRequest;
-import com.eprint.server.model.PrintTask;
-import com.eprint.server.model.PrintTaskStatus;
+import com.eprint.server.module.task.model.Task;
+import com.eprint.server.module.task.model.TaskStatus;
+import com.eprint.server.module.task.model.request.TaskCreateRequest;
+import com.eprint.server.module.task.model.request.TaskResultRequest;
+import com.eprint.server.module.template.service.TemplateService;
 import com.eprint.server.websocket.PrintClientSessionRegistry;
-import com.niko.boot.service.BaseService;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -17,59 +17,63 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@Service
-public class PrintTaskService extends BaseService {
+@Service(value = "TaskService")
+public class TaskService {
 
-    private final ConcurrentMap<String, PrintTask> tasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Task> tasks = new ConcurrentHashMap<>();
     private final PrintClientSessionRegistry sessionRegistry;
+    private final TemplateService templateService;
 
-    public PrintTaskService(PrintClientSessionRegistry sessionRegistry) {
+    public TaskService(PrintClientSessionRegistry sessionRegistry, TemplateService templateService) {
         this.sessionRegistry = sessionRegistry;
+        this.templateService = templateService;
     }
 
-    public PrintTask create(CreatePrintTaskRequest request) {
+    public Task create(TaskCreateRequest request) {
+        templateService.getTemplateContentByCode(request.getTemplateCode());
+
         Instant now = Instant.now();
 
-        PrintTask task = new PrintTask();
+        Task task = new Task();
         task.setTaskId(UUID.randomUUID().toString());
         task.setClientId(request.getClientId());
         task.setTemplateCode(request.getTemplateCode());
         task.setCopies(request.getCopies());
         task.setData(request.getData());
-        task.setStatus(PrintTaskStatus.CREATED);
+        task.setStatus(TaskStatus.CREATED);
         task.setCreatedAt(now);
         task.setUpdatedAt(now);
 
         tasks.put(task.getTaskId(), task);
 
         if (sessionRegistry.sendPrintTask(task.getClientId(), task)) {
-            task.setStatus(PrintTaskStatus.DISPATCHED);
+            task.setStatus(TaskStatus.DISPATCHED);
             task.setUpdatedAt(Instant.now());
         }
 
         return task;
     }
 
-    public Optional<PrintTask> get(String taskId) {
+    public Optional<Task> get(String taskId) {
         return Optional.ofNullable(tasks.get(taskId));
     }
 
-    public List<PrintTask> list() {
-        List<PrintTask> result = new ArrayList<>(tasks.values());
-        result.sort(Comparator.comparing(PrintTask::getCreatedAt).reversed());
+    public List<Task> list() {
+        List<Task> result = new ArrayList<>(tasks.values());
+        result.sort(Comparator.comparing(Task::getCreatedAt).reversed());
         return result;
     }
 
-    public Optional<PrintTask> reportResult(String taskId, PrintResultRequest request) {
-        PrintTask task = tasks.get(taskId);
+    public Optional<Task> reportResult(String taskId, TaskResultRequest request) {
+        Task task = tasks.get(taskId);
         if (task == null) {
             return Optional.empty();
         }
 
         if ("SUCCESS".equalsIgnoreCase(request.getStatus())) {
-            task.setStatus(PrintTaskStatus.SUCCESS);
+            task.setStatus(TaskStatus.SUCCESS);
         } else {
-            task.setStatus(PrintTaskStatus.FAILED);
+            task.setStatus(TaskStatus.FAILED);
         }
         task.setResultMessage(request.getMessage());
         task.setUpdatedAt(Instant.now());

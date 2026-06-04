@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<included>
+    <property name="LOG_DIR" value="${LOG_HOME}/%d{yyyyMMdd}"/>
+    <property name="LOG_PREFIX" value="${APP_NAME}"/>
+    <property name="LOG_SUFFIX" value="${APP_NAME}"/>
+    <property name="LOG_CHARSET" value="UTF-8"/>
+    <property name="LOG_MSG" value="[%X{traceId:-}] [%X{spanId:-}] [%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%logger{36}|%M|%L] - %msg%n"/>
+    <property name="MAX_FILE_SIZE" value="10MB"/>
+    <property name="MAX_HISTORY" value="10"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_MSG}</pattern>
+            <charset>${LOG_CHARSET}</charset>
+        </encoder>
+    </appender>
+
+    <appender name="FILE_ALL" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/all_${LOG_SUFFIX}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/all_${LOG_SUFFIX}.%i.log.zip</fileNamePattern>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_MSG}</pattern>
+            <charset>${LOG_CHARSET}</charset>
+        </encoder>
+    </appender>
+
+    <appender name="FILE_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMismatch>DENY</onMismatch>
+            <onMatch>ACCEPT</onMatch>
+        </filter>
+        <file>${LOG_HOME}/err_${LOG_SUFFIX}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/err_${LOG_SUFFIX}.%i.log.zip</fileNamePattern>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_MSG}</pattern>
+            <charset>${LOG_CHARSET}</charset>
+        </encoder>
+    </appender>
+
+    <appender name="GELF" class="de.siegmar.logbackgelf.GelfUdpAppender">
+        <graylogHost>${GRAYLOG_HOST}</graylogHost>
+        <graylogPort>${GRAYLOG_PORT}</graylogPort>
+        <maxChunkSize>508</maxChunkSize>
+        <compressionMethod>GZIP</compressionMethod>
+        <encoder class="de.siegmar.logbackgelf.GelfEncoder">
+            <originHost>${GRAYLOG_HOST}</originHost>
+            <includeRawMessage>false</includeRawMessage>
+            <includeMarker>true</includeMarker>
+            <includeMdcData>true</includeMdcData>
+            <includeCallerData>true</includeCallerData>
+            <includeRootCauseData>true</includeRootCauseData>
+            <includeLevelName>true</includeLevelName>
+            <shortMessageLayout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>${LOG_MSG}</pattern>
+            </shortMessageLayout>
+            <fullMessageLayout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>${LOG_MSG}</pattern>
+            </fullMessageLayout>
+            <staticField>application:${APP_NAME}</staticField>
+            <staticField>environment:${GRAYLOG_ENV}</staticField>
+        </encoder>
+    </appender>
+
+    <logger name="org.springframework.web.servlet.DispatcherServlet" level="DEBUG" additivity="false">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE_ALL"/>
+        <appender-ref ref="FILE_ERROR"/>
+    </logger>
+
+    <logger name="org.springframework.cache" level="TRACE" additivity="false">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE_ALL"/>
+        <appender-ref ref="FILE_ERROR"/>
+    </logger>
+
+    <logger name="com.niko.boot.lock" level="DEBUG" additivity="false">
+        <appender-ref ref="GELF"/>
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE_ALL"/>
+        <appender-ref ref="FILE_ERROR"/>
+    </logger>
+
+    <logger name="com.config" level="DEBUG" additivity="false">
+        <appender-ref ref="GELF"/>
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE_ALL"/>
+        <appender-ref ref="FILE_ERROR"/>
+    </logger>
+
+    <logger name="com.epo" level="DEBUG" additivity="false">
+        <appender-ref ref="GELF"/>
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE_ALL"/>
+        <appender-ref ref="FILE_ERROR"/>
+    </logger>
+
+    <logger name="com.eprint.server" level="DEBUG" additivity="false">
+        <appender-ref ref="GELF"/>
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE_ALL"/>
+        <appender-ref ref="FILE_ERROR"/>
+    </logger>
+
+    <root level="${LOG_ROOT_LEVEL}">
+        <appender-ref ref="GELF"/>
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE_ALL"/>
+        <appender-ref ref="FILE_ERROR"/>
+    </root>
+</included>

@@ -1,8 +1,8 @@
-package com.eprint.server.model;
+package com.eprint.server.module.task.model.request;
 
 import jakarta.validation.constraints.NotBlank;
 
-public class PrintResultRequest {
+public class TaskResultRequest {
 
     @NotBlank
     private String status;

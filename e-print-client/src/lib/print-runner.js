@@ -9,7 +9,10 @@ async function runPrintTask(rawTask, config, dependencies) {
   const task = normalizeTask(rawTask);
 
   try {
-    const templateHtml = await (deps.getTemplate || getTemplate)(task.templateCode, config, deps);
+    const templateHtml = await (deps.getTemplate || getTemplate)(task.templateCode, config, {
+      ...deps,
+      forceRefresh: true
+    });
     const renderedHtml = await (deps.renderTemplate || renderTemplate)(templateHtml, task.data, deps);
     await deps.printer.print(renderedHtml, {
       copies: task.copies,

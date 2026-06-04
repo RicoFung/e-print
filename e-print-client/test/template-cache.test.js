@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { extractTemplateHtml } = require('../src/lib/template-cache');
+const { buildBasicAuthorization, buildTemplateHeaders, extractTemplateHtml } = require('../src/lib/template-cache');
 
 test('extracts template content from niko result data', () => {
   assert.equal(extractTemplateHtml({
@@ -18,4 +18,19 @@ test('extracts template content from plain response body', () => {
   assert.equal(extractTemplateHtml({
     content: '<div>plain</div>'
   }), '<div>plain</div>');
+});
+
+test('builds basic authorization header for template requests', () => {
+  assert.equal(
+    buildBasicAuthorization({ basicUsername: 'eprint', basicPassword: 'eprint123' }),
+    'Basic ZXByaW50OmVwcmludDEyMw=='
+  );
+
+  assert.deepEqual(buildTemplateHeaders({
+    basicUsername: 'eprint',
+    basicPassword: 'eprint123'
+  }), {
+    accept: 'text/html, application/json',
+    authorization: 'Basic ZXByaW50OmVwcmludDEyMw=='
+  });
 });

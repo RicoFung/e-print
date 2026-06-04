@@ -1,64 +1,72 @@
 # e-print-server
 
-基于 `niko-boot` 的最小打印服务，当前版本不连接数据库，打印任务保存在内存中。
+`e-print-server` 是打印任务服务，基于 Spring Boot 和 niko-boot 搭建，负责接收业务系统打印请求、读取打印模板、维护客户端 WebSocket 连接，并将任务推送给指定的本地打印客户端。
+
+## 核心能力
+
+- Basic 认证，`/health` 除外
+- 打印任务创建、查询和结果回传
+- WebSocket 客户端注册和任务推送
+- Oracle + MyBatis 读取打印模板元数据
+- MinIO 读取 HTML 打印模板
+- Graylog 日志输出
+- SpringDoc 接口文档
 
 ## 接口
 
-- `GET /api/health`：健康检查
-- `POST /api/print/tasks`：创建打印任务
-- `GET /api/print/tasks`：查询内存中的打印任务
-- `GET /api/print/tasks/{taskId}`：查询单个任务
-- `POST /api/print/tasks/{taskId}/result`：客户端回传打印结果
-- `GET /api/templates/{templateCode}`：获取临时 HTML 模板
-- `WS /ws/print?clientId=CLIENT-001`：打印客户端连接入口
+| 接口 | 说明 |
+| --- | --- |
+| `GET /health` | 健康检查，不需要 Basic 认证 |
+| `POST /task` | 创建打印任务 |
+| `GET /task` | 查询任务列表 |
+| `GET /task/{taskId}` | 查询单个任务 |
+| `POST /task/{taskId}/result` | HTTP 回传打印结果 |
+| `GET /template/{templateCode}` | 获取 HTML 模板 |
+| `WS /ws/print?clientId=CLIENT-001` | 打印客户端连接入口 |
 
-## 创建打印任务示例
+## 本地运行
 
-```json
-{
-  "clientId": "CLIENT-001",
-  "templateCode": "product-label",
-  "copies": 1,
-  "data": {
-    "productName": "MacBook Pro",
-    "sku": "MBP-001",
-    "price": "19999",
-    "qrText": "https://example.com/p/MBP-001",
-    "barcodeText": "MBP-001"
-  }
-}
-```
-
-内置 `product-label` 模板会使用：
-
-- `{{qr.qrText}}` 渲染二维码图片
-- `{{barcode.barcodeText}}` 渲染条码图片
-
-## 模板目录
-
-打印模板以 HTML 文件存放在 resources 中：
-
-```text
-src/main/resources/templates/print/
-└── product-label.html
-```
-
-接口中的 `templateCode` 对应模板文件名，不包含 `.html` 后缀：
-
-```text
-GET /api/templates/product-label
-```
-
-实际读取：
-
-```text
-classpath:templates/print/product-label.html
-```
-
-## 运行
-
-`niko-boot-parent` 当前要求 Java 21。使用 Maven 启动：
+要求 Java 21。
 
 ```bash
 mvn spring-boot:run
+```
+
+默认端口：
+
+```text
+9090
+```
+
+本地默认 Basic 认证：
+
+```text
+eprint / eprint123
+```
+
+## 多环境
+
+服务端使用 Spring Profile：
+
+```powershell
+$env:E_PRINT_PROFILE="uat"
+java -jar e-print-server.jar
+```
+
+配置文件：
+
+```text
+src/main/resources/application.yml
+src/main/resources/application-loc.yml
+src/main/resources/application-dev.yml
+src/main/resources/application-uat.yml
+src/main/resources/application-prd.yml
+```
+
+详细配置项见根目录 `README.md`。
+
+## 验证
+
+```bash
+mvn -DskipTests clean compile
 ```

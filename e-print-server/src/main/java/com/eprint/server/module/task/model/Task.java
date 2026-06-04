@@ -1,17 +1,17 @@
-package com.eprint.server.model;
+package com.eprint.server.module.task.model;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class PrintTask {
+public class Task {
 
     private String taskId;
     private String clientId;
     private String templateCode;
     private int copies;
     private Map<String, Object> data = new LinkedHashMap<>();
-    private PrintTaskStatus status;
+    private TaskStatus status;
     private String resultMessage;
     private Instant createdAt;
     private Instant updatedAt;
@@ -56,11 +56,11 @@ public class PrintTask {
         this.data = data == null ? new LinkedHashMap<>() : data;
     }
 
-    public PrintTaskStatus getStatus() {
+    public TaskStatus getStatus() {
         return status;
     }
 
-    public void setStatus(PrintTaskStatus status) {
+    public void setStatus(TaskStatus status) {
         this.status = status;
     }
 

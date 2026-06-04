@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds">
+    <property name="APP_NAME" value="e-print-server"/>
+    <property name="LOG_ROOT_LEVEL" value="${E_PRINT_LOG_ROOT_LEVEL:-INFO}"/>
+    <property name="LOG_HOME" value="${E_PRINT_LOG_PATH:-logs}"/>
+    <property name="GRAYLOG_HOST" value="${E_PRINT_GRAYLOG_HOST:-grayloguat.moco.com}"/>
+    <property name="GRAYLOG_PORT" value="${E_PRINT_GRAYLOG_PORT:-12201}"/>
+    <property name="GRAYLOG_ENV" value="UAT"/>
+
+    <include resource="logback-base.xml"/>
+</configuration>

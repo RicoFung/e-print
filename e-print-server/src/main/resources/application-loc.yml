@@ -1,0 +1,29 @@
+app:
+  security:
+    basic:
+      username: ${E_PRINT_BASIC_USERNAME:eprint}
+      password: ${E_PRINT_BASIC_PASSWORD:eprint123}
+
+datasource:
+  mybatis:
+    default:
+      driver-class-name: oracle.jdbc.OracleDriver
+      url: ${E_PRINT_DB_URL:jdbc:oracle:thin:@10.12.204.39:1521/ZTDEV}
+      username: ${E_PRINT_DB_USERNAME:posuat}
+      password: ${E_PRINT_DB_PASSWORD:PosUat202604}
+      connectionTimeout: ${E_PRINT_DB_CONNECTION_TIMEOUT:30000}
+      idleTimeout: ${E_PRINT_DB_IDLE_TIMEOUT:60000}
+      minimumIdle: ${E_PRINT_DB_MINIMUM_IDLE:2}
+      maximumPoolSize: ${E_PRINT_DB_MAXIMUM_POOL_SIZE:10}
+      maxLifetime: ${E_PRINT_DB_MAX_LIFETIME:1800000}
+      mapper-location: classpath*:com/**/mapper/*.xml
+
+graylog:
+  host: ${E_PRINT_GRAYLOG_HOST:grayloguat.moco.com}
+  port: ${E_PRINT_GRAYLOG_PORT:12201}
+  environment: LOC
+
+minio:
+  endpoint: ${E_PRINT_MINIO_ENDPOINT:http://127.0.0.1:9000}
+  access-key: ${E_PRINT_MINIO_ACCESS_KEY:eprint_minio}
+  secret-key: ${E_PRINT_MINIO_SECRET_KEY:eprint_minio_123}
