@@ -111,12 +111,6 @@
         <dependency>
             <groupId>com.niko.boot</groupId>
             <artifactId>niko-boot-starter-web-base</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-security</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.niko.boot</groupId>
