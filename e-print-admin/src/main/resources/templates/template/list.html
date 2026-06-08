@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('打印模板')}"></head>
+<body>
+<nav th:replace="~{layout :: topbar}"></nav>
+<main class="admin-page screen-page list-page">
+    <div class="page-header">
+        <div>
+            <span class="eyebrow">Template Registry</span>
+            <h1>打印模板</h1>
+            <p>维护模板元数据和 MinIO HTML 文件内容</p>
+        </div>
+        <a class="btn btn-primary" th:href="@{/admin/templates/new}">新增</a>
+    </div>
+
+    <div th:if="${message}" class="alert alert-success auto-dismiss-alert" role="alert" th:text="${message}"></div>
+
+    <section class="toolbar" id="templateToolbar">
+        <form class="row g-3 align-items-end" id="templateFilterForm">
+            <div class="col-md-5">
+                <label class="form-label" for="templateCodeFilter">模板编码</label>
+                <input class="form-control" id="templateCodeFilter" name="templateCode" th:value="${templateCode}" placeholder="product-label">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="statusFilter">状态</label>
+                <select class="form-select" id="statusFilter" name="status">
+                    <option value="" th:selected="${status == null}">全部</option>
+                    <option value="1" th:selected="${status != null and status == 1}">启用</option>
+                    <option value="0" th:selected="${status != null and status == 0}">禁用</option>
+                </select>
+            </div>
+            <div class="col-md-4 actions-right">
+                <button class="btn btn-outline-secondary" id="resetTemplateFilter" type="button">重置</button>
+                <button class="btn btn-dark" type="submit">查询</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="table-wrap list-table-wrap">
+        <div class="table-actionbar">
+            <span class="selection-summary" id="templateSelectionSummary">未选择</span>
+            <div class="table-actionbar-buttons">
+                <button class="btn btn-outline-warning btn-sm" id="disableSelectedTemplates" type="button" disabled>批量禁用</button>
+                <button class="btn btn-outline-success btn-sm" id="enableSelectedTemplates" type="button" disabled>批量启用</button>
+                <button class="btn btn-outline-danger btn-sm" id="deleteSelectedTemplates" type="button" disabled>批量删除</button>
+            </div>
+        </div>
+        <table id="templateTable"
+               data-url="/admin/templates/data"
+               data-side-pagination="server"
+               data-pagination="true"
+               data-page-size="10"
+               data-page-list="[10, 20, 50, 100]"
+               data-search="false"
+               data-search-on-enter-key="false"
+               data-show-refresh="false"
+               data-sticky-header="true"
+               data-fixed-columns="true"
+               data-fixed-number="2"
+               data-fixed-right-number="1"
+               data-mobile-responsive="true"
+               data-unique-id="id">
+            <thead>
+            <tr>
+                <th data-field="selected" data-checkbox="true" data-width="52"></th>
+                <th data-field="id" data-width="90">ID</th>
+                <th data-field="templateCode" data-width="180">模板编码</th>
+                <th data-field="bucketName" data-width="160">Bucket</th>
+                <th data-field="objectName" data-width="420" data-formatter="objectNameFormatter">Object</th>
+                <th data-field="status" data-width="110" data-formatter="statusFormatter">状态</th>
+                <th data-field="actions" data-width="300" data-align="right" data-formatter="actionFormatter">操作</th>
+            </tr>
+            </thead>
+        </table>
+    </section>
+</main>
+<script th:replace="~{layout :: scripts}"></script>
+<script th:src="@{/vendor/jquery/jquery.min.js}"></script>
+<script th:src="@{/vendor/bootstrap-table/bootstrap-table.min.js}"></script>
+<script th:src="@{/vendor/bootstrap-table/locale/bootstrap-table-zh-CN.min.js}"></script>
+<script th:src="@{/vendor/bootstrap-table/extensions/sticky-header/bootstrap-table-sticky-header.min.js}"></script>
+<script th:src="@{/vendor/bootstrap-table/extensions/fixed-columns/bootstrap-table-fixed-columns.min.js}"></script>
+<script th:src="@{/vendor/bootstrap-table/extensions/mobile/bootstrap-table-mobile.min.js}"></script>
+<script th:replace="~{layout :: sweetalertScripts}"></script>
+<script th:src="@{/js/template-form.js}"></script>
+</body>
+</html>

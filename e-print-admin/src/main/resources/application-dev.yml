@@ -1,0 +1,29 @@
+app:
+  security:
+    admin:
+      username: ${E_PRINT_ADMIN_USERNAME}
+      password: ${E_PRINT_ADMIN_PASSWORD}
+
+datasource:
+  mybatis:
+    default:
+      driver-class-name: oracle.jdbc.OracleDriver
+      url: ${E_PRINT_DB_URL}
+      username: ${E_PRINT_DB_USERNAME}
+      password: ${E_PRINT_DB_PASSWORD}
+      connectionTimeout: ${E_PRINT_DB_CONNECTION_TIMEOUT:30000}
+      idleTimeout: ${E_PRINT_DB_IDLE_TIMEOUT:60000}
+      minimumIdle: ${E_PRINT_DB_MINIMUM_IDLE:5}
+      maximumPoolSize: ${E_PRINT_DB_MAXIMUM_POOL_SIZE:30}
+      maxLifetime: ${E_PRINT_DB_MAX_LIFETIME:1800000}
+      mapper-location: classpath*:com/**/mapper/*.xml
+
+graylog:
+  host: ${E_PRINT_GRAYLOG_HOST}
+  port: ${E_PRINT_GRAYLOG_PORT:12201}
+  environment: DEV
+
+minio:
+  endpoint: ${E_PRINT_MINIO_ENDPOINT}
+  access-key: ${E_PRINT_MINIO_ACCESS_KEY}
+  secret-key: ${E_PRINT_MINIO_SECRET_KEY}

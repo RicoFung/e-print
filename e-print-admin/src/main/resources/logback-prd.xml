@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property name="APP_NAME" value="e-print-admin"/>
+    <property name="LOG_HOME" value="${LOG_PATH:-logs}"/>
+    <property name="LOG_ROOT_LEVEL" value="${LOG_LEVEL_ROOT:-INFO}"/>
+    <include resource="logback-base.xml"/>
+</configuration>

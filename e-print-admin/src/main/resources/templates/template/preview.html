@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('模板预览')}"></head>
+<body>
+<nav th:replace="~{layout :: topbar}"></nav>
+<main class="admin-page screen-page preview-page">
+    <div class="page-header">
+        <div>
+            <span class="eyebrow">Template Preview</span>
+            <h1 th:text="${template.templateCode}">product-label</h1>
+            <p>
+                <span th:text="${template.bucketName}">e-print</span>
+                <span>/</span>
+                <span th:text="${template.objectName}">templates/print/product-label.html</span>
+            </p>
+        </div>
+        <div class="header-actions">
+            <a class="btn btn-outline-secondary" th:href="@{/admin/templates}">返回列表</a>
+            <a class="btn btn-primary" th:href="@{/admin/templates/{id}/edit(id=${template.id})}">编辑</a>
+        </div>
+    </div>
+
+    <section class="preview-workbench"
+             th:attr="data-render-url=@{/admin/templates/{id}/preview/render(id=${template.id})}">
+        <aside class="sample-panel">
+            <div class="sample-panel-header">
+                <div>
+                    <h2>模拟数据</h2>
+                    <p>JSON 字段会替换模板中的 {{field}} 占位符</p>
+                </div>
+                <button class="btn btn-dark btn-sm" type="button" id="renderPreviewBtn">刷新预览</button>
+            </div>
+            <textarea class="form-control sample-editor" id="sampleData" spellcheck="false" th:text="${sampleData}"></textarea>
+            <div class="preview-error" id="previewError" hidden></div>
+        </aside>
+
+        <div class="preview-frame-wrap">
+            <iframe class="preview-frame" id="previewFrame" title="模板预览"></iframe>
+        </div>
+    </section>
+</main>
+<script th:replace="~{layout :: scripts}"></script>
+<script th:replace="~{layout :: sweetalertScripts}"></script>
+<script th:src="@{/js/template-form.js}"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: e-print-admin
+  profiles:
+    active: ${E_PRINT_ADMIN_PROFILE:loc}
+  threads:
+    virtual:
+      enabled: true
+  servlet:
+    multipart:
+      max-file-size: ${E_PRINT_ADMIN_MAX_FILE_SIZE:2MB}
+      max-request-size: ${E_PRINT_ADMIN_MAX_REQUEST_SIZE:4MB}
+
+server:
+  port: ${E_PRINT_ADMIN_PORT:9091}
+
+app:
+  template:
+    default-bucket: ${E_PRINT_TEMPLATE_BUCKET:e-print}
+    default-object-prefix: ${E_PRINT_TEMPLATE_OBJECT_PREFIX:templates/print}
+
+mybatis:
+  config-location: classpath:mybatis.xml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  config: classpath:logback-${spring.profiles.active}.xml
+  file:
+    path: ${E_PRINT_ADMIN_LOG_PATH:logs}
+  level:
+    root: ${E_PRINT_ADMIN_LOG_ROOT_LEVEL:INFO}

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eprint.admin.repository.dao.TemplateDao">
+
+    <resultMap type="com.eprint.admin.repository.model.entity.Template" id="templateResult">
+        <result property="id" column="ID"/>
+        <result property="templateCode" column="TEMPLATE_CODE"/>
+        <result property="bucketName" column="BUCKET_NAME"/>
+        <result property="objectName" column="OBJECT_NAME"/>
+        <result property="status" column="STATUS"/>
+    </resultMap>
+
+    <select id="list"
+            parameterType="com.eprint.admin.repository.model.param.TemplateQueryParam"
+            resultMap="templateResult">
+        SELECT
+            ID,
+            TEMPLATE_CODE,
+            BUCKET_NAME,
+            OBJECT_NAME,
+            STATUS
+        FROM (
+            SELECT
+                T.ID,
+                T.TEMPLATE_CODE,
+                T.BUCKET_NAME,
+                T.OBJECT_NAME,
+                T.STATUS,
+                ROW_NUMBER() OVER (ORDER BY T.ID DESC) RN
+            FROM E_PRINT_TEMPLATE T
+            WHERE 1 = 1
+            <if test="templateCode != null and templateCode != ''">
+                AND LOWER(T.TEMPLATE_CODE) LIKE '%' || LOWER(#{templateCode}) || '%'
+            </if>
+            <if test="status != null">
+                AND T.STATUS = #{status}
+            </if>
+        )
+        WHERE RN &gt; #{rowStart}
+          AND RN &lt;= #{rowEnd}
+        ORDER BY RN
+    </select>
+
+    <select id="count"
+            parameterType="com.eprint.admin.repository.model.param.TemplateQueryParam"
+            resultType="int">
+        SELECT COUNT(1)
+        FROM E_PRINT_TEMPLATE T
+        WHERE 1 = 1
+        <if test="templateCode != null and templateCode != ''">
+            AND LOWER(T.TEMPLATE_CODE) LIKE '%' || LOWER(#{templateCode}) || '%'
+        </if>
+        <if test="status != null">
+            AND T.STATUS = #{status}
+        </if>
+    </select>
+
+    <select id="getById" parameterType="string" resultMap="templateResult">
+        SELECT
+            T.ID,
+            T.TEMPLATE_CODE,
+            T.BUCKET_NAME,
+            T.OBJECT_NAME,
+            T.STATUS
+        FROM E_PRINT_TEMPLATE T
+        WHERE T.ID = #{id}
+    </select>
+
+    <select id="getByTemplateCode" parameterType="string" resultMap="templateResult">
+        SELECT
+            T.ID,
+            T.TEMPLATE_CODE,
+            T.BUCKET_NAME,
+            T.OBJECT_NAME,
+            T.STATUS
+        FROM E_PRINT_TEMPLATE T
+        WHERE T.TEMPLATE_CODE = #{templateCode}
+    </select>
+
+    <insert id="insert" parameterType="com.eprint.admin.repository.model.entity.Template">
+        INSERT INTO E_PRINT_TEMPLATE (
+            ID,
+            TEMPLATE_CODE,
+            BUCKET_NAME,
+            OBJECT_NAME,
+            STATUS
+        ) VALUES (
+            SEQ_E_PRINT_TEMPLATE.NEXTVAL,
+            #{templateCode},
+            #{bucketName},
+            #{objectName},
+            #{status}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.eprint.admin.repository.model.entity.Template">
+        UPDATE E_PRINT_TEMPLATE
+        SET
+            TEMPLATE_CODE = #{templateCode},
+            BUCKET_NAME = #{bucketName},
+            OBJECT_NAME = #{objectName},
+            STATUS = #{status}
+        WHERE ID = #{id}
+    </update>
+
+    <update id="disable" parameterType="string">
+        UPDATE E_PRINT_TEMPLATE
+        SET STATUS = 0
+        WHERE ID = #{id}
+    </update>
+
+    <update id="enable" parameterType="string">
+        UPDATE E_PRINT_TEMPLATE
+        SET STATUS = 1
+        WHERE ID = #{id}
+    </update>
+
+    <update id="updateStatusByIds" parameterType="map">
+        UPDATE E_PRINT_TEMPLATE
+        SET STATUS = #{status}
+        WHERE ID IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <delete id="deleteById" parameterType="string">
+        DELETE FROM E_PRINT_TEMPLATE
+        WHERE ID = #{id}
+    </delete>
+
+    <delete id="deleteByIds" parameterType="list">
+        DELETE FROM E_PRINT_TEMPLATE
+        WHERE ID IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

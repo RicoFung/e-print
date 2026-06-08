@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' - e-print-admin'">e-print-admin</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap-table/bootstrap-table.min.css}">
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap-table/extensions/sticky-header/bootstrap-table-sticky-header.min.css}">
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap-table/extensions/fixed-columns/bootstrap-table-fixed-columns.min.css}">
+    <link rel="stylesheet" th:href="@{/vendor/sweetalert2/sweetalert2.min.css}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+<nav class="admin-topbar" th:fragment="topbar">
+    <div class="admin-brand">
+        <span class="brand-mark">EP</span>
+        <div>
+            <span class="brand-title">e-print</span>
+            <span class="brand-subtitle">打印运营控制台</span>
+        </div>
+    </div>
+    <div class="admin-nav">
+        <a class="admin-nav-link" th:href="@{/admin/templates}">模板管理</a>
+        <form th:action="@{/logout}" method="post">
+            <button class="btn btn-ghost-light btn-sm" type="submit">退出</button>
+        </form>
+    </div>
+</nav>
+<script th:fragment="scripts" th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:fragment="sweetalertScripts" th:src="@{/vendor/sweetalert2/sweetalert2.all.min.js}"></script>
+</body>
+</html>

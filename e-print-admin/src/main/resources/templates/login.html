@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('登录')}"></head>
+<body class="login-page">
+<main class="login-shell">
+    <section class="login-panel">
+        <div class="login-brand">
+            <span class="brand-mark">EP</span>
+            <div>
+                <h1>e-print-admin</h1>
+                <p>打印模板管理</p>
+            </div>
+        </div>
+
+        <div th:if="${param.error}" class="alert alert-danger" role="alert">用户名或密码不正确</div>
+        <div th:if="${param.logout}" class="alert alert-success" role="alert">已退出登录</div>
+
+        <form th:action="@{/login}" method="post" class="login-form">
+            <div class="mb-3">
+                <label class="form-label" for="username">用户名</label>
+                <input class="form-control" id="username" name="username" autocomplete="username" autofocus>
+            </div>
+            <div class="mb-4">
+                <label class="form-label" for="password">密码</label>
+                <input class="form-control" id="password" name="password" type="password" autocomplete="current-password">
+            </div>
+            <button class="btn btn-primary w-100" type="submit">登录</button>
+        </form>
+    </section>
+</main>
+<script th:replace="~{layout :: scripts}"></script>
+</body>
+</html>
