@@ -4,6 +4,7 @@
 
     <resultMap type="com.eprint.server.repository.model.result.TemplateResult" id="templateResult">
         <result property="id" column="ID"/>
+        <result property="templateType" column="TEMPLATE_TYPE"/>
         <result property="templateCode" column="TEMPLATE_CODE"/>
         <result property="bucketName" column="BUCKET_NAME"/>
         <result property="objectName" column="OBJECT_NAME"/>
@@ -15,12 +16,14 @@
             resultMap="templateResult">
         SELECT
             T.ID,
+            T.TEMPLATE_TYPE,
             T.TEMPLATE_CODE,
             T.BUCKET_NAME,
             T.OBJECT_NAME,
             T.STATUS
         FROM E_PRINT_TEMPLATE T
-        WHERE T.TEMPLATE_CODE = #{templateCode}
+        WHERE T.TEMPLATE_TYPE = #{templateType}
+          AND T.TEMPLATE_CODE = #{templateCode}
           AND T.STATUS = #{status}
     </select>
 </mapper>

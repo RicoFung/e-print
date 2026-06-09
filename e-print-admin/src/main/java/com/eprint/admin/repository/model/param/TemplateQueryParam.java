@@ -2,10 +2,19 @@ package com.eprint.admin.repository.model.param;
 
 public class TemplateQueryParam {
 
+    private String templateType;
     private String templateCode;
     private Integer status;
     private Integer rowStart;
     private Integer rowEnd;
+
+    public String getTemplateType() {
+        return templateType;
+    }
+
+    public void setTemplateType(String templateType) {
+        this.templateType = templateType;
+    }
 
     public String getTemplateCode() {
         return templateCode;

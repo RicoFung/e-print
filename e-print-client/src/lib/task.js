@@ -8,6 +8,7 @@ function normalizeTask(raw) {
   const task = {
     taskId: raw.taskId || raw.id || null,
     clientId: requiredString(raw.clientId, 'clientId'),
+    templateType: requiredString(raw.templateType, 'templateType'),
     templateCode: requiredString(raw.templateCode, 'templateCode'),
     copies: normalizeCopies(raw.copies),
     printerName: raw.printerName || null,
@@ -32,6 +33,7 @@ function createResult(task, status, extra) {
     type: 'print-result',
     taskId: task.taskId,
     clientId: task.clientId,
+    templateType: task.templateType,
     templateCode: task.templateCode,
     status,
     message: extra && extra.message ? String(extra.message) : undefined,

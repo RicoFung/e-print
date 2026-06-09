@@ -1,5 +1,6 @@
 CREATE TABLE E_PRINT_TEMPLATE (
     ID NUMBER(18) NOT NULL,
+    TEMPLATE_TYPE VARCHAR2(64) DEFAULT 'sales_receipt' NOT NULL,
     TEMPLATE_CODE VARCHAR2(100) NOT NULL,
     BUCKET_NAME VARCHAR2(100) NOT NULL,
     OBJECT_NAME VARCHAR2(500) NOT NULL,
@@ -13,13 +14,22 @@ CREATE SEQUENCE SEQ_E_PRINT_TEMPLATE
     NOCACHE
     NOCYCLE;
 
-CREATE UNIQUE INDEX UK_E_PRINT_TEMPLATE_CODE ON E_PRINT_TEMPLATE (TEMPLATE_CODE);
-CREATE INDEX IDX_E_PRINT_TEMPLATE_BUCKET ON E_PRINT_TEMPLATE (BUCKET_NAME);
-CREATE INDEX IDX_E_PRINT_TEMPLATE_OBJECT ON E_PRINT_TEMPLATE (OBJECT_NAME);
-CREATE INDEX IDX_E_PRINT_TEMPLATE_STATUS ON E_PRINT_TEMPLATE (STATUS);
+CREATE UNIQUE INDEX UK_E_PRINT_TEMPLATE_TYPE_CODE
+    ON E_PRINT_TEMPLATE (TEMPLATE_TYPE, TEMPLATE_CODE);
+CREATE INDEX IDX_E_PRINT_TEMPLATE_TYPE_CODE_STATUS
+    ON E_PRINT_TEMPLATE (TEMPLATE_TYPE, TEMPLATE_CODE, STATUS);
+CREATE INDEX IDX_E_PRINT_TEMPLATE_TYPE
+    ON E_PRINT_TEMPLATE (TEMPLATE_TYPE);
+CREATE INDEX IDX_E_PRINT_TEMPLATE_BUCKET
+    ON E_PRINT_TEMPLATE (BUCKET_NAME);
+CREATE INDEX IDX_E_PRINT_TEMPLATE_OBJECT
+    ON E_PRINT_TEMPLATE (OBJECT_NAME);
+CREATE INDEX IDX_E_PRINT_TEMPLATE_STATUS
+    ON E_PRINT_TEMPLATE (STATUS);
 
 COMMENT ON TABLE E_PRINT_TEMPLATE IS 'Print template';
 COMMENT ON COLUMN E_PRINT_TEMPLATE.ID IS 'Primary key';
+COMMENT ON COLUMN E_PRINT_TEMPLATE.TEMPLATE_TYPE IS 'Template type code';
 COMMENT ON COLUMN E_PRINT_TEMPLATE.TEMPLATE_CODE IS 'Template code';
 COMMENT ON COLUMN E_PRINT_TEMPLATE.BUCKET_NAME IS 'MinIO bucket name';
 COMMENT ON COLUMN E_PRINT_TEMPLATE.OBJECT_NAME IS 'MinIO object name';
@@ -27,15 +37,129 @@ COMMENT ON COLUMN E_PRINT_TEMPLATE.STATUS IS 'Status: 0 disabled, 1 enabled';
 
 INSERT INTO E_PRINT_TEMPLATE (
     ID,
+    TEMPLATE_TYPE,
     TEMPLATE_CODE,
     BUCKET_NAME,
     OBJECT_NAME,
     STATUS
 ) VALUES (
     SEQ_E_PRINT_TEMPLATE.NEXTVAL,
-    'product-label',
+    'sales_receipt',
+    '01',
     'e-print',
-    'templates/print/product-label.html',
+    'templates/print/sales_receipt/01.html',
+    1
+);
+
+INSERT INTO E_PRINT_TEMPLATE (
+    ID,
+    TEMPLATE_TYPE,
+    TEMPLATE_CODE,
+    BUCKET_NAME,
+    OBJECT_NAME,
+    STATUS
+) VALUES (
+    SEQ_E_PRINT_TEMPLATE.NEXTVAL,
+    'sales_receipt_ed',
+    '01',
+    'e-print',
+    'templates/print/sales_receipt_ed/01.html',
+    1
+);
+
+INSERT INTO E_PRINT_TEMPLATE (
+    ID,
+    TEMPLATE_TYPE,
+    TEMPLATE_CODE,
+    BUCKET_NAME,
+    OBJECT_NAME,
+    STATUS
+) VALUES (
+    SEQ_E_PRINT_TEMPLATE.NEXTVAL,
+    'sales_receipt_ed2',
+    '01',
+    'e-print',
+    'templates/print/sales_receipt_ed2/01.html',
+    1
+);
+
+INSERT INTO E_PRINT_TEMPLATE (
+    ID,
+    TEMPLATE_TYPE,
+    TEMPLATE_CODE,
+    BUCKET_NAME,
+    OBJECT_NAME,
+    STATUS
+) VALUES (
+    SEQ_E_PRINT_TEMPLATE.NEXTVAL,
+    'sales_receipt_o2o',
+    '01',
+    'e-print',
+    'templates/print/sales_receipt_o2o/01.html',
+    1
+);
+
+INSERT INTO E_PRINT_TEMPLATE (
+    ID,
+    TEMPLATE_TYPE,
+    TEMPLATE_CODE,
+    BUCKET_NAME,
+    OBJECT_NAME,
+    STATUS
+) VALUES (
+    SEQ_E_PRINT_TEMPLATE.NEXTVAL,
+    'shipping_label',
+    '01',
+    'e-print',
+    'templates/print/shipping_label/01.html',
+    1
+);
+
+INSERT INTO E_PRINT_TEMPLATE (
+    ID,
+    TEMPLATE_TYPE,
+    TEMPLATE_CODE,
+    BUCKET_NAME,
+    OBJECT_NAME,
+    STATUS
+) VALUES (
+    SEQ_E_PRINT_TEMPLATE.NEXTVAL,
+    'shipping_label_o2o',
+    '01',
+    'e-print',
+    'templates/print/shipping_label_o2o/01.html',
+    1
+);
+
+INSERT INTO E_PRINT_TEMPLATE (
+    ID,
+    TEMPLATE_TYPE,
+    TEMPLATE_CODE,
+    BUCKET_NAME,
+    OBJECT_NAME,
+    STATUS
+) VALUES (
+    SEQ_E_PRINT_TEMPLATE.NEXTVAL,
+    'shipping_label_transfer_out',
+    '01',
+    'e-print',
+    'templates/print/shipping_label_transfer_out/01.html',
+    1
+);
+
+INSERT INTO E_PRINT_TEMPLATE (
+    ID,
+    TEMPLATE_TYPE,
+    TEMPLATE_CODE,
+    BUCKET_NAME,
+    OBJECT_NAME,
+    STATUS
+) VALUES (
+    SEQ_E_PRINT_TEMPLATE.NEXTVAL,
+    'shipping_label_return_apply',
+    '01',
+    'e-print',
+    'templates/print/shipping_label_return_apply/01.html',
     1
 );
 

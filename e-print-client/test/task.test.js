@@ -7,6 +7,7 @@ const { createResult, normalizeTask, parseTaskMessage } = require('../src/lib/ta
 test('normalizes valid print task defaults', () => {
   const task = normalizeTask({
     clientId: ' CLIENT-001 ',
+    templateType: 'sales_receipt',
     templateCode: 'product-label',
     data: {
       sku: 'MBP-001'
@@ -14,6 +15,7 @@ test('normalizes valid print task defaults', () => {
   });
 
   assert.equal(task.clientId, 'CLIENT-001');
+  assert.equal(task.templateType, 'sales_receipt');
   assert.equal(task.templateCode, 'product-label');
   assert.equal(task.copies, 1);
   assert.deepEqual(task.data, { sku: 'MBP-001' });
@@ -25,6 +27,7 @@ test('parses wrapped websocket print-task message', () => {
     payload: {
       id: 'TASK-1',
       clientId: 'CLIENT-001',
+      templateType: 'sales_receipt',
       templateCode: 'product-label',
       copies: 2
     }
@@ -37,19 +40,29 @@ test('parses wrapped websocket print-task message', () => {
 test('rejects invalid copies', () => {
   assert.throws(() => normalizeTask({
     clientId: 'CLIENT-001',
+    templateType: 'sales_receipt',
     templateCode: 'product-label',
     copies: 0
   }), /copies/);
+});
+
+test('rejects missing template type', () => {
+  assert.throws(() => normalizeTask({
+    clientId: 'CLIENT-001',
+    templateCode: 'product-label'
+  }), /templateType/);
 });
 
 test('creates result payload for server callback', () => {
   const result = createResult({
     taskId: 'TASK-1',
     clientId: 'CLIENT-001',
+    templateType: 'sales_receipt',
     templateCode: 'product-label'
   }, 'success');
 
   assert.equal(result.type, 'print-result');
+  assert.equal(result.templateType, 'sales_receipt');
   assert.equal(result.status, 'success');
   assert.match(result.printedAt, /^\d{4}-\d{2}-\d{2}T/);
 });

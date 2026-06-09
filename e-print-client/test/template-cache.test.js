@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { buildBasicAuthorization, buildTemplateHeaders, extractTemplateHtml } = require('../src/lib/template-cache');
+const { buildBasicAuthorization, buildTemplateHeaders, extractTemplateHtml, getTemplatePath } = require('../src/lib/template-cache');
 
 test('extracts template content from niko result data', () => {
   assert.equal(extractTemplateHtml({
@@ -33,4 +33,11 @@ test('builds basic authorization header for template requests', () => {
     accept: 'text/html, application/json',
     authorization: 'Basic ZXByaW50OmVwcmludDEyMw=='
   });
+});
+
+test('builds cache path with template type namespace', () => {
+  assert.match(
+    getTemplatePath('/tmp/cache', 'sales_receipt', '01'),
+    /sales_receipt[\\/]01\.html$/
+  );
 });

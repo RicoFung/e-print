@@ -17,7 +17,17 @@
 
     <section class="toolbar" id="templateToolbar">
         <form class="row g-3 align-items-end" id="templateFilterForm">
-            <div class="col-md-5">
+            <div class="col-md-3">
+                <label class="form-label" for="templateTypeFilter">模板类型</label>
+                <select class="form-select" id="templateTypeFilter" name="templateType">
+                    <option value="" th:selected="${templateType == null or templateType == ''}">全部</option>
+                    <option th:each="type : ${templateTypes}"
+                            th:value="${type.code}"
+                            th:text="${type.label}"
+                            th:selected="${type.code == templateType}">销售小票</option>
+                </select>
+            </div>
+            <div class="col-md-4">
                 <label class="form-label" for="templateCodeFilter">模板编码</label>
                 <input class="form-control" id="templateCodeFilter" name="templateCode" th:value="${templateCode}" placeholder="product-label">
             </div>
@@ -29,7 +39,7 @@
                     <option value="0" th:selected="${status != null and status == 0}">禁用</option>
                 </select>
             </div>
-            <div class="col-md-4 actions-right">
+            <div class="col-md-2 actions-right">
                 <button class="btn btn-outline-secondary" id="resetTemplateFilter" type="button">重置</button>
                 <button class="btn btn-dark" type="submit">查询</button>
             </div>
@@ -64,6 +74,7 @@
             <tr>
                 <th data-field="selected" data-checkbox="true" data-width="52"></th>
                 <th data-field="id" data-width="90">ID</th>
+                <th data-field="templateType" data-width="180" data-formatter="templateTypeFormatter">模板类型</th>
                 <th data-field="templateCode" data-width="180">模板编码</th>
                 <th data-field="bucketName" data-width="160">Bucket</th>
                 <th data-field="objectName" data-width="420" data-formatter="objectNameFormatter">Object</th>

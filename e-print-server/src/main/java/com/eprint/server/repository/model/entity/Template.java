@@ -10,6 +10,7 @@ public class Template implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String id; // db_column: ID
+    private String templateType; // db_column: TEMPLATE_TYPE
     private String templateCode; // db_column: TEMPLATE_CODE
     private String bucketName; // db_column: BUCKET_NAME
     private String objectName; // db_column: OBJECT_NAME
@@ -21,6 +22,14 @@ public class Template implements Serializable {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getTemplateType() {
+        return templateType;
+    }
+
+    public void setTemplateType(String templateType) {
+        this.templateType = templateType;
     }
 
     public String getTemplateCode() {

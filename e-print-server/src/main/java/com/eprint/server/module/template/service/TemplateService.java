@@ -1,5 +1,6 @@
 package com.eprint.server.module.template.service;
 
+import com.eprint.server.module.template.model.TemplateType;
 import com.eprint.server.repository.dao.TemplateDao;
 import com.eprint.server.repository.model.param.TemplateGetByCodeParam;
 import com.eprint.server.repository.model.result.TemplateResult;
@@ -28,39 +29,57 @@ public class TemplateService {
     @Autowired
     private MinioClient minioClient;
 
-    public NikoResult getByTemplateCode(String templateCode) {
+    public NikoResult getByTemplateCode(String templateType, String templateCode) {
         String templateContent;
+        TemplateResult template;
         try {
-            templateContent = getTemplateContentByCode(templateCode);
+            template = resolveTemplate(templateType, templateCode);
+            templateContent = readTemplateContent(template);
         } catch (IllegalArgumentException e) {
-            log.info("Print template not found, templateCode={}", templateCode);
+            log.info("Print template not found, templateType={}, templateCode={}", templateType, templateCode);
             return NikoResult.error(e.getMessage());
         } catch (IllegalStateException e) {
-            log.error("Read print template object failed, templateCode={}", templateCode, e);
+            log.error("Read print template object failed, templateType={}, templateCode={}", templateType, templateCode, e);
             return NikoResult.error(e.getMessage());
         }
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("templateCode", templateCode);
+        data.put("templateType", template.getTemplateType());
+        data.put("templateCode", template.getTemplateCode());
         data.put("content", templateContent);
         return NikoResult.data(data);
     }
 
-    public String getTemplateContentByCode(String templateCode) {
+    public String getTemplateContentByCode(String templateType, String templateCode) {
+        return readTemplateContent(resolveTemplate(templateType, templateCode));
+    }
+
+    public TemplateResult resolveTemplate(String templateType, String templateCode) {
+        if (!TemplateType.isValid(templateType)) {
+            throw new IllegalArgumentException("Invalid template type");
+        }
         TemplateGetByCodeParam param = new TemplateGetByCodeParam();
+        param.setTemplateType(templateType);
         param.setTemplateCode(templateCode);
         param.setStatus(STATUS_ENABLED);
 
         TemplateResult result = dao.getByTemplateCode(param);
+        if (result == null && !TemplateType.DEFAULT_CODE.equals(templateCode)) {
+            param.setTemplateCode(TemplateType.DEFAULT_CODE);
+            result = dao.getByTemplateCode(param);
+        }
         if (result == null) {
             throw new IllegalArgumentException("Template not found");
         }
+        return result;
+    }
 
+    private String readTemplateContent(TemplateResult result) {
         try {
             return getObjectContent(result.getBucketName(), result.getObjectName());
         } catch (Exception e) {
-            log.error("Read print template object failed, templateCode={}, bucketName={}, objectName={}",
-                    templateCode, result.getBucketName(), result.getObjectName(), e);
+            log.error("Read print template object failed, templateType={}, templateCode={}, bucketName={}, objectName={}",
+                    result.getTemplateType(), result.getTemplateCode(), result.getBucketName(), result.getObjectName(), e);
             throw new IllegalStateException("Template object not found", e);
         }
     }

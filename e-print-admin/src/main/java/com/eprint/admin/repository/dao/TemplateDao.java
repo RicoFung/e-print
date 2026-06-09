@@ -30,8 +30,9 @@ public class TemplateDao {
         return sqlSession.selectOne(statement("getById"), id);
     }
 
-    public Template getByTemplateCode(String templateCode) {
-        return sqlSession.selectOne(statement("getByTemplateCode"), templateCode);
+    public Template getByTemplateTypeAndCode(String templateType, String templateCode) {
+        return sqlSession.selectOne(statement("getByTemplateTypeAndCode"),
+                Map.of("templateType", templateType, "templateCode", templateCode));
     }
 
     public int insert(Template template) {

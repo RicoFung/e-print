@@ -8,7 +8,7 @@
 e-print
 ├── e-print-client      # Electron 本地打印客户端
 ├── e-print-server      # Spring Boot 打印服务
-├── e-print-admin       # 模板管理后台，规划中
+├── e-print-admin       # 模板管理后台
 └── minio               # 本地 MinIO 配置和初始化资源
 ```
 
@@ -16,7 +16,7 @@ e-print
 | --- | --- | --- |
 | `e-print-client` | Electron、Node.js、Handlebars、qrcode、bwip-js | 本地打印桥接器 |
 | `e-print-server` | Spring Boot、niko-boot、WebSocket、MyBatis、Oracle、MinIO | 打印任务服务 |
-| `e-print-admin` | 待定 | 模板管理后台 |
+| `e-print-admin` | Spring Boot MVC、Thymeleaf、Bootstrap Table、Oracle、MinIO | 模板管理后台 |
 
 ## 调用链路
 
@@ -92,7 +92,7 @@ npm start
 | `GET /task` | 是 |
 | `GET /task/{taskId}` | 是 |
 | `POST /task/{taskId}/result` | 是 |
-| `GET /template/{templateCode}` | 是 |
+| `GET /template/{templateCode}?templateType={templateType}` | 是 |
 | `WS /ws/print?clientId=CLIENT-001` | 是 |
 
 本地默认账号：
@@ -105,7 +105,7 @@ npm start
 请求示例：
 
 ```bash
-curl -u eprint:eprint123 http://localhost:9090/template/product-label
+curl -u eprint:eprint123 "http://localhost:9090/template/01?templateType=sales_receipt"
 ```
 
 ## 打印任务示例
@@ -119,19 +119,30 @@ Content-Type: application/json
 ```json
 {
   "clientId": "CLIENT-001",
-  "templateCode": "product-label",
+  "templateType": "sales_receipt",
+  "templateCode": "01",
   "copies": 1,
   "data": {
-    "productName": "MacBook Pro",
-    "sku": "MBP-001",
-    "price": "19999",
-    "qrText": "https://example.com/p/MBP-001",
-    "barcodeText": "MBP-001"
+    "storeName": "E-Print Store",
+    "receiptNo": "RC202606090001",
+    "cashier": "A001",
+    "printTime": "2026-06-09 10:00:00",
+    "items": [
+      {
+        "name": "MacBook Pro",
+        "qty": 1,
+        "price": "19999",
+        "amount": "19999"
+      }
+    ],
+    "total": "19999",
+    "qrText": "https://example.com/order/RC202606090001",
+    "barcodeText": "RC202606090001"
   }
 }
 ```
 
-成功响应中会返回 `taskId`，任务状态通常为 `DISPATCHED`。客户端打印完成后会回传结果，服务端任务状态更新为 `SUCCESS` 或 `FAILED`。
+`templateType` 为必填。服务端会先查找启用状态的 `(templateType, templateCode)` 模板；如果找不到，会回退到同类型默认模板 `(templateType, 01)`。成功响应中会返回 `taskId`，任务状态通常为 `DISPATCHED`。客户端打印完成后会回传结果，服务端任务状态更新为 `SUCCESS` 或 `FAILED`。
 
 查询任务：
 
@@ -154,12 +165,12 @@ sequenceDiagram
 
     Biz->>Server: POST /task + Basic Auth
     Server->>Server: 校验客户端连接
-    Server->>MinIO: 读取 templateCode 对应模板
+    Server->>MinIO: 按 templateType/templateCode 读取模板，必要时回退 01
     MinIO-->>Server: HTML 模板
     Server->>Client: WebSocket 推送 print-task
     Server-->>Biz: 返回 taskId/status=DISPATCHED
 
-    Client->>Server: GET /template/{templateCode} + Basic Auth
+    Client->>Server: GET /template/{templateCode}?templateType={templateType} + Basic Auth
     Server->>MinIO: 读取模板
     Server-->>Client: HTML 模板
     Client->>Client: 渲染数据、二维码、条码
@@ -175,7 +186,8 @@ sequenceDiagram
 
 1. HTML 模板上传到 MinIO。
 2. Oracle 表 `E_PRINT_TEMPLATE` 存储模板元数据。
-3. `templateCode` 对应数据库记录，再由记录中的 `BUCKET_NAME` 和 `OBJECT_NAME` 读取 MinIO 文件。
+3. `(templateType, templateCode)` 对应数据库记录，再由记录中的 `BUCKET_NAME` 和 `OBJECT_NAME` 读取 MinIO 文件。
+4. 每种模板类型的默认模板编码约定为 `01`，找不到指定编码时按同类型 `01` 回退。
 
 核心表脚本：
 
@@ -183,23 +195,40 @@ sequenceDiagram
 e-print-server/src/main/resources/db/oracle/print_template.sql
 ```
 
+初始化脚本会创建模板表、序列、索引，并初始化 8 个模板类型的默认 `01` 模板元数据。
+
 示例模板记录：
 
 ```sql
 INSERT INTO E_PRINT_TEMPLATE (
     ID,
+    TEMPLATE_TYPE,
     TEMPLATE_CODE,
     BUCKET_NAME,
     OBJECT_NAME,
     STATUS
 ) VALUES (
     SEQ_E_PRINT_TEMPLATE.NEXTVAL,
-    'product-label',
+    'sales_receipt',
+    '01',
     'e-print',
-    'templates/print/product-label.html',
+    'templates/print/sales_receipt/01.html',
     1
 );
 ```
+
+当前固定模板类型：
+
+| 编码 | 名称 |
+| --- | --- |
+| `sales_receipt` | 销售小票 |
+| `sales_receipt_ed` | 销售小票-ed |
+| `sales_receipt_ed2` | 销售小票-ed2 |
+| `sales_receipt_o2o` | 销售小票-o2o |
+| `shipping_label` | 物流面单 |
+| `shipping_label_o2o` | 物流面单-o2o |
+| `shipping_label_transfer_out` | 物流面单-横调出库 |
+| `shipping_label_return_apply` | 物流面单-退货申请 |
 
 模板中可使用业务数据字段，也可使用客户端自动生成的二维码和条码资源：
 

@@ -4,6 +4,7 @@
 
     <resultMap type="com.eprint.admin.repository.model.entity.Template" id="templateResult">
         <result property="id" column="ID"/>
+        <result property="templateType" column="TEMPLATE_TYPE"/>
         <result property="templateCode" column="TEMPLATE_CODE"/>
         <result property="bucketName" column="BUCKET_NAME"/>
         <result property="objectName" column="OBJECT_NAME"/>
@@ -15,6 +16,7 @@
             resultMap="templateResult">
         SELECT
             ID,
+            TEMPLATE_TYPE,
             TEMPLATE_CODE,
             BUCKET_NAME,
             OBJECT_NAME,
@@ -22,6 +24,7 @@
         FROM (
             SELECT
                 T.ID,
+                T.TEMPLATE_TYPE,
                 T.TEMPLATE_CODE,
                 T.BUCKET_NAME,
                 T.OBJECT_NAME,
@@ -29,6 +32,9 @@
                 ROW_NUMBER() OVER (ORDER BY T.ID DESC) RN
             FROM E_PRINT_TEMPLATE T
             WHERE 1 = 1
+            <if test="templateType != null and templateType != ''">
+                AND T.TEMPLATE_TYPE = #{templateType}
+            </if>
             <if test="templateCode != null and templateCode != ''">
                 AND LOWER(T.TEMPLATE_CODE) LIKE '%' || LOWER(#{templateCode}) || '%'
             </if>
@@ -47,6 +53,9 @@
         SELECT COUNT(1)
         FROM E_PRINT_TEMPLATE T
         WHERE 1 = 1
+        <if test="templateType != null and templateType != ''">
+            AND T.TEMPLATE_TYPE = #{templateType}
+        </if>
         <if test="templateCode != null and templateCode != ''">
             AND LOWER(T.TEMPLATE_CODE) LIKE '%' || LOWER(#{templateCode}) || '%'
         </if>
@@ -58,6 +67,7 @@
     <select id="getById" parameterType="string" resultMap="templateResult">
         SELECT
             T.ID,
+            T.TEMPLATE_TYPE,
             T.TEMPLATE_CODE,
             T.BUCKET_NAME,
             T.OBJECT_NAME,
@@ -66,26 +76,30 @@
         WHERE T.ID = #{id}
     </select>
 
-    <select id="getByTemplateCode" parameterType="string" resultMap="templateResult">
+    <select id="getByTemplateTypeAndCode" parameterType="map" resultMap="templateResult">
         SELECT
             T.ID,
+            T.TEMPLATE_TYPE,
             T.TEMPLATE_CODE,
             T.BUCKET_NAME,
             T.OBJECT_NAME,
             T.STATUS
         FROM E_PRINT_TEMPLATE T
-        WHERE T.TEMPLATE_CODE = #{templateCode}
+        WHERE T.TEMPLATE_TYPE = #{templateType}
+          AND T.TEMPLATE_CODE = #{templateCode}
     </select>
 
     <insert id="insert" parameterType="com.eprint.admin.repository.model.entity.Template">
         INSERT INTO E_PRINT_TEMPLATE (
             ID,
+            TEMPLATE_TYPE,
             TEMPLATE_CODE,
             BUCKET_NAME,
             OBJECT_NAME,
             STATUS
         ) VALUES (
             SEQ_E_PRINT_TEMPLATE.NEXTVAL,
+            #{templateType},
             #{templateCode},
             #{bucketName},
             #{objectName},
@@ -96,6 +110,7 @@
     <update id="update" parameterType="com.eprint.admin.repository.model.entity.Template">
         UPDATE E_PRINT_TEMPLATE
         SET
+            TEMPLATE_TYPE = #{templateType},
             TEMPLATE_CODE = #{templateCode},
             BUCKET_NAME = #{bucketName},
             OBJECT_NAME = #{objectName},

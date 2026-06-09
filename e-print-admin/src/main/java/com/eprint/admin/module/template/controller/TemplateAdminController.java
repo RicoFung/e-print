@@ -2,6 +2,7 @@ package com.eprint.admin.module.template.controller;
 
 import com.eprint.admin.module.template.model.PageResult;
 import com.eprint.admin.module.template.model.TemplateForm;
+import com.eprint.admin.module.template.model.TemplateType;
 import com.eprint.admin.module.template.service.TemplateAdminService;
 import com.eprint.admin.repository.model.entity.Template;
 import jakarta.validation.Valid;
@@ -34,11 +35,14 @@ public class TemplateAdminController {
     }
 
     @GetMapping
-    public String list(@RequestParam(value = "templateCode", required = false) String templateCode,
+    public String list(@RequestParam(value = "templateType", required = false) String templateType,
+                       @RequestParam(value = "templateCode", required = false) String templateCode,
                        @RequestParam(value = "status", required = false) Integer status,
                        @RequestParam(value = "page", required = false) Integer page,
                        @RequestParam(value = "pageSize", required = false) Integer pageSize,
                        Model model) {
+        model.addAttribute("templateTypes", TemplateType.options());
+        model.addAttribute("templateType", templateType);
         model.addAttribute("templateCode", templateCode);
         model.addAttribute("status", status);
         model.addAttribute("pageSize", pageSize == null ? 10 : pageSize);
@@ -47,7 +51,8 @@ public class TemplateAdminController {
 
     @GetMapping("/data")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> data(@RequestParam(value = "templateCode", required = false) String templateCode,
+    public ResponseEntity<Map<String, Object>> data(@RequestParam(value = "templateType", required = false) String templateType,
+                                                    @RequestParam(value = "templateCode", required = false) String templateCode,
                                                     @RequestParam(value = "status", required = false) Integer status,
                                                     @RequestParam(value = "search", required = false) String search,
                                                     @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
@@ -55,7 +60,7 @@ public class TemplateAdminController {
         String queryTemplateCode = templateCode == null || templateCode.isBlank() ? search : templateCode;
         int queryLimit = limit == null || limit < 1 ? 10 : limit;
         int page = offset == null || offset < 0 ? 1 : (offset / queryLimit) + 1;
-        PageResult<Template> pageResult = templateAdminService.page(queryTemplateCode, status, page, queryLimit);
+        PageResult<Template> pageResult = templateAdminService.page(templateType, queryTemplateCode, status, page, queryLimit);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("total", pageResult.getTotal());
@@ -66,6 +71,7 @@ public class TemplateAdminController {
     @GetMapping("/new")
     public String newForm(Model model) {
         model.addAttribute("mode", "create");
+        model.addAttribute("templateTypes", TemplateType.options());
         model.addAttribute("templateForm", templateAdminService.createForm());
         return "template/form";
     }
@@ -77,6 +83,7 @@ public class TemplateAdminController {
                          RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("mode", "create");
+            model.addAttribute("templateTypes", TemplateType.options());
             return "template/form";
         }
         try {
@@ -84,6 +91,7 @@ public class TemplateAdminController {
         } catch (RuntimeException e) {
             bindingResult.reject("template.save.failed", e.getMessage());
             model.addAttribute("mode", "create");
+            model.addAttribute("templateTypes", TemplateType.options());
             return "template/form";
         }
         redirectAttributes.addFlashAttribute("message", "Template created");
@@ -93,6 +101,7 @@ public class TemplateAdminController {
     @GetMapping("/{id}/edit")
     public String editForm(@PathVariable("id") String id, Model model) {
         model.addAttribute("mode", "edit");
+        model.addAttribute("templateTypes", TemplateType.options());
         model.addAttribute("templateForm", templateAdminService.getForm(id));
         return "template/form";
     }
@@ -105,6 +114,7 @@ public class TemplateAdminController {
                          RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("mode", "edit");
+            model.addAttribute("templateTypes", TemplateType.options());
             return "template/form";
         }
         try {
@@ -112,6 +122,7 @@ public class TemplateAdminController {
         } catch (RuntimeException e) {
             bindingResult.reject("template.save.failed", e.getMessage());
             model.addAttribute("mode", "edit");
+            model.addAttribute("templateTypes", TemplateType.options());
             return "template/form";
         }
         redirectAttributes.addFlashAttribute("message", "Template saved");

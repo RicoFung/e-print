@@ -1,0 +1,247 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page {
+      size: 80mm auto;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 10px;
+      color: #111;
+      background: #fff;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .receipt {
+      width: 72mm;
+      margin: 0 auto;
+      border-top: 4px solid #6d28d9;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .store-name {
+      margin: 8px 0 4px;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .template-type {
+      display: inline-block;
+      margin: 2px 0 5px;
+      padding: 2px 7px;
+      border: 1px solid #6d28d9;
+      color: #6d28d9;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .template-code {
+      margin-bottom: 5px;
+      font-size: 10px;
+      color: #444;
+    }
+
+    .muted {
+      color: #555;
+    }
+
+    .section {
+      padding: 7px 0;
+      border-top: 1px dashed #222;
+    }
+
+    .section-accent {
+      padding: 6px;
+      border: 1px solid #6d28d9;
+      border-radius: 2px;
+      margin: 7px 0;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 2px 0;
+    }
+
+    .label {
+      color: #333;
+      white-space: nowrap;
+    }
+
+    .value {
+      text-align: right;
+      word-break: break-word;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      padding: 0 0 4px;
+      font-weight: 700;
+      text-align: left;
+      border-bottom: 1px dashed #222;
+    }
+
+    td {
+      padding: 4px 0;
+      vertical-align: top;
+      border-bottom: 1px dotted #bbb;
+    }
+
+    .col-name {
+      width: 38%;
+    }
+
+    .col-qty {
+      width: 14%;
+      text-align: center;
+    }
+
+    .col-price,
+    .col-amount {
+      width: 24%;
+      text-align: right;
+    }
+
+    .total {
+      font-size: 14px;
+      font-weight: 700;
+      color: #6d28d9;
+    }
+
+    .note {
+      margin-top: 5px;
+      font-size: 10px;
+      color: #333;
+    }
+
+    .pickup-row .value {
+      font-size: 15px;
+      letter-spacing: 1px;
+    }
+
+    .barcode {
+      width: 58mm;
+      max-height: 16mm;
+      margin-top: 8px;
+    }
+
+    .qr {
+      width: 22mm;
+      height: 22mm;
+      margin-top: 8px;
+    }
+
+    .footer {
+      margin-top: 6px;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <main class="receipt">
+    <header class="center">
+      <h1 class="store-name">{{storeName}}</h1>
+      <div class="template-type">销售小票-ed2 · ED2 EXT</div>
+      <div class="template-code">templateType: sales_receipt_ed2 / templateCode: 01</div>
+      <div class="muted">{{storeAddress}}</div>
+      <div class="muted">Tel: {{storePhone}}</div>
+    </header>
+
+    <section class="section">
+      <div class="row">
+        <span class="label">Receipt No</span>
+        <span class="value">{{receiptNo}}</span>
+      </div>
+      <div class="row">
+        <span class="label">Cashier</span>
+        <span class="value">{{cashier}}</span>
+      </div>
+      <div class="row">
+        <span class="label">Time</span>
+        <span class="value">{{printTime}}</span>
+      </div>
+    </section>
+
+    <section class="section-accent">
+      <div class="row">
+        <span class="label">组合优惠</span>
+        <span class="value">{{bundleDiscount}}</span>
+      </div>
+      <div class="row">
+        <span class="label">权益编号</span>
+        <span class="value">{{benefitNo}}</span>
+      </div>
+
+      <div class="note">ED2 版式小票，适合组合优惠和更多明细字段展示。</div>
+    </section>
+
+    <section class="section">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-name">Item</th>
+            <th class="col-qty">Qty</th>
+            <th class="col-price">Price</th>
+            <th class="col-amount">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each items}}
+          <tr>
+            <td class="col-name">{{name}}</td>
+            <td class="col-qty">{{qty}}</td>
+            <td class="col-price">{{price}}</td>
+            <td class="col-amount">{{amount}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="row">
+        <span class="label">Subtotal</span>
+        <span class="value">{{subtotal}}</span>
+      </div>
+      <div class="row">
+        <span class="label">Discount</span>
+        <span class="value">{{discount}}</span>
+      </div>
+      <div class="row total">
+        <span class="label">ED2 Total</span>
+        <span class="value">{{total}}</span>
+      </div>
+      <div class="row">
+        <span class="label">Payment</span>
+        <span class="value">{{paymentMethod}}</span>
+      </div>
+    </section>
+
+    <section class="section center">
+      <img class="barcode" src="{{barcode.barcodeText}}" alt="Barcode">
+      <br>
+      <img class="qr" src="{{qr.qrText}}" alt="QR Code">
+      <div class="footer">{{footerText}}</div>
+    </section>
+  </main>
+</body>
+</html>

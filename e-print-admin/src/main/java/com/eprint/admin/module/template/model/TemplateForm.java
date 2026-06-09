@@ -9,6 +9,10 @@ public class TemplateForm {
 
     private String id;
 
+    @NotBlank(message = "Template type is required")
+    @Size(max = 64, message = "Template type must be at most 64 characters")
+    private String templateType;
+
     @NotBlank(message = "Template code is required")
     @Size(max = 100, message = "Template code must be at most 100 characters")
     @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Template code can only contain letters, numbers, underscore, and hyphen")
@@ -33,6 +37,14 @@ public class TemplateForm {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getTemplateType() {
+        return templateType;
+    }
+
+    public void setTemplateType(String templateType) {
+        this.templateType = templateType;
     }
 
     public String getTemplateCode() {

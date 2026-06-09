@@ -8,6 +8,7 @@ public class Task {
 
     private String taskId;
     private String clientId;
+    private String templateType;
     private String templateCode;
     private int copies;
     private Map<String, Object> data = new LinkedHashMap<>();
@@ -30,6 +31,14 @@ public class Task {
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
+    }
+
+    public String getTemplateType() {
+        return templateType;
+    }
+
+    public void setTemplateType(String templateType) {
+        this.templateType = templateType;
     }
 
     public String getTemplateCode() {

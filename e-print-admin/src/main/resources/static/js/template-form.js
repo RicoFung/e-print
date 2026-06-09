@@ -47,6 +47,7 @@
   });
 
   const templateCode = document.getElementById('templateCode');
+  const templateType = document.getElementById('templateType');
   const objectName = document.getElementById('objectName');
   if (templateCode && objectName) {
     templateCode.addEventListener('blur', () => {
@@ -58,7 +59,8 @@
         return;
       }
       const prefix = templateCode.getAttribute('data-object-prefix') || 'templates/print';
-      objectName.value = `${prefix}/${code}.html`;
+      const type = templateType ? templateType.value.trim() : '';
+      objectName.value = type ? `${prefix}/${type}/${code}.html` : `${prefix}/${code}.html`;
     });
   }
 
@@ -141,6 +143,7 @@
     const bulkDelete = document.getElementById('deleteSelectedTemplates');
     const bulkButtons = [bulkDisable, bulkEnable, bulkDelete].filter(Boolean);
     const selectionSummary = document.getElementById('templateSelectionSummary');
+    const templateTypeFilter = document.getElementById('templateTypeFilter');
     const templateCodeFilter = document.getElementById('templateCodeFilter');
     const statusFilter = document.getElementById('statusFilter');
 
@@ -237,6 +240,7 @@
           limit: params.limit,
           offset: params.offset,
           search: '',
+          templateType: templateTypeFilter ? templateTypeFilter.value : '',
           templateCode: templateCodeFilter ? templateCodeFilter.value.trim() : '',
           status: statusFilter ? statusFilter.value : ''
         };
@@ -268,6 +272,9 @@
 
     if (resetFilter) {
       resetFilter.addEventListener('click', () => {
+        if (templateTypeFilter) {
+          templateTypeFilter.value = '';
+        }
         if (templateCodeFilter) {
           templateCodeFilter.value = '';
         }
@@ -331,6 +338,20 @@ function escapeHtml(value) {
 
 function objectNameFormatter(value) {
   return `<span class="object-name">${escapeHtml(value)}</span>`;
+}
+
+function templateTypeFormatter(value) {
+  const labels = {
+    sales_receipt: '销售小票',
+    sales_receipt_ed: '销售小票-ed',
+    sales_receipt_ed2: '销售小票-ed2',
+    sales_receipt_o2o: '销售小票-o2o',
+    shipping_label: '物流面单',
+    shipping_label_o2o: '物流面单-o2o',
+    shipping_label_transfer_out: '物流面单-横调出库',
+    shipping_label_return_apply: '物流面单-退货申请'
+  };
+  return escapeHtml(labels[value] || value || '');
 }
 
 function statusFormatter(value) {

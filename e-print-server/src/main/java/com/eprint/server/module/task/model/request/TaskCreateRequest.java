@@ -12,6 +12,9 @@ public class TaskCreateRequest {
     private String clientId;
 
     @NotBlank
+    private String templateType;
+
+    @NotBlank
     private String templateCode;
 
     @Min(1)
@@ -25,6 +28,14 @@ public class TaskCreateRequest {
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
+    }
+
+    public String getTemplateType() {
+        return templateType;
+    }
+
+    public void setTemplateType(String templateType) {
+        this.templateType = templateType;
     }
 
     public String getTemplateCode() {

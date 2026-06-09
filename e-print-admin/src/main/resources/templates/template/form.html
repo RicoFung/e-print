@@ -25,6 +25,16 @@
             <input type="hidden" th:field="*{id}">
 
             <div class="mb-3">
+                <label class="form-label" for="templateType">模板类型</label>
+                <select class="form-select" id="templateType" th:field="*{templateType}">
+                    <option th:each="type : ${templateTypes}"
+                            th:value="${type.code}"
+                            th:text="${type.label}">销售小票</option>
+                </select>
+                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('templateType')}" th:errors="*{templateType}"></div>
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label" for="templateCode">模板编码</label>
                 <input class="form-control" id="templateCode" th:field="*{templateCode}" data-object-prefix="templates/print">
                 <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('templateCode')}" th:errors="*{templateCode}"></div>

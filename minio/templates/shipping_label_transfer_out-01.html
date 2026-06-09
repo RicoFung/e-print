@@ -1,0 +1,292 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page {
+      size: 100mm 150mm;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 10px;
+      color: #111;
+      background: #fff;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .label-sheet {
+      width: 92mm;
+      margin: 0 auto;
+      border: 2px solid #111;
+      border-top: 8px solid #4d7c0f;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px;
+      border-bottom: 2px solid #111;
+    }
+
+    .title {
+      margin: 0 0 4px;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .template-type {
+      display: inline-block;
+      padding: 2px 7px;
+      border: 1px solid #4d7c0f;
+      color: #4d7c0f;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .template-code {
+      margin-top: 4px;
+      font-size: 10px;
+      color: #444;
+    }
+
+    .service {
+      min-width: 25mm;
+      align-self: flex-start;
+      padding: 5px;
+      border: 1px solid #4d7c0f;
+      text-align: center;
+      color: #4d7c0f;
+      font-weight: 800;
+    }
+
+    .section {
+      padding: 8px;
+      border-bottom: 1px solid #111;
+    }
+
+    .section-title {
+      margin-bottom: 5px;
+      color: #4d7c0f;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .address-block {
+      display: grid;
+      grid-template-columns: 12mm 1fr;
+      gap: 5px;
+    }
+
+    .address-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #111;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .person {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .phone {
+      margin-left: 8px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .address {
+      margin-top: 4px;
+      font-size: 13px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 3px 0;
+    }
+
+    .label {
+      color: #333;
+      white-space: nowrap;
+    }
+
+    .value {
+      text-align: right;
+      word-break: break-word;
+      font-weight: 700;
+    }
+
+    .route {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px;
+      border-bottom: 2px solid #111;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .route span:last-child {
+      color: #4d7c0f;
+    }
+
+    .accent-box {
+      padding: 7px;
+      border: 1px solid #4d7c0f;
+    }
+
+    .pickup-row .value,
+    .box-row .value {
+      font-size: 18px;
+      letter-spacing: 1px;
+    }
+
+    .items {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .items th,
+    .items td {
+      padding: 4px 0;
+      border-bottom: 1px dotted #bbb;
+      text-align: left;
+    }
+
+    .items th:last-child,
+    .items td:last-child {
+      text-align: right;
+    }
+
+    .note {
+      margin-top: 5px;
+      font-size: 10px;
+      color: #333;
+    }
+
+    .barcode-wrap {
+      padding: 9px 8px;
+      text-align: center;
+    }
+
+    .barcode {
+      width: 72mm;
+      max-height: 18mm;
+    }
+
+    .qr {
+      width: 20mm;
+      height: 20mm;
+      margin-top: 6px;
+    }
+
+    .footer {
+      margin-top: 4px;
+      font-size: 10px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <main class="label-sheet">
+    <header class="header">
+      <div>
+        <h1 class="title">物流面单-横调出库</h1>
+        <div class="template-type">物流面单-横调出库 · TRANSFER</div>
+        <div class="template-code">templateType: shipping_label_transfer_out / templateCode: 01</div>
+      </div>
+      <div class="service">Transfer Out</div>
+    </header>
+
+    <div class="route">
+      <span>{{originCode}}</span>
+      <span>{{routeCode}}</span>
+      <span>{{destinationCode}}</span>
+    </div>
+
+    <section class="section">
+      <div class="section-title">收件信息</div>
+      <div class="address-block">
+        <div class="address-mark">收</div>
+        <div>
+          <div class="person">{{receiverName}}<span class="phone">{{receiverPhone}}</span></div>
+          <div class="address">{{receiverAddress}}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">寄件信息</div>
+      <div class="address-block">
+        <div class="address-mark">寄</div>
+        <div>
+          <div class="person">{{senderName}}<span class="phone">{{senderPhone}}</span></div>
+          <div class="address">{{senderAddress}}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="accent-box">
+      <div class="row">
+        <span class="label">调出门店</span>
+        <span class="value">{{fromStore}}</span>
+      </div>
+      <div class="row">
+        <span class="label">调入门店</span>
+        <span class="value">{{toStore}}</span>
+      </div>
+      <div class="row box-row">
+        <span class="label">箱号</span>
+        <span class="value">{{boxNo}}</span>
+      </div>
+
+        <div class="note">横调出库面单，突出调出门店、调入门店、箱号和批次。</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">包裹明细</div>
+      <table class="items">
+        <thead>
+          <tr>
+            <th>名称</th>
+            <th>数量</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each items}}
+          <tr>
+            <td>{{name}}</td>
+            <td>{{qty}}</td>
+            <td>{{remark}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="barcode-wrap">
+      <img class="barcode" src="{{barcode.barcodeText}}" alt="Barcode">
+      <br>
+      <img class="qr" src="{{qr.qrText}}" alt="QR Code">
+      <div class="footer">{{footerText}}</div>
+    </section>
+  </main>
+</body>
+</html>

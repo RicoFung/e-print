@@ -11,6 +11,7 @@ test('runs full print flow and reports success', async () => {
   const result = await runPrintTask({
     taskId: 'TASK-1',
     clientId: 'CLIENT-001',
+    templateType: 'sales_receipt',
     templateCode: 'product-label',
     copies: 2,
     data: {
@@ -20,7 +21,11 @@ test('runs full print flow and reports success', async () => {
     printerName: 'Zebra',
     silent: true
   }, {
-    getTemplate: async () => '<div>{{productName}}</div>',
+    getTemplate: async (templateType, templateCode) => {
+      assert.equal(templateType, 'sales_receipt');
+      assert.equal(templateCode, 'product-label');
+      return '<div>{{productName}}</div>';
+    },
     renderTemplate: async (template, data) => template.replace('{{productName}}', data.productName),
     printer: {
       print: async (html, options) => printed.push({ html, options })
@@ -42,6 +47,7 @@ test('reports failed result when printer throws', async () => {
   const reports = [];
   const result = await runPrintTask({
     clientId: 'CLIENT-001',
+    templateType: 'sales_receipt',
     templateCode: 'product-label'
   }, {}, {
     getTemplate: async () => '<div>ok</div>',
