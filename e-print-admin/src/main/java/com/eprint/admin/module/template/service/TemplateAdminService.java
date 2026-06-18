@@ -25,8 +25,13 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,6 +43,14 @@ public class TemplateAdminService {
     private static final Integer STATUS_DISABLED = 0;
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{\\{\\s*([A-Za-z0-9_.-]+)\\s*}}");
     private static final Pattern EACH_PATTERN = Pattern.compile("\\{\\{#each\\s+([A-Za-z0-9_.-]+)\\s*}}([\\s\\S]*?)\\{\\{/each}}");
+    private static final Map<String, String> SORT_COLUMNS = Map.of(
+            "id", "T.ID",
+            "templateType", "T.TEMPLATE_TYPE",
+            "templateCode", "T.TEMPLATE_CODE",
+            "bucketName", "T.BUCKET_NAME",
+            "objectName", "T.OBJECT_NAME",
+            "status", "T.STATUS"
+    );
     private static final String[] CODE128_PATTERNS = {
             "212222", "222122", "222221", "121223", "121322", "131222", "122213", "122312", "132212", "221213",
             "221312", "231212", "112232", "122132", "122231", "113222", "123122", "123221", "223211", "221132",
@@ -68,13 +81,14 @@ public class TemplateAdminService {
         this.defaultObjectPrefix = trimSlashes(defaultObjectPrefix);
     }
 
-    public PageResult<Template> page(String templateType, String templateCode, Integer status, Integer page, Integer pageSize) {
+    public PageResult<Template> page(String templateType, String templateCode, Integer status, String sort, Integer page, Integer pageSize) {
         int normalizedPageSize = normalizePageSize(pageSize);
         int normalizedPage = page == null || page < 1 ? 1 : page;
         TemplateQueryParam param = new TemplateQueryParam();
         param.setTemplateType(StringUtils.hasText(templateType) ? templateType.trim() : null);
         param.setTemplateCode(StringUtils.hasText(templateCode) ? templateCode.trim() : null);
         param.setStatus(status);
+        param.setOrderBy(toOrderBy(sort));
 
         int total = templateDao.count(param);
         int totalPages = total == 0 ? 0 : (int) Math.ceil((double) total / normalizedPageSize);
@@ -86,6 +100,40 @@ public class TemplateAdminService {
         param.setRowEnd(normalizedPage * normalizedPageSize);
         List<Template> records = templateDao.list(param);
         return new PageResult<>(records, normalizedPage, normalizedPageSize, total);
+    }
+
+    private String toOrderBy(String sort) {
+        List<String> clauses = new ArrayList<>();
+        LinkedHashSet<String> sortedFields = new LinkedHashSet<>();
+
+        if (StringUtils.hasText(sort)) {
+            for (String token : sort.split(",")) {
+                if (clauses.size() >= 5) {
+                    break;
+                }
+                String normalizedToken = token == null ? "" : token.trim();
+                int separatorIndex = normalizedToken.lastIndexOf('.');
+                if (separatorIndex <= 0 || separatorIndex >= normalizedToken.length() - 1) {
+                    continue;
+                }
+
+                String field = normalizedToken.substring(0, separatorIndex);
+                String direction = normalizedToken.substring(separatorIndex + 1).toUpperCase(Locale.ROOT);
+                String column = SORT_COLUMNS.get(field);
+                if (column == null || (!"ASC".equals(direction) && !"DESC".equals(direction)) || !sortedFields.add(field)) {
+                    continue;
+                }
+                clauses.add(column + " " + direction);
+            }
+        }
+
+        if (!sortedFields.contains("id")) {
+            clauses.add("T.ID DESC");
+        }
+
+        StringJoiner orderBy = new StringJoiner(", ");
+        clauses.forEach(orderBy::add);
+        return orderBy.toString();
     }
 
     public TemplateForm createForm() {
@@ -110,12 +158,15 @@ public class TemplateAdminService {
     }
 
     public String renderPreviewContent(String id, String sampleData) {
-        String templateContent = getPreviewContent(id);
+        return renderTemplateContent(getPreviewContent(id), sampleData);
+    }
+
+    public String renderTemplateContent(String templateContent, String sampleData) {
         try {
             JsonNode root = objectMapper.readTree(StringUtils.hasText(sampleData) ? sampleData : "{}");
-            return renderPlaceholders(templateContent, root);
+            return renderPlaceholders(templateContent == null ? "" : templateContent, root);
         } catch (Exception e) {
-            log.warn("Render template preview failed, templateId={}", id, e);
+            log.warn("Render template preview failed", e);
             throw new IllegalArgumentException("Sample data must be valid JSON");
         }
     }

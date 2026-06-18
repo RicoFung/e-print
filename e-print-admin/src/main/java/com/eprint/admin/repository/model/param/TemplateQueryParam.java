@@ -7,6 +7,7 @@ public class TemplateQueryParam {
     private Integer status;
     private Integer rowStart;
     private Integer rowEnd;
+    private String orderBy;
 
     public String getTemplateType() {
         return templateType;
@@ -46,5 +47,13 @@ public class TemplateQueryParam {
 
     public void setRowEnd(Integer rowEnd) {
         this.rowEnd = rowEnd;
+    }
+
+    public String getOrderBy() {
+        return orderBy;
+    }
+
+    public void setOrderBy(String orderBy) {
+        this.orderBy = orderBy;
     }
 }

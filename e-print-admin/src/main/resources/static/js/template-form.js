@@ -81,19 +81,28 @@
     });
   }
 
-  const workbench = document.querySelector('.preview-workbench');
+  const legacyPreviewWorkbench = document.querySelector('.preview-workbench[data-render-url]');
+  const previewModalElement = document.getElementById('templatePreviewModal');
+  const previewModal = previewModalElement && window.bootstrap
+    ? window.bootstrap.Modal.getOrCreateInstance(previewModalElement)
+    : null;
   const sampleData = document.getElementById('sampleData');
   const renderPreviewBtn = document.getElementById('renderPreviewBtn');
   const previewFrame = document.getElementById('previewFrame');
   const previewError = document.getElementById('previewError');
 
+  const previewSubtitle = document.getElementById('templatePreviewSubtitle');
+  let previewRequest = null;
+
   async function renderPreview() {
-    if (!workbench || !sampleData || !previewFrame) {
+    if (!previewRequest || !sampleData || !previewFrame) {
       return;
     }
-    const renderUrl = workbench.getAttribute('data-render-url');
     const body = new URLSearchParams();
     body.set('sampleData', sampleData.value);
+    if (previewRequest.contentProvider) {
+      body.set('content', previewRequest.contentProvider());
+    }
 
     if (previewError) {
       previewError.hidden = true;
@@ -104,7 +113,7 @@
     }
 
     try {
-      const response = await fetch(renderUrl, {
+      const response = await fetch(previewRequest.url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
@@ -131,7 +140,46 @@
   if (renderPreviewBtn) {
     renderPreviewBtn.addEventListener('click', renderPreview);
   }
-  renderPreview();
+
+  if (legacyPreviewWorkbench) {
+    previewRequest = { url: legacyPreviewWorkbench.getAttribute('data-render-url') };
+    renderPreview();
+  }
+
+  function openPreview(options) {
+    if (!previewModal) {
+      return;
+    }
+    previewRequest = options;
+    if (previewSubtitle) {
+      previewSubtitle.textContent = options.subtitle || '使用模拟数据渲染模板';
+    }
+    previewFrame.removeAttribute('src');
+    previewFrame.srcdoc = '';
+    previewModal.show();
+    renderPreview();
+  }
+
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-template-preview-id]');
+    if (!button) {
+      return;
+    }
+    const id = encodeURIComponent(button.getAttribute('data-template-preview-id'));
+    openPreview({
+      url: `/admin/templates/${id}/preview/render`,
+      subtitle: button.getAttribute('data-template-preview-name') || '已保存模板'
+    });
+  });
+
+  const previewCurrentTemplate = document.getElementById('previewCurrentTemplate');
+  if (previewCurrentTemplate && content) {
+    previewCurrentTemplate.addEventListener('click', () => openPreview({
+      url: '/admin/templates/preview/render',
+      subtitle: '当前编辑内容（无需保存）',
+      contentProvider: () => content.value
+    }));
+  }
 
   const templateTable = document.getElementById('templateTable');
   if (templateTable && window.jQuery && typeof window.jQuery.fn.bootstrapTable === 'function') {
@@ -146,6 +194,147 @@
     const templateTypeFilter = document.getElementById('templateTypeFilter');
     const templateCodeFilter = document.getElementById('templateCodeFilter');
     const statusFilter = document.getElementById('statusFilter');
+    const createTemplateLink = document.getElementById('createTemplateLink');
+    const initialPage = Math.max(1, Number(templateTable.dataset.initialPage) || 1);
+    const initialPageSize = Math.max(1, Number(templateTable.dataset.initialPageSize) || 10);
+    const tableWrap = templateTable.closest('.list-table-wrap');
+    const sortableFields = new Set(['templateType', 'templateCode', 'bucketName', 'objectName', 'status']);
+    const parseSortState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const seenFields = new Set();
+      return (params.get('sort') || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => {
+          const separatorIndex = item.lastIndexOf('.');
+          if (separatorIndex <= 0 || separatorIndex >= item.length - 1) {
+            return null;
+          }
+          return {
+            field: item.slice(0, separatorIndex),
+            order: item.slice(separatorIndex + 1).toLowerCase()
+          };
+        })
+        .filter((item) => item
+          && sortableFields.has(item.field)
+          && (item.order === 'asc' || item.order === 'desc')
+          && !seenFields.has(item.field)
+          && seenFields.add(item.field));
+    };
+    let sortState = parseSortState();
+
+    const encodeSortState = () => sortState
+      .map((item) => `${item.field}.${item.order}`)
+      .join(',');
+
+    const nextSortOrder = (field) => {
+      const current = sortState.find((item) => item.field === field);
+      if (!current) {
+        return 'asc';
+      }
+      return current.order === 'asc' ? 'desc' : '';
+    };
+
+    const syncSortHeaders = () => {
+      if (!tableWrap) {
+        return;
+      }
+      tableWrap.querySelectorAll('th[data-field]').forEach((header) => {
+        const field = header.getAttribute('data-field');
+        const inner = header.querySelector('.th-inner') || header;
+        const existingIndicator = inner.querySelector('.admin-sort-indicator');
+        if (existingIndicator) {
+          existingIndicator.remove();
+        }
+
+        header.classList.remove('admin-sortable', 'admin-sort-active', 'admin-sort-asc', 'admin-sort-desc');
+        header.removeAttribute('aria-sort');
+        header.removeAttribute('title');
+        if (!sortableFields.has(field)) {
+          return;
+        }
+
+        header.classList.add('admin-sortable');
+        header.setAttribute('title', '点击加入多列排序，Ctrl/⌘+点击仅排序当前列');
+        const sortIndex = sortState.findIndex((item) => item.field === field);
+        if (sortIndex < 0) {
+          return;
+        }
+
+        const state = sortState[sortIndex];
+        const indicator = document.createElement('span');
+        indicator.className = 'admin-sort-indicator';
+        indicator.innerHTML = '<span class="admin-sort-triangle" aria-hidden="true"></span>';
+        if (sortState.length > 1) {
+          const priority = document.createElement('span');
+          priority.className = 'admin-sort-priority';
+          priority.textContent = String(sortIndex + 1);
+          indicator.appendChild(priority);
+        }
+        inner.appendChild(indicator);
+        header.classList.add('admin-sort-active', `admin-sort-${state.order}`);
+        header.setAttribute('aria-sort', state.order === 'asc' ? 'ascending' : 'descending');
+      });
+    };
+
+    const applySort = (field, singleColumn) => {
+      if (!sortableFields.has(field)) {
+        return;
+      }
+      const order = nextSortOrder(field);
+      if (singleColumn) {
+        sortState = order ? [{ field, order }] : [];
+      } else if (!order) {
+        sortState = sortState.filter((item) => item.field !== field);
+      } else {
+        const existing = sortState.find((item) => item.field === field);
+        if (existing) {
+          existing.order = order;
+        } else {
+          sortState.push({ field, order });
+        }
+      }
+      syncSortHeaders();
+      $table.bootstrapTable('refresh', { pageNumber: 1 });
+    };
+
+    const currentListUrl = (pageNumber, pageSize) => {
+      const params = new URLSearchParams();
+      const templateType = templateTypeFilter ? templateTypeFilter.value : '';
+      const templateCode = templateCodeFilter ? templateCodeFilter.value.trim() : '';
+      const status = statusFilter ? statusFilter.value : '';
+      const sort = encodeSortState();
+      if (templateType) {
+        params.set('templateType', templateType);
+      }
+      if (templateCode) {
+        params.set('templateCode', templateCode);
+      }
+      if (status !== '') {
+        params.set('status', status);
+      }
+      if (sort) {
+        params.set('sort', sort);
+      }
+      params.set('page', String(pageNumber));
+      params.set('pageSize', String(pageSize));
+      return `/admin/templates?${params.toString()}`;
+    };
+
+    const syncListUrl = () => {
+      const options = $table.bootstrapTable('getOptions');
+      const returnUrl = currentListUrl(options.pageNumber || 1, options.pageSize || initialPageSize);
+      window.templateListReturnUrl = returnUrl;
+      window.history.replaceState(null, '', returnUrl);
+      if (createTemplateLink) {
+        createTemplateLink.href = `/admin/templates/new?returnUrl=${encodeURIComponent(returnUrl)}`;
+      }
+      document.querySelectorAll('[data-template-edit-id]').forEach((link) => {
+        const id = encodeURIComponent(link.getAttribute('data-template-edit-id'));
+        link.href = `/admin/templates/${id}/edit?returnUrl=${encodeURIComponent(returnUrl)}`;
+      });
+    };
 
     const getSelectedIds = () => $table.bootstrapTable('getSelections')
       .map((row) => row.id)
@@ -230,7 +419,8 @@
       mobileResponsive: true,
       sidePagination: 'server',
       pagination: true,
-      pageSize: 10,
+      pageNumber: initialPage,
+      pageSize: initialPageSize,
       pageList: [10, 20, 50, 100],
       search: false,
       searchOnEnterKey: false,
@@ -242,7 +432,8 @@
           search: '',
           templateType: templateTypeFilter ? templateTypeFilter.value : '',
           templateCode: templateCodeFilter ? templateCodeFilter.value.trim() : '',
-          status: statusFilter ? statusFilter.value : ''
+          status: statusFilter ? statusFilter.value : '',
+          sort: encodeSortState()
         };
       },
       classes: 'table table-hover align-middle',
@@ -262,6 +453,24 @@
     });
 
     $table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table load-success.bs.table post-body.bs.table', syncBulkState);
+    $table.on('load-success.bs.table page-change.bs.table', syncListUrl);
+    $table.on('post-header.bs.table post-body.bs.table reset-view.bs.table load-success.bs.table', syncSortHeaders);
+
+    if (tableWrap) {
+      tableWrap.addEventListener('click', (event) => {
+        const header = event.target.closest('th[data-field]');
+        if (!header || !tableWrap.contains(header)) {
+          return;
+        }
+        const field = header.getAttribute('data-field');
+        if (!sortableFields.has(field)) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        applySort(field, event.ctrlKey || event.metaKey);
+      }, true);
+    }
 
     if (filterForm) {
       filterForm.addEventListener('submit', (event) => {
@@ -323,6 +532,7 @@
       const tableWrapObserver = new ResizeObserver(resizeTable);
       tableWrapObserver.observe(templateTable.closest('.list-table-wrap'));
     }
+    setTimeout(syncSortHeaders, 0);
     setTimeout(resizeTable, 0);
   }
 })();
@@ -363,8 +573,10 @@ function statusFormatter(value) {
 
 function actionFormatter(value, row) {
   const id = encodeURIComponent(row.id);
-  const preview = `<a class="btn btn-outline-secondary btn-sm" href="/admin/templates/${id}/preview">预览</a>`;
-  const edit = `<a class="btn btn-outline-primary btn-sm" href="/admin/templates/${id}/edit">编辑</a>`;
+  const returnUrl = encodeURIComponent(window.templateListReturnUrl || `${window.location.pathname}${window.location.search}`);
+  const previewName = escapeHtml(row.templateCode || '已保存模板');
+  const preview = `<button class="btn btn-outline-secondary btn-sm" type="button" data-template-preview-id="${id}" data-template-preview-name="${previewName}">预览</button>`;
+  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-edit-id="${id}" href="/admin/templates/${id}/edit?returnUrl=${returnUrl}">编辑</a>`;
   const statusAction = Number(row.status) === 1
     ? `<form action="/admin/templates/${id}/disable" method="post" data-confirm="确认禁用该模板？" data-confirm-title="禁用模板" data-confirm-ok="禁用" data-confirm-class="btn-warning"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
     : `<form action="/admin/templates/${id}/enable" method="post" data-confirm="确认启用该模板？" data-confirm-title="启用模板" data-confirm-ok="启用" data-confirm-class="btn-success"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;

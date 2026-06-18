@@ -29,7 +29,13 @@
                 T.BUCKET_NAME,
                 T.OBJECT_NAME,
                 T.STATUS,
-                ROW_NUMBER() OVER (ORDER BY T.ID DESC) RN
+                ROW_NUMBER() OVER (
+                    ORDER BY
+                    <choose>
+                        <when test="orderBy != null and orderBy != ''">${orderBy}</when>
+                        <otherwise>T.ID DESC</otherwise>
+                    </choose>
+                ) RN
             FROM E_PRINT_TEMPLATE T
             WHERE 1 = 1
             <if test="templateType != null and templateType != ''">

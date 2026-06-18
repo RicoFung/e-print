@@ -1,33 +1,40 @@
 <!doctype html>
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{layout :: head('登录')}"></head>
-<body class="login-page">
-<main class="login-shell">
-    <section class="login-panel">
-        <div class="login-brand">
+<body class="login-page bg-body-secondary admin-login-page">
+<main class="login-box admin-login-box">
+    <div class="login-logo">
+        <a th:href="@{/login}">
             <span class="brand-mark">EP</span>
-            <div>
-                <h1>e-print-admin</h1>
-                <p>打印模板管理</p>
-            </div>
+            <span>e-print-admin</span>
+        </a>
+    </div>
+
+    <section class="card">
+        <div class="card-body login-card-body">
+            <p class="login-box-msg">打印模板管理</p>
+
+            <div th:if="${param.error}" class="alert alert-danger" role="alert">用户名或密码不正确</div>
+            <div th:if="${param.logout}" class="alert alert-success" role="alert">已退出登录</div>
+
+            <form th:action="@{/login}" method="post" class="login-form">
+                <div class="input-group mb-3">
+                    <input class="form-control" id="username" name="username" placeholder="用户名" autocomplete="username" autofocus>
+                    <label class="visually-hidden" for="username">用户名</label>
+                    <span class="input-group-text">U</span>
+                </div>
+                <div class="input-group mb-4">
+                    <input class="form-control" id="password" name="password" placeholder="密码" type="password" autocomplete="current-password">
+                    <label class="visually-hidden" for="password">密码</label>
+                    <span class="input-group-text">P</span>
+                </div>
+                <button class="btn btn-primary w-100" type="submit">登录</button>
+            </form>
         </div>
-
-        <div th:if="${param.error}" class="alert alert-danger" role="alert">用户名或密码不正确</div>
-        <div th:if="${param.logout}" class="alert alert-success" role="alert">已退出登录</div>
-
-        <form th:action="@{/login}" method="post" class="login-form">
-            <div class="mb-3">
-                <label class="form-label" for="username">用户名</label>
-                <input class="form-control" id="username" name="username" autocomplete="username" autofocus>
-            </div>
-            <div class="mb-4">
-                <label class="form-label" for="password">密码</label>
-                <input class="form-control" id="password" name="password" type="password" autocomplete="current-password">
-            </div>
-            <button class="btn btn-primary w-100" type="submit">登录</button>
-        </form>
     </section>
 </main>
 <script th:replace="~{layout :: scripts}"></script>
+<script th:replace="~{layout :: adminlteScripts}"></script>
+<script th:replace="~{layout :: themeScripts}"></script>
 </body>
 </html>

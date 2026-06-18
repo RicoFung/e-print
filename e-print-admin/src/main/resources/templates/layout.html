@@ -3,8 +3,29 @@
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <script>
+        (() => {
+            'use strict';
+            const storageKey = 'lte-theme';
+            let storedTheme = null;
+            try {
+                storedTheme = localStorage.getItem(storageKey);
+            } catch (error) {
+                storedTheme = null;
+            }
+            const prefersDark = globalThis.matchMedia('(prefers-color-scheme: dark)').matches;
+            const resolvedTheme = storedTheme === 'dark' || (!storedTheme && prefersDark) || storedTheme === 'auto' && prefersDark
+                ? 'dark'
+                : 'light';
+            document.documentElement.setAttribute('data-bs-theme', resolvedTheme);
+            document.documentElement.style.colorScheme = resolvedTheme;
+        })();
+    </script>
     <title th:text="${title} + ' - e-print-admin'">e-print-admin</title>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/vendor/adminlte/css/adminlte.min.css}">
     <link rel="stylesheet" th:href="@{/vendor/bootstrap-table/bootstrap-table.min.css}">
     <link rel="stylesheet" th:href="@{/vendor/bootstrap-table/extensions/sticky-header/bootstrap-table-sticky-header.min.css}">
     <link rel="stylesheet" th:href="@{/vendor/bootstrap-table/extensions/fixed-columns/bootstrap-table-fixed-columns.min.css}">
@@ -12,22 +33,135 @@
     <link rel="stylesheet" th:href="@{/css/admin.css}">
 </head>
 <body>
-<nav class="admin-topbar" th:fragment="topbar">
-    <div class="admin-brand">
-        <span class="brand-mark">EP</span>
-        <div>
-            <span class="brand-title">e-print</span>
-            <span class="brand-subtitle">打印运营控制台</span>
+<div class="app-wrapper" th:fragment="shell(content)">
+    <svg aria-hidden="true" class="admin-icon-sprite">
+        <symbol id="admin-icon-sun" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+        </symbol>
+        <symbol id="admin-icon-moon" viewBox="0 0 24 24">
+            <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5 8.5 8.5 0 1 0 20.5 14.5Z"></path>
+        </symbol>
+        <symbol id="admin-icon-auto" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 3a9 9 0 0 1 0 18Z"></path>
+        </symbol>
+        <symbol id="admin-icon-check" viewBox="0 0 24 24">
+            <path d="m5 12 4 4 10-10"></path>
+        </symbol>
+    </svg>
+    <nav class="app-header navbar navbar-expand bg-body border-bottom">
+        <div class="container-fluid">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button" aria-label="切换侧边栏">
+                        <span class="navbar-toggler-icon"></span>
+                    </a>
+                </li>
+                <li class="nav-item d-none d-md-block">
+                    <span class="nav-link admin-section-title">打印模板运营</span>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item dropdown">
+                    <button class="nav-link btn btn-link admin-theme-toggle"
+                            id="bd-theme"
+                            type="button"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false"
+                            aria-label="切换颜色模式">
+                        <span class="theme-icon-active" aria-hidden="true">
+                            <svg data-lte-theme-icon="light"><use href="#admin-icon-sun"></use></svg>
+                            <svg class="d-none" data-lte-theme-icon="dark"><use href="#admin-icon-moon"></use></svg>
+                            <svg class="d-none" data-lte-theme-icon="auto"><use href="#admin-icon-auto"></use></svg>
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end admin-theme-menu" aria-labelledby="bd-theme">
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center"
+                                    type="button"
+                                    data-bs-theme-value="light"
+                                    data-bs-theme-label="浅色"
+                                    aria-pressed="false">
+                                <span class="theme-option-icon" aria-hidden="true">
+                                    <svg><use href="#admin-icon-sun"></use></svg>
+                                </span>
+                                浅色
+                                <span class="theme-check ms-auto d-none" aria-hidden="true">
+                                    <svg><use href="#admin-icon-check"></use></svg>
+                                </span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center"
+                                    type="button"
+                                    data-bs-theme-value="dark"
+                                    data-bs-theme-label="深色"
+                                    aria-pressed="false">
+                                <span class="theme-option-icon" aria-hidden="true">
+                                    <svg><use href="#admin-icon-moon"></use></svg>
+                                </span>
+                                深色
+                                <span class="theme-check ms-auto d-none" aria-hidden="true">
+                                    <svg><use href="#admin-icon-check"></use></svg>
+                                </span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center"
+                                    type="button"
+                                    data-bs-theme-value="auto"
+                                    data-bs-theme-label="跟随系统"
+                                    aria-pressed="false">
+                                <span class="theme-option-icon" aria-hidden="true">
+                                    <svg><use href="#admin-icon-auto"></use></svg>
+                                </span>
+                                跟随系统
+                                <span class="theme-check ms-auto d-none" aria-hidden="true">
+                                    <svg><use href="#admin-icon-check"></use></svg>
+                                </span>
+                            </button>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <form th:action="@{/logout}" method="post">
+                        <button class="btn btn-outline-secondary btn-sm" type="submit">退出</button>
+                    </form>
+                </li>
+            </ul>
         </div>
-    </div>
-    <div class="admin-nav">
-        <a class="admin-nav-link" th:href="@{/admin/templates}">模板管理</a>
-        <form th:action="@{/logout}" method="post">
-            <button class="btn btn-ghost-light btn-sm" type="submit">退出</button>
-        </form>
-    </div>
-</nav>
+    </nav>
+
+    <aside class="app-sidebar admin-sidebar shadow" data-bs-theme="dark">
+        <div class="sidebar-brand">
+            <a class="brand-link" th:href="@{/admin/templates}">
+                <span class="brand-mark">EP</span>
+                <span class="brand-text fw-semibold">e-print-admin</span>
+            </a>
+        </div>
+        <div class="sidebar-wrapper">
+            <nav class="mt-2">
+                <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" data-accordion="false">
+                    <li class="nav-header">运营</li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/admin/templates}">
+                            <span class="nav-icon admin-nav-icon">T</span>
+                            <p>模板管理</p>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </aside>
+
+    <main class="app-main">
+        <div th:replace="${content}"></div>
+    </main>
+</div>
 <script th:fragment="scripts" th:src="@{/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:fragment="adminlteScripts" th:src="@{/vendor/adminlte/js/adminlte.min.js}"></script>
+<script th:fragment="themeScripts" th:src="@{/js/admin-theme.js}"></script>
 <script th:fragment="sweetalertScripts" th:src="@{/vendor/sweetalert2/sweetalert2.all.min.js}"></script>
 </body>
 </html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="modal" class="modal fade" id="templatePreviewModal" tabindex="-1"
+     aria-labelledby="templatePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content template-preview-modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title fs-5" id="templatePreviewModalLabel">模板预览</h2>
+                    <p class="template-preview-subtitle" id="templatePreviewSubtitle">使用模拟数据渲染模板</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body template-preview-modal-body">
+                <section class="preview-workbench">
+                    <aside class="card sample-panel">
+                        <div class="card-header sample-panel-header">
+                            <div>
+                                <h2>模拟数据</h2>
+                                <p>JSON 字段会替换模板中的 {{field}} 占位符</p>
+                            </div>
+                            <button class="btn btn-dark btn-sm" type="button" id="renderPreviewBtn">刷新预览</button>
+                        </div>
+                        <div class="card-body">
+                            <textarea class="form-control sample-editor" id="sampleData" spellcheck="false"
+                                      th:text="${sampleData}"></textarea>
+                            <div class="preview-error" id="previewError" hidden></div>
+                        </div>
+                    </aside>
+                    <div class="card preview-frame-wrap">
+                        <div class="card-body">
+                            <iframe class="preview-frame" id="previewFrame" title="模板预览"></iframe>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -34,10 +34,16 @@ public class TemplateAdminController {
         this.templateAdminService = templateAdminService;
     }
 
+    @ModelAttribute("sampleData")
+    public String sampleData() {
+        return templateAdminService.defaultSampleData();
+    }
+
     @GetMapping
     public String list(@RequestParam(value = "templateType", required = false) String templateType,
                        @RequestParam(value = "templateCode", required = false) String templateCode,
                        @RequestParam(value = "status", required = false) Integer status,
+                       @RequestParam(value = "sort", required = false) String sort,
                        @RequestParam(value = "page", required = false) Integer page,
                        @RequestParam(value = "pageSize", required = false) Integer pageSize,
                        Model model) {
@@ -45,6 +51,8 @@ public class TemplateAdminController {
         model.addAttribute("templateType", templateType);
         model.addAttribute("templateCode", templateCode);
         model.addAttribute("status", status);
+        model.addAttribute("sort", sort);
+        model.addAttribute("page", page == null || page < 1 ? 1 : page);
         model.addAttribute("pageSize", pageSize == null ? 10 : pageSize);
         return "template/list";
     }
@@ -55,12 +63,13 @@ public class TemplateAdminController {
                                                     @RequestParam(value = "templateCode", required = false) String templateCode,
                                                     @RequestParam(value = "status", required = false) Integer status,
                                                     @RequestParam(value = "search", required = false) String search,
+                                                    @RequestParam(value = "sort", required = false) String sort,
                                                     @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
                                                     @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         String queryTemplateCode = templateCode == null || templateCode.isBlank() ? search : templateCode;
         int queryLimit = limit == null || limit < 1 ? 10 : limit;
         int page = offset == null || offset < 0 ? 1 : (offset / queryLimit) + 1;
-        PageResult<Template> pageResult = templateAdminService.page(templateType, queryTemplateCode, status, page, queryLimit);
+        PageResult<Template> pageResult = templateAdminService.page(templateType, queryTemplateCode, status, sort, page, queryLimit);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("total", pageResult.getTotal());
@@ -69,8 +78,10 @@ public class TemplateAdminController {
     }
 
     @GetMapping("/new")
-    public String newForm(Model model) {
+    public String newForm(@RequestParam(value = "returnUrl", required = false) String returnUrl,
+                          Model model) {
         model.addAttribute("mode", "create");
+        model.addAttribute("returnUrl", normalizeReturnUrl(returnUrl));
         model.addAttribute("templateTypes", TemplateType.options());
         model.addAttribute("templateForm", templateAdminService.createForm());
         return "template/form";
@@ -79,10 +90,13 @@ public class TemplateAdminController {
     @PostMapping
     public String create(@Valid @ModelAttribute("templateForm") TemplateForm form,
                          BindingResult bindingResult,
+                         @RequestParam(value = "returnUrl", required = false) String returnUrl,
                          Model model,
                          RedirectAttributes redirectAttributes) {
+        String normalizedReturnUrl = normalizeReturnUrl(returnUrl);
         if (bindingResult.hasErrors()) {
             model.addAttribute("mode", "create");
+            model.addAttribute("returnUrl", normalizedReturnUrl);
             model.addAttribute("templateTypes", TemplateType.options());
             return "template/form";
         }
@@ -91,16 +105,20 @@ public class TemplateAdminController {
         } catch (RuntimeException e) {
             bindingResult.reject("template.save.failed", e.getMessage());
             model.addAttribute("mode", "create");
+            model.addAttribute("returnUrl", normalizedReturnUrl);
             model.addAttribute("templateTypes", TemplateType.options());
             return "template/form";
         }
         redirectAttributes.addFlashAttribute("message", "Template created");
-        return "redirect:/admin/templates";
+        return "redirect:" + normalizedReturnUrl;
     }
 
     @GetMapping("/{id}/edit")
-    public String editForm(@PathVariable("id") String id, Model model) {
+    public String editForm(@PathVariable("id") String id,
+                           @RequestParam(value = "returnUrl", required = false) String returnUrl,
+                           Model model) {
         model.addAttribute("mode", "edit");
+        model.addAttribute("returnUrl", normalizeReturnUrl(returnUrl));
         model.addAttribute("templateTypes", TemplateType.options());
         model.addAttribute("templateForm", templateAdminService.getForm(id));
         return "template/form";
@@ -110,10 +128,13 @@ public class TemplateAdminController {
     public String update(@PathVariable("id") String id,
                          @Valid @ModelAttribute("templateForm") TemplateForm form,
                          BindingResult bindingResult,
+                         @RequestParam(value = "returnUrl", required = false) String returnUrl,
                          Model model,
                          RedirectAttributes redirectAttributes) {
+        String normalizedReturnUrl = normalizeReturnUrl(returnUrl);
         if (bindingResult.hasErrors()) {
             model.addAttribute("mode", "edit");
+            model.addAttribute("returnUrl", normalizedReturnUrl);
             model.addAttribute("templateTypes", TemplateType.options());
             return "template/form";
         }
@@ -122,11 +143,12 @@ public class TemplateAdminController {
         } catch (RuntimeException e) {
             bindingResult.reject("template.save.failed", e.getMessage());
             model.addAttribute("mode", "edit");
+            model.addAttribute("returnUrl", normalizedReturnUrl);
             model.addAttribute("templateTypes", TemplateType.options());
             return "template/form";
         }
         redirectAttributes.addFlashAttribute("message", "Template saved");
-        return "redirect:/admin/templates";
+        return "redirect:" + normalizedReturnUrl;
     }
 
     @PostMapping("/{id}/disable")
@@ -178,9 +200,12 @@ public class TemplateAdminController {
     }
 
     @GetMapping("/{id}/preview")
-    public String preview(@PathVariable("id") String id, Model model) {
+    public String preview(@PathVariable("id") String id,
+                          @RequestParam(value = "returnUrl", required = false) String returnUrl,
+                          Model model) {
         Template template = templateAdminService.getRequiredTemplate(id);
         model.addAttribute("template", template);
+        model.addAttribute("returnUrl", normalizeReturnUrl(returnUrl));
         model.addAttribute("sampleData", templateAdminService.defaultSampleData());
         return "template/preview";
     }
@@ -196,5 +221,23 @@ public class TemplateAdminController {
     public String renderPreview(@PathVariable("id") String id,
                                 @RequestParam("sampleData") String sampleData) {
         return templateAdminService.renderPreviewContent(id, sampleData);
+    }
+
+    @PostMapping(value = "/preview/render", produces = MediaType.TEXT_HTML_VALUE)
+    @ResponseBody
+    public String renderPreviewContent(@RequestParam("content") String content,
+                                       @RequestParam("sampleData") String sampleData) {
+        return templateAdminService.renderTemplateContent(content, sampleData);
+    }
+
+    private String normalizeReturnUrl(String returnUrl) {
+        if (returnUrl == null
+                || !(returnUrl.equals("/admin/templates") || returnUrl.startsWith("/admin/templates?"))
+                || returnUrl.startsWith("//")
+                || returnUrl.contains("\r")
+                || returnUrl.contains("\n")) {
+            return "/admin/templates";
+        }
+        return returnUrl;
     }
 }
