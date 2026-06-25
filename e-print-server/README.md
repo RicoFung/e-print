@@ -7,7 +7,7 @@
 - Basic 认证，`/health` 除外
 - 打印任务创建、查询和结果回传
 - WebSocket 客户端注册和任务推送
-- Oracle + MyBatis 读取打印模板元数据
+- Oracle + MyBatis 读取打印模板元数据，`E_PRINT_TEMPLATE` 通过 `TEMPLATE_TYPE_ID` 关联 `E_PRINT_TEMPLATE_TYPE`
 - MinIO 读取 HTML 打印模板
 - Graylog 日志输出
 - SpringDoc 接口文档
@@ -63,6 +63,8 @@ Authorization: Basic ...
 | `data` | 否 | 模板渲染数据 |
 
 创建任务时会先查找启用状态的 `(templateType, templateCode)` 模板；如果找不到，则回退查找同类型的默认模板 `(templateType, 01)`。如果回退仍找不到，接口返回“Template not found”。任务下发给客户端时，`templateCode` 使用实际命中的模板编码，发生回退时为 `01`。
+
+`templateType` 是外部接口使用的类型编码，对应 `E_PRINT_TEMPLATE_TYPE.CODE`；模板编码对应 `E_PRINT_TEMPLATE.CODE`。
 
 ### 查询任务
 
@@ -214,10 +216,10 @@ src/main/resources/application-prd.yml
 初始化 Oracle 模板表时执行：
 
 ```text
-src/main/resources/db/oracle/print_template.sql
+../db/oracle/print_template.sql
 ```
 
-该脚本会创建 `E_PRINT_TEMPLATE`、`SEQ_E_PRINT_TEMPLATE`、相关索引，并初始化 8 个模板类型的默认 `01` 模板元数据。
+该脚本会创建 `E_PRINT_TEMPLATE_TYPE`、`E_PRINT_TEMPLATE`、序列、相关索引，并初始化 8 个模板类型的默认 `01` 模板元数据。
 
 ## 验证
 

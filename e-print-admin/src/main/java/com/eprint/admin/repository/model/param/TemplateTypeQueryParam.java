@@ -1,28 +1,19 @@
 package com.eprint.admin.repository.model.param;
 
-public class TemplateQueryParam {
+public class TemplateTypeQueryParam {
 
-    private String templateTypeId;
-    private String templateCode;
+    private String keyword;
     private Integer status;
     private Integer page;
     private Integer pageSize;
     private String orderBy;
 
-    public String getTemplateTypeId() {
-        return templateTypeId;
+    public String getKeyword() {
+        return keyword;
     }
 
-    public void setTemplateTypeId(String templateTypeId) {
-        this.templateTypeId = templateTypeId;
-    }
-
-    public String getTemplateCode() {
-        return templateCode;
-    }
-
-    public void setTemplateCode(String templateCode) {
-        this.templateCode = templateCode;
+    public void setKeyword(String keyword) {
+        this.keyword = keyword;
     }
 
     public Integer getStatus() {

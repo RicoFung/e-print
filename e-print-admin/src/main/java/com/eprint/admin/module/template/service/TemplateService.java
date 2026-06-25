@@ -1,13 +1,17 @@
 package com.eprint.admin.module.template.service;
 
-import com.eprint.admin.module.template.model.TemplateForm;
 import com.eprint.admin.module.template.model.PageResult;
-import com.eprint.admin.module.template.model.TemplateType;
+import com.eprint.admin.module.template.model.request.TemplateCreateRequest;
+import com.eprint.admin.module.template.model.request.TemplateModifyRequest;
+import com.eprint.admin.module.template.model.request.TemplatePreviewRequest;
+import com.eprint.admin.module.template.model.request.TemplateQueryRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.eprint.admin.repository.dao.TemplateDao;
 import com.eprint.admin.repository.model.entity.Template;
+import com.eprint.admin.repository.model.entity.TemplateType;
 import com.eprint.admin.repository.model.param.TemplateQueryParam;
+import com.eprint.admin.repository.model.result.TemplateResult;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
@@ -37,7 +41,7 @@ import java.util.regex.Pattern;
 
 @Slf4j
 @Service
-public class TemplateAdminService {
+public class TemplateService {
 
     private static final Integer STATUS_ENABLED = 1;
     private static final Integer STATUS_DISABLED = 0;
@@ -45,8 +49,8 @@ public class TemplateAdminService {
     private static final Pattern EACH_PATTERN = Pattern.compile("\\{\\{#each\\s+([A-Za-z0-9_.-]+)\\s*}}([\\s\\S]*?)\\{\\{/each}}");
     private static final Map<String, String> SORT_COLUMNS = Map.of(
             "id", "T.ID",
-            "templateType", "T.TEMPLATE_TYPE",
-            "templateCode", "T.TEMPLATE_CODE",
+            "templateType", "TT.CODE",
+            "templateCode", "T.CODE",
             "bucketName", "T.BUCKET_NAME",
             "objectName", "T.OBJECT_NAME",
             "status", "T.STATUS"
@@ -66,29 +70,32 @@ public class TemplateAdminService {
     };
 
     private final TemplateDao templateDao;
+    private final TemplateTypeService templateTypeService;
     private final MinioClient minioClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String defaultBucketName;
     private final String defaultObjectPrefix;
 
-    public TemplateAdminService(TemplateDao templateDao,
-                                MinioClient minioClient,
-                                @Value("${app.template.default-bucket:e-print}") String defaultBucketName,
-                                @Value("${app.template.default-object-prefix:templates/print}") String defaultObjectPrefix) {
+    public TemplateService(TemplateDao templateDao,
+                           TemplateTypeService templateTypeService,
+                           MinioClient minioClient,
+                           @Value("${app.template.default-bucket:e-print}") String defaultBucketName,
+                           @Value("${app.template.default-object-prefix:templates/print}") String defaultObjectPrefix) {
         this.templateDao = templateDao;
+        this.templateTypeService = templateTypeService;
         this.minioClient = minioClient;
         this.defaultBucketName = defaultBucketName;
         this.defaultObjectPrefix = trimSlashes(defaultObjectPrefix);
     }
 
-    public PageResult<Template> page(String templateType, String templateCode, Integer status, String sort, Integer page, Integer pageSize) {
-        int normalizedPageSize = normalizePageSize(pageSize);
-        int normalizedPage = page == null || page < 1 ? 1 : page;
+    public PageResult<TemplateResult> query(TemplateQueryRequest request) {
+        int normalizedPageSize = normalizePageSize(request.limit());
+        int normalizedPage = request.page();
         TemplateQueryParam param = new TemplateQueryParam();
-        param.setTemplateType(StringUtils.hasText(templateType) ? templateType.trim() : null);
-        param.setTemplateCode(StringUtils.hasText(templateCode) ? templateCode.trim() : null);
-        param.setStatus(status);
-        param.setOrderBy(toOrderBy(sort));
+        param.setTemplateTypeId(StringUtils.hasText(request.getTemplateTypeId()) ? request.getTemplateTypeId().trim() : null);
+        param.setTemplateCode(StringUtils.hasText(request.queryTemplateCode()) ? request.queryTemplateCode().trim() : null);
+        param.setStatus(request.getStatus());
+        param.setOrderBy(toOrderBy(request.getSort()));
 
         int total = templateDao.count(param);
         int totalPages = total == 0 ? 0 : (int) Math.ceil((double) total / normalizedPageSize);
@@ -96,9 +103,9 @@ public class TemplateAdminService {
             normalizedPage = totalPages;
         }
 
-        param.setRowStart((normalizedPage - 1) * normalizedPageSize);
-        param.setRowEnd(normalizedPage * normalizedPageSize);
-        List<Template> records = templateDao.list(param);
+        param.setPage(normalizedPage);
+        param.setPageSize(normalizedPageSize);
+        List<TemplateResult> records = templateDao.query(param);
         return new PageResult<>(records, normalizedPage, normalizedPageSize, total);
     }
 
@@ -136,20 +143,24 @@ public class TemplateAdminService {
         return orderBy.toString();
     }
 
-    public TemplateForm createForm() {
-        TemplateForm form = new TemplateForm();
-        form.setTemplateType(TemplateType.DEFAULT_TYPE);
-        form.setBucketName(defaultBucketName);
-        form.setStatus(STATUS_ENABLED);
-        form.setContent(defaultTemplateContent());
-        return form;
+    public TemplateCreateRequest createRequest() {
+        TemplateCreateRequest request = new TemplateCreateRequest();
+        List<TemplateType> templateTypes = templateTypeService.queryEnabled();
+        if (!templateTypes.isEmpty()) {
+            request.setTemplateTypeId(templateTypes.get(0).getId());
+        }
+        request.setBucketName(defaultBucketName);
+        request.setStatus(STATUS_ENABLED);
+        request.setContent(defaultTemplateContent());
+        return request;
     }
 
-    public TemplateForm getForm(String id) {
+    public TemplateModifyRequest getModifyRequest(TemplateModifyRequest request) {
+        String id = request.getId();
         Template template = getRequiredTemplate(id);
-        TemplateForm form = toForm(template);
-        form.setContent(readObject(template.getBucketName(), template.getObjectName()));
-        return form;
+        TemplateModifyRequest result = toModifyRequest(template);
+        result.setContent(readObject(template.getBucketName(), template.getObjectName()));
+        return result;
     }
 
     public String getPreviewContent(String id) {
@@ -169,6 +180,13 @@ public class TemplateAdminService {
             log.warn("Render template preview failed", e);
             throw new IllegalArgumentException("Sample data must be valid JSON");
         }
+    }
+
+    public String renderPreview(TemplatePreviewRequest request) {
+        if (StringUtils.hasText(request.getId())) {
+            return renderPreviewContent(request.getId(), request.getSampleData());
+        }
+        return renderTemplateContent(request.getContent(), request.getSampleData());
     }
 
     public String defaultSampleData() {
@@ -216,7 +234,7 @@ public class TemplateAdminService {
     }
 
     public Template getRequiredTemplate(String id) {
-        Template template = templateDao.getById(id);
+        Template template = templateDao.get(id);
         if (template == null) {
             throw new IllegalArgumentException("Template not found");
         }
@@ -224,39 +242,39 @@ public class TemplateAdminService {
     }
 
     @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public void create(TemplateForm form) {
-        normalize(form);
-        if (templateDao.getByTemplateTypeAndCode(form.getTemplateType(), form.getTemplateCode()) != null) {
+    public void create(TemplateCreateRequest request) {
+        TemplateType templateType = normalize(request, true);
+        if (templateDao.getByTemplateTypeIdAndCode(request.getTemplateTypeId(), request.getTemplateCode()) != null) {
             throw new IllegalArgumentException("Template code already exists");
         }
-        putObject(form.getBucketName(), form.getObjectName(), form.getContent());
+        putObject(request.getBucketName(), request.getObjectName(), request.getContent());
 
         Template template = new Template();
-        template.setTemplateType(form.getTemplateType());
-        template.setTemplateCode(form.getTemplateCode());
-        template.setBucketName(form.getBucketName());
-        template.setObjectName(form.getObjectName());
-        template.setStatus(form.getStatus());
-        templateDao.insert(template);
+        template.setTemplateTypeId(templateType.getId());
+        template.setTemplateCode(request.getTemplateCode());
+        template.setBucketName(request.getBucketName());
+        template.setObjectName(request.getObjectName());
+        template.setStatus(request.getStatus());
+        templateDao.create(template);
     }
 
     @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public void update(String id, TemplateForm form) {
-        Template existing = getRequiredTemplate(id);
-        normalize(form);
-        Template sameCode = templateDao.getByTemplateTypeAndCode(form.getTemplateType(), form.getTemplateCode());
+    public void modify(TemplateModifyRequest request) {
+        Template existing = getRequiredTemplate(request.getId());
+        TemplateType templateType = normalize(request, STATUS_ENABLED.equals(request.getStatus()));
+        Template sameCode = templateDao.getByTemplateTypeIdAndCode(request.getTemplateTypeId(), request.getTemplateCode());
         if (sameCode != null && !sameCode.getId().equals(existing.getId())) {
             throw new IllegalArgumentException("Template code already exists");
         }
 
-        putObject(form.getBucketName(), form.getObjectName(), form.getContent());
+        putObject(request.getBucketName(), request.getObjectName(), request.getContent());
 
-        existing.setTemplateType(form.getTemplateType());
-        existing.setTemplateCode(form.getTemplateCode());
-        existing.setBucketName(form.getBucketName());
-        existing.setObjectName(form.getObjectName());
-        existing.setStatus(form.getStatus());
-        templateDao.update(existing);
+        existing.setTemplateTypeId(templateType.getId());
+        existing.setTemplateCode(request.getTemplateCode());
+        existing.setBucketName(request.getBucketName());
+        existing.setObjectName(request.getObjectName());
+        existing.setStatus(request.getStatus());
+        templateDao.modify(existing);
     }
 
     @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
@@ -282,18 +300,18 @@ public class TemplateAdminService {
     }
 
     @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public void delete(String id) {
+    public void remove(String id) {
         getRequiredTemplate(id);
-        templateDao.deleteById(id);
+        templateDao.remove(new String[]{id});
     }
 
     @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public int delete(List<String> ids) {
+    public int remove(List<String> ids) {
         List<String> normalizedIds = normalizeIds(ids);
         if (normalizedIds.isEmpty()) {
             return 0;
         }
-        return templateDao.deleteByIds(normalizedIds);
+        return templateDao.remove(normalizedIds.toArray(String[]::new));
     }
 
     private int updateStatus(List<String> ids, Integer status) {
@@ -301,7 +319,7 @@ public class TemplateAdminService {
         if (normalizedIds.isEmpty()) {
             return 0;
         }
-        return templateDao.updateStatusByIds(normalizedIds, status);
+        return templateDao.updateStatusByIds(normalizedIds.toArray(String[]::new), status);
     }
 
     private List<String> normalizeIds(List<String> ids) {
@@ -312,35 +330,57 @@ public class TemplateAdminService {
                 .toList();
     }
 
-    private TemplateForm toForm(Template template) {
-        TemplateForm form = new TemplateForm();
-        form.setId(template.getId());
-        form.setTemplateType(template.getTemplateType());
-        form.setTemplateCode(template.getTemplateCode());
-        form.setBucketName(template.getBucketName());
-        form.setObjectName(template.getObjectName());
-        form.setStatus(template.getStatus());
-        return form;
+    private TemplateModifyRequest toModifyRequest(Template template) {
+        TemplateModifyRequest request = new TemplateModifyRequest();
+        request.setId(template.getId());
+        request.setTemplateTypeId(template.getTemplateTypeId());
+        request.setTemplateCode(template.getTemplateCode());
+        request.setBucketName(template.getBucketName());
+        request.setObjectName(template.getObjectName());
+        request.setStatus(template.getStatus());
+        return request;
     }
 
-    private void normalize(TemplateForm form) {
-        form.setTemplateType(form.getTemplateType().trim());
-        if (!TemplateType.isValid(form.getTemplateType())) {
-            throw new IllegalArgumentException("Invalid template type");
-        }
-        form.setTemplateCode(form.getTemplateCode().trim());
-        form.setBucketName(form.getBucketName().trim());
-        if (!StringUtils.hasText(form.getObjectName())) {
-            form.setObjectName(defaultObjectName(form.getTemplateType(), form.getTemplateCode()));
+    private TemplateType normalize(TemplateCreateRequest request, boolean requireEnabledType) {
+        request.setTemplateTypeId(request.getTemplateTypeId().trim());
+        TemplateType templateType = requireEnabledType
+                ? templateTypeService.getEnabledRequired(request.getTemplateTypeId())
+                : templateTypeService.getRequired(request.getTemplateTypeId());
+        request.setTemplateCode(request.getTemplateCode().trim());
+        request.setBucketName(request.getBucketName().trim());
+        if (!StringUtils.hasText(request.getObjectName())) {
+            request.setObjectName(defaultObjectName(templateType.getCode(), request.getTemplateCode()));
         } else {
-            form.setObjectName(trimLeadingSlash(form.getObjectName().trim()));
+            request.setObjectName(trimLeadingSlash(request.getObjectName().trim()));
         }
-        if (form.getStatus() == null) {
-            form.setStatus(STATUS_ENABLED);
+        if (request.getStatus() == null) {
+            request.setStatus(STATUS_ENABLED);
         }
-        if (!STATUS_ENABLED.equals(form.getStatus()) && !STATUS_DISABLED.equals(form.getStatus())) {
+        if (!STATUS_ENABLED.equals(request.getStatus()) && !STATUS_DISABLED.equals(request.getStatus())) {
             throw new IllegalArgumentException("Invalid template status");
         }
+        return templateType;
+    }
+
+    private TemplateType normalize(TemplateModifyRequest request, boolean requireEnabledType) {
+        request.setTemplateTypeId(request.getTemplateTypeId().trim());
+        TemplateType templateType = requireEnabledType
+                ? templateTypeService.getEnabledRequired(request.getTemplateTypeId())
+                : templateTypeService.getRequired(request.getTemplateTypeId());
+        request.setTemplateCode(request.getTemplateCode().trim());
+        request.setBucketName(request.getBucketName().trim());
+        if (!StringUtils.hasText(request.getObjectName())) {
+            request.setObjectName(defaultObjectName(templateType.getCode(), request.getTemplateCode()));
+        } else {
+            request.setObjectName(trimLeadingSlash(request.getObjectName().trim()));
+        }
+        if (request.getStatus() == null) {
+            request.setStatus(STATUS_ENABLED);
+        }
+        if (!STATUS_ENABLED.equals(request.getStatus()) && !STATUS_DISABLED.equals(request.getStatus())) {
+            throw new IllegalArgumentException("Invalid template status");
+        }
+        return templateType;
     }
 
     public String defaultObjectName(String templateType, String templateCode) {

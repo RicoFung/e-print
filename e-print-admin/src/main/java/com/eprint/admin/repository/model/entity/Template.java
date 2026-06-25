@@ -6,7 +6,7 @@ public class Template implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String id;
-    private String templateType;
+    private String templateTypeId;
     private String templateCode;
     private String bucketName;
     private String objectName;
@@ -20,12 +20,12 @@ public class Template implements Serializable {
         this.id = id;
     }
 
-    public String getTemplateType() {
-        return templateType;
+    public String getTemplateTypeId() {
+        return templateTypeId;
     }
 
-    public void setTemplateType(String templateType) {
-        this.templateType = templateType;
+    public void setTemplateTypeId(String templateTypeId) {
+        this.templateTypeId = templateTypeId;
     }
 
     public String getTemplateCode() {

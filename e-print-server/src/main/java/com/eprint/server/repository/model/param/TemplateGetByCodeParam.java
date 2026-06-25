@@ -5,8 +5,8 @@ import java.io.Serializable;
 public class TemplateGetByCodeParam implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private String templateType; // db_column: TEMPLATE_TYPE
-    private String templateCode; // db_column: TEMPLATE_CODE
+    private String templateType; // db_column: E_PRINT_TEMPLATE_TYPE.CODE
+    private String templateCode; // db_column: E_PRINT_TEMPLATE.CODE
     private Integer status; // db_column: STATUS
 
     public String getTemplateType() {

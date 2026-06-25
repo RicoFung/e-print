@@ -4,8 +4,10 @@
 
     <resultMap type="com.eprint.server.repository.model.result.TemplateResult" id="templateResult">
         <result property="id" column="ID"/>
+        <result property="templateTypeId" column="TEMPLATE_TYPE_ID"/>
         <result property="templateType" column="TEMPLATE_TYPE"/>
-        <result property="templateCode" column="TEMPLATE_CODE"/>
+        <result property="templateTypeName" column="TEMPLATE_TYPE_NAME"/>
+        <result property="templateCode" column="CODE"/>
         <result property="bucketName" column="BUCKET_NAME"/>
         <result property="objectName" column="OBJECT_NAME"/>
         <result property="status" column="STATUS"/>
@@ -16,14 +18,18 @@
             resultMap="templateResult">
         SELECT
             T.ID,
-            T.TEMPLATE_TYPE,
-            T.TEMPLATE_CODE,
+            T.TEMPLATE_TYPE_ID,
+            TT.CODE AS TEMPLATE_TYPE,
+            TT.NAME AS TEMPLATE_TYPE_NAME,
+            T.CODE,
             T.BUCKET_NAME,
             T.OBJECT_NAME,
             T.STATUS
         FROM E_PRINT_TEMPLATE T
-        WHERE T.TEMPLATE_TYPE = #{templateType}
-          AND T.TEMPLATE_CODE = #{templateCode}
+        JOIN E_PRINT_TEMPLATE_TYPE TT ON TT.ID = T.TEMPLATE_TYPE_ID
+        WHERE TT.CODE = #{templateType}
+          AND T.CODE = #{templateCode}
           AND T.STATUS = #{status}
+          AND TT.STATUS = #{status}
     </select>
 </mapper>

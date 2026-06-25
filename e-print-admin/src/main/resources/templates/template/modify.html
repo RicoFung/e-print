@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('编辑模板')}"></head>
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<div th:replace="~{layout :: shell(~{::section.admin-content})}">
+<section class="admin-content screen-page">
+    <div class="app-content-header">
+        <div class="container-fluid">
+            <div class="row align-items-end">
+                <div class="col-sm-8">
+                    <span class="eyebrow">Template Editor</span>
+                    <h1 class="m-0">编辑模板</h1>
+                    <p class="text-secondary mb-0">保存后 HTML 内容会覆盖当前 MinIO 对象</p>
+                </div>
+                <div class="col-sm-4 mt-3 mt-sm-0">
+                    <div class="header-actions">
+                        <button class="btn btn-primary" type="button" id="previewCurrentTemplate">预览</button>
+                        <a class="btn btn-outline-secondary" th:href="${returnUrl}">返回列表</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-content">
+        <div class="container-fluid">
+            <form class="editor-layout"
+                  th:object="${request}"
+                  th:action="@{/admin/templates/modify}"
+                  method="post">
+                <input type="hidden" name="returnUrl" th:value="${returnUrl}">
+                <input type="hidden" th:field="*{id}">
+                <div class="card form-panel">
+                    <div class="card-body">
+                        <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger" role="alert">
+                            <div th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="templateType">模板类型</label>
+                            <select class="form-select" id="templateType" th:field="*{templateTypeId}">
+                                <option th:each="type : ${templateTypes}"
+                                        th:value="${type.id}"
+                                        th:attr="data-template-type-code=${type.code}"
+                                        th:text="${type.name}">销售小票</option>
+                            </select>
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('templateTypeId')}" th:errors="*{templateTypeId}"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="templateCode">模板编码</label>
+                            <input class="form-control" id="templateCode" th:field="*{templateCode}" data-object-prefix="templates/print">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('templateCode')}" th:errors="*{templateCode}"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="status">状态</label>
+                            <select class="form-select" id="status" th:field="*{status}">
+                                <option value="1">启用</option>
+                                <option value="0">禁用</option>
+                            </select>
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('status')}" th:errors="*{status}"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="bucketName">Bucket</label>
+                            <input class="form-control" id="bucketName" th:field="*{bucketName}">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('bucketName')}" th:errors="*{bucketName}"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="objectName">Object Name</label>
+                            <input class="form-control" id="objectName" th:field="*{objectName}">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('objectName')}" th:errors="*{objectName}"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="templateFile">上传 HTML</label>
+                            <input class="form-control" id="templateFile" type="file" accept=".html,text/html">
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="btn btn-primary" type="submit">保存</button>
+                            <a class="btn btn-outline-secondary" th:href="${returnUrl}">取消</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card code-panel">
+                    <div class="card-header">
+                        <div class="code-toolbar">
+                            <label class="form-label mb-0" for="content">HTML 内容</label>
+                            <span>使用 Handlebars 占位符，例如 {{productName}}</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <textarea class="form-control code-editor" id="content" th:field="*{content}" spellcheck="false"></textarea>
+                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('content')}" th:errors="*{content}"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+</div>
+<div th:replace="~{template/preview-modal :: modal}"></div>
+<script th:replace="~{layout :: scripts}"></script>
+<script th:replace="~{layout :: adminlteScripts}"></script>
+<script th:replace="~{layout :: themeScripts}"></script>
+<script th:replace="~{layout :: sweetalertScripts}"></script>
+<script th:src="@{/js/template-form.js}"></script>
+</body>
+</html>

@@ -1,17 +1,14 @@
-package com.eprint.admin.module.template.model;
+package com.eprint.admin.module.template.model.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public class TemplateForm {
-
-    private String id;
+public class TemplateCreateRequest {
 
     @NotBlank(message = "Template type is required")
-    @Size(max = 64, message = "Template type must be at most 64 characters")
-    private String templateType;
+    private String templateTypeId;
 
     @NotBlank(message = "Template code is required")
     @Size(max = 100, message = "Template code must be at most 100 characters")
@@ -31,20 +28,12 @@ public class TemplateForm {
     @NotBlank(message = "Template content is required")
     private String content;
 
-    public String getId() {
-        return id;
+    public String getTemplateTypeId() {
+        return templateTypeId;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getTemplateType() {
-        return templateType;
-    }
-
-    public void setTemplateType(String templateType) {
-        this.templateType = templateType;
+    public void setTemplateTypeId(String templateTypeId) {
+        this.templateTypeId = templateTypeId;
     }
 
     public String getTemplateCode() {

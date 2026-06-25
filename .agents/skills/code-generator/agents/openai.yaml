@@ -1,0 +1,4 @@
+interface:
+  display_name: "e-print-admin Code Generator"
+  short_description: "Generate e-print-admin code with project conventions."
+  default_prompt: "Use $code-generator to add or modify an e-print-admin CRUD module."

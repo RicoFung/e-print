@@ -10,8 +10,10 @@ public class Template implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String id; // db_column: ID
-    private String templateType; // db_column: TEMPLATE_TYPE
-    private String templateCode; // db_column: TEMPLATE_CODE
+    private String templateTypeId; // db_column: TEMPLATE_TYPE_ID
+    private String templateType; // db_column: E_PRINT_TEMPLATE_TYPE.CODE
+    private String templateTypeName; // db_column: E_PRINT_TEMPLATE_TYPE.NAME
+    private String templateCode; // db_column: CODE
     private String bucketName; // db_column: BUCKET_NAME
     private String objectName; // db_column: OBJECT_NAME
     private Integer status; // db_column: STATUS
@@ -24,12 +26,28 @@ public class Template implements Serializable {
         this.id = id;
     }
 
+    public String getTemplateTypeId() {
+        return templateTypeId;
+    }
+
+    public void setTemplateTypeId(String templateTypeId) {
+        this.templateTypeId = templateTypeId;
+    }
+
     public String getTemplateType() {
         return templateType;
     }
 
     public void setTemplateType(String templateType) {
         this.templateType = templateType;
+    }
+
+    public String getTemplateTypeName() {
+        return templateTypeName;
+    }
+
+    public void setTemplateTypeName(String templateTypeName) {
+        this.templateTypeName = templateTypeName;
     }
 
     public String getTemplateCode() {
