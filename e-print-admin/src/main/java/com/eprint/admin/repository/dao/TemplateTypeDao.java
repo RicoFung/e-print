@@ -1,13 +1,17 @@
 package com.eprint.admin.repository.dao;
 
 import com.eprint.admin.repository.model.entity.TemplateType;
+import com.eprint.admin.repository.model.param.TemplateTypeCreateParam;
+import com.eprint.admin.repository.model.param.TemplateTypeDisableParam;
+import com.eprint.admin.repository.model.param.TemplateTypeEnableParam;
+import com.eprint.admin.repository.model.param.TemplateTypeModifyParam;
+import com.eprint.admin.repository.model.param.TemplateTypeRemoveParam;
 import com.niko.boot.dao.BaseDao;
 import jakarta.annotation.Resource;
 import org.apache.ibatis.session.SqlSession;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Map;
 
 @Repository(value = "TemplateTypeDao")
 public class TemplateTypeDao extends BaseDao {
@@ -25,23 +29,32 @@ public class TemplateTypeDao extends BaseDao {
         return getClass().getName();
     }
 
+    public int create(TemplateTypeCreateParam param) {
+        return create("create", param);
+    }
+
+    public int remove(TemplateTypeRemoveParam param) {
+        return getSqlSession().delete(getStatementName("remove"), param);
+    }
+
+    public int modify(TemplateTypeModifyParam param) {
+        return modify("modify", param);
+    }
+
+    public int disable(TemplateTypeDisableParam param) {
+        return modify("disable", param);
+    }
+
+    public int enable(TemplateTypeEnableParam param) {
+        return modify("enable", param);
+    }
+
     public List<TemplateType> queryEnabled() {
         return query("queryEnabled", null);
     }
 
     public TemplateType getByCode(String code) {
         return get("getByCode", code);
-    }
-
-    public int updateStatus(String id, Integer status) {
-        TemplateType templateType = new TemplateType();
-        templateType.setId(id);
-        templateType.setStatus(status);
-        return modify("updateStatus", templateType);
-    }
-
-    public int updateStatusByIds(String[] ids, Integer status) {
-        return modify("updateStatusByIds", Map.of("ids", ids, "status", status));
     }
 
     public int countTemplates(String id) {

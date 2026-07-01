@@ -6,6 +6,12 @@ spring:
   threads:
     virtual:
       enabled: true
+  web:
+    error:
+      whitelabel:
+        enabled: false
+      include-message: never
+      include-stacktrace: never
   servlet:
     multipart:
       max-file-size: ${E_PRINT_ADMIN_MAX_FILE_SIZE:2MB}

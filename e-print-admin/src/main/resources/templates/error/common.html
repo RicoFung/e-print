@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN"
+      xmlns:th="http://www.thymeleaf.org"
+      th:fragment="page(code, eyebrow, title, description, tone)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title th:text="${code + ' · ' + title + ' - e-print-admin'}">错误 - e-print-admin</title>
+    <link rel="stylesheet" th:href="@{/css/error.css}">
+    <script defer th:src="@{/js/error-page.js}"></script>
+</head>
+<body class="error-page" th:classappend="${' error-page--' + tone}">
+<main class="error-shell">
+    <section class="error-panel" aria-labelledby="error-title">
+        <div class="error-brand" aria-label="e-print-admin">
+            <span class="error-brand__mark">EP</span>
+            <span class="error-brand__name">e-print-admin</span>
+        </div>
+
+        <div class="error-status" aria-hidden="true">
+            <span class="error-status__ghost" th:text="${code}">404</span>
+            <span class="error-status__code" th:text="${code}">404</span>
+        </div>
+
+        <div class="error-copy">
+            <p class="error-eyebrow" th:text="${eyebrow}">SYSTEM RESPONSE</p>
+            <h1 id="error-title" th:text="${title}">页面无法访问</h1>
+            <p class="error-description" th:text="${description}">请求暂时无法完成。</p>
+
+            <dl class="error-context" th:if="${path != null and !#strings.isEmpty(path)}">
+                <div>
+                    <dt>请求路径</dt>
+                    <dd th:text="${path}">/admin/example</dd>
+                </div>
+                <div th:if="${timestamp != null}">
+                    <dt>发生时间</dt>
+                    <dd th:text="${timestamp}">2026-07-01 16:00:00</dd>
+                </div>
+            </dl>
+
+            <div class="error-actions">
+                <a class="error-button error-button--primary" th:href="@{/admin}">返回管理首页</a>
+                <button class="error-button error-button--secondary" type="button" data-error-back>返回上一页</button>
+            </div>
+        </div>
+    </section>
+
+    <footer class="error-footer">
+        <span>PRINT OPERATIONS CONSOLE</span>
+        <span class="error-footer__signal"><i></i> SERVICE STATUS</span>
+    </footer>
+</main>
+</body>
+</html>

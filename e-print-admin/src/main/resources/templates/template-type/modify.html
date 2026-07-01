@@ -11,7 +11,7 @@
                     <h1 class="m-0">编辑模板类型</h1>
                 </div>
                 <div class="col-sm-4 text-sm-end mt-3 mt-sm-0">
-                    <a class="btn btn-outline-secondary" th:href="@{/admin/template-types}">返回列表</a>
+                    <a class="btn btn-outline-secondary" th:href="${returnUrl}">返回列表</a>
                 </div>
             </div>
         </div>
@@ -23,6 +23,7 @@
                   th:object="${request}"
                   th:action="@{/admin/template-types/modify}"
                   method="post">
+                <input type="hidden" name="returnUrl" th:value="${returnUrl}">
                 <div class="card-body">
                     <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger" role="alert">
                         <div th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
@@ -58,7 +59,7 @@
 
                     <div class="form-actions">
                         <button class="btn btn-primary" type="submit">保存</button>
-                        <a class="btn btn-outline-secondary" th:href="@{/admin/template-types}">取消</a>
+                        <a class="btn btn-outline-secondary" th:href="${returnUrl}">取消</a>
                     </div>
                 </div>
             </form>

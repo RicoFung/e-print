@@ -1,6 +1,7 @@
 package com.eprint.admin.module.template.controller;
 
-import com.eprint.admin.module.template.model.PageResult;
+import com.eprint.admin.common.controller.BaseController;
+import com.eprint.admin.common.model.page.PageResult;
 import com.eprint.admin.module.template.model.request.TemplateCreateRequest;
 import com.eprint.admin.module.template.model.request.TemplateDisableRequest;
 import com.eprint.admin.module.template.model.request.TemplateEnableRequest;
@@ -28,13 +29,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 @Controller
 @RequestMapping("/admin/templates")
-public class TemplateController {
+public class TemplateController extends BaseController {
+
+    private static final String RETURN_URL = "/admin/templates";
 
     private final TemplateService templateService;
     private final TemplateTypeService templateTypeService;
@@ -50,6 +52,98 @@ public class TemplateController {
         return templateService.defaultSampleData();
     }
 
+    @GetMapping("/create")
+    public String create(@RequestParam(value = "returnUrl", required = false) String returnUrl, Model model) {
+        model.addAttribute("request", templateService.createRequest());
+        return templateForm(model, returnUrl, null, "template/create");
+    }
+
+    @PostMapping("/create")
+    public String create(@Valid @ModelAttribute("request") TemplateCreateRequest request,
+                         BindingResult bindingResult,
+                         @RequestParam(value = "returnUrl", required = false) String returnUrl,
+                         Model model,
+                         RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            return templateForm(model, returnUrl, null, "template/create");
+        }
+        try {
+            templateService.create(request);
+        } catch (RuntimeException e) {
+            bindingResult.reject("template.save.failed", e.getMessage());
+            return templateForm(model, returnUrl, null, "template/create");
+        }
+        redirectAttributes.addFlashAttribute("message", "Template created");
+        return redirect(returnUrl, RETURN_URL);
+    }
+
+    @PostMapping(value = "/remove", params = "id")
+    public String remove(TemplateRemoveRequest request, RedirectAttributes redirectAttributes) {
+        templateService.remove(request);
+        redirectAttributes.addFlashAttribute("message", "Template deleted");
+        return "redirect:/admin/templates";
+    }
+
+    @PostMapping(value = "/remove", params = "ids")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> remove(TemplateRemoveRequest request) {
+        return ResponseEntity.ok(Map.of("removed", templateService.remove(request)));
+    }
+
+    @GetMapping("/modify")
+    public String modify(TemplateModifyRequest request,
+                         @RequestParam(value = "returnUrl", required = false) String returnUrl,
+                         Model model) {
+        TemplateModifyRequest modifyRequest = templateService.getModifyRequest(request);
+        model.addAttribute("request", modifyRequest);
+        return templateForm(model, returnUrl, modifyRequest.getTemplateTypeId(), "template/modify");
+    }
+
+    @PostMapping("/modify")
+    public String modify(@Valid @ModelAttribute("request") TemplateModifyRequest request,
+                         BindingResult bindingResult,
+                         @RequestParam(value = "returnUrl", required = false) String returnUrl,
+                         Model model,
+                         RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            return templateForm(model, returnUrl, request.getTemplateTypeId(), "template/modify");
+        }
+        try {
+            templateService.modify(request);
+        } catch (RuntimeException e) {
+            bindingResult.reject("template.save.failed", e.getMessage());
+            return templateForm(model, returnUrl, request.getTemplateTypeId(), "template/modify");
+        }
+        redirectAttributes.addFlashAttribute("message", "Template saved");
+        return redirect(returnUrl, RETURN_URL);
+    }
+
+    @PostMapping(value = "/disable", params = "id")
+    public String disable(TemplateDisableRequest request, RedirectAttributes redirectAttributes) {
+        templateService.disable(request);
+        redirectAttributes.addFlashAttribute("message", "Template disabled");
+        return "redirect:/admin/templates";
+    }
+
+    @PostMapping(value = "/disable", params = "ids")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> disable(TemplateDisableRequest request) {
+        return ResponseEntity.ok(Map.of("updated", templateService.disable(request)));
+    }
+
+    @PostMapping(value = "/enable", params = "id")
+    public String enable(TemplateEnableRequest request, RedirectAttributes redirectAttributes) {
+        templateService.enable(request);
+        redirectAttributes.addFlashAttribute("message", "Template enabled");
+        return "redirect:/admin/templates";
+    }
+
+    @PostMapping(value = "/enable", params = "ids")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> enable(TemplateEnableRequest request) {
+        return ResponseEntity.ok(Map.of("updated", templateService.enable(request)));
+    }
+
     @GetMapping
     public String query(TemplateQueryRequest request, Model model) {
         model.addAttribute("request", request);
@@ -61,136 +155,17 @@ public class TemplateController {
 
     @GetMapping("/query")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> query(TemplateQueryRequest request) {
-        PageResult<TemplateResult> pageResult = templateService.query(request);
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("total", pageResult.getTotal());
-        body.put("rows", pageResult.getRecords());
-        return ResponseEntity.ok(body);
-    }
-
-    @GetMapping("/create")
-    public String create(@RequestParam(value = "returnUrl", required = false) String returnUrl, Model model) {
-        model.addAttribute("request", templateService.createRequest());
-        model.addAttribute("templateTypes", templateTypeService.queryEnabled());
-        model.addAttribute("returnUrl", normalizeReturnUrl(returnUrl));
-        return "template/create";
-    }
-
-    @PostMapping("/create")
-    public String create(@Valid @ModelAttribute("request") TemplateCreateRequest request,
-                         BindingResult bindingResult,
-                         @RequestParam(value = "returnUrl", required = false) String returnUrl,
-                         Model model,
-                         RedirectAttributes redirectAttributes) {
-        String normalizedReturnUrl = normalizeReturnUrl(returnUrl);
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("templateTypes", templateTypeService.queryEnabled());
-            model.addAttribute("returnUrl", normalizedReturnUrl);
-            return "template/create";
-        }
-        try {
-            templateService.create(request);
-        } catch (RuntimeException e) {
-            bindingResult.reject("template.save.failed", e.getMessage());
-            model.addAttribute("templateTypes", templateTypeService.queryEnabled());
-            model.addAttribute("returnUrl", normalizedReturnUrl);
-            return "template/create";
-        }
-        redirectAttributes.addFlashAttribute("message", "Template created");
-        return "redirect:" + normalizedReturnUrl;
-    }
-
-    @GetMapping("/modify")
-    public String modify(TemplateModifyRequest request,
-                         @RequestParam(value = "returnUrl", required = false) String returnUrl,
-                         Model model) {
-        TemplateModifyRequest modifyRequest = templateService.getModifyRequest(request);
-        model.addAttribute("request", modifyRequest);
-        model.addAttribute("templateTypes", templateTypeOptionsForForm(modifyRequest.getTemplateTypeId()));
-        model.addAttribute("returnUrl", normalizeReturnUrl(returnUrl));
-        return "template/modify";
-    }
-
-    @PostMapping("/modify")
-    public String modify(@Valid @ModelAttribute("request") TemplateModifyRequest request,
-                         BindingResult bindingResult,
-                         @RequestParam(value = "returnUrl", required = false) String returnUrl,
-                         Model model,
-                         RedirectAttributes redirectAttributes) {
-        String normalizedReturnUrl = normalizeReturnUrl(returnUrl);
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("templateTypes", templateTypeOptionsForForm(request.getTemplateTypeId()));
-            model.addAttribute("returnUrl", normalizedReturnUrl);
-            return "template/modify";
-        }
-        try {
-            templateService.modify(request);
-        } catch (RuntimeException e) {
-            bindingResult.reject("template.save.failed", e.getMessage());
-            model.addAttribute("templateTypes", templateTypeOptionsForForm(request.getTemplateTypeId()));
-            model.addAttribute("returnUrl", normalizedReturnUrl);
-            return "template/modify";
-        }
-        redirectAttributes.addFlashAttribute("message", "Template saved");
-        return "redirect:" + normalizedReturnUrl;
-    }
-
-    @PostMapping(value = "/disable", params = "id")
-    public String disable(TemplateDisableRequest request, RedirectAttributes redirectAttributes) {
-        templateService.disable(request.getId());
-        redirectAttributes.addFlashAttribute("message", "Template disabled");
-        return "redirect:/admin/templates";
-    }
-
-    @PostMapping(value = "/enable", params = "id")
-    public String enable(TemplateEnableRequest request, RedirectAttributes redirectAttributes) {
-        templateService.enable(request.getId());
-        redirectAttributes.addFlashAttribute("message", "Template enabled");
-        return "redirect:/admin/templates";
-    }
-
-    @PostMapping(value = "/remove", params = "id")
-    public String remove(TemplateRemoveRequest request, RedirectAttributes redirectAttributes) {
-        templateService.remove(request.getId());
-        redirectAttributes.addFlashAttribute("message", "Template deleted");
-        return "redirect:/admin/templates";
-    }
-
-    @PostMapping(value = "/disable", params = "ids")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> disableSelected(TemplateDisableRequest request) {
-        int updated = templateService.disable(request.getIds());
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("updated", updated);
-        return ResponseEntity.ok(body);
-    }
-
-    @PostMapping(value = "/enable", params = "ids")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> enableSelected(TemplateEnableRequest request) {
-        int updated = templateService.enable(request.getIds());
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("updated", updated);
-        return ResponseEntity.ok(body);
-    }
-
-    @PostMapping(value = "/remove", params = "ids")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> removeSelected(TemplateRemoveRequest request) {
-        int removed = templateService.remove(request.getIds());
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("removed", removed);
-        return ResponseEntity.ok(body);
+    public ResponseEntity<PageResult<TemplateResult>> query(TemplateQueryRequest request) {
+        return ResponseEntity.ok(templateService.query(request));
     }
 
     @GetMapping("/preview")
     public String preview(TemplatePreviewRequest request,
                           @RequestParam(value = "returnUrl", required = false) String returnUrl,
                           Model model) {
-        Template template = templateService.getRequiredTemplate(request.getId());
+        Template template = templateService.get(request.getId());
         model.addAttribute("template", template);
-        model.addAttribute("returnUrl", normalizeReturnUrl(returnUrl));
+        model.addAttribute("returnUrl", normalizeReturnUrl(returnUrl, RETURN_URL));
         return "template/preview";
     }
 
@@ -200,21 +175,17 @@ public class TemplateController {
         return templateService.renderPreview(request);
     }
 
-    private String normalizeReturnUrl(String returnUrl) {
-        if (returnUrl == null
-                || !(returnUrl.equals("/admin/templates") || returnUrl.startsWith("/admin/templates?"))
-                || returnUrl.startsWith("//")
-                || returnUrl.contains("\r")
-                || returnUrl.contains("\n")) {
-            return "/admin/templates";
-        }
-        return returnUrl;
+    private String templateForm(Model model, String returnUrl, String currentTemplateTypeId, String viewName) {
+        model.addAttribute("templateTypes", currentTemplateTypeId == null
+                ? templateTypeService.queryEnabled()
+                : templateTypeOptionsForForm(currentTemplateTypeId));
+        return form(model, returnUrl, RETURN_URL, viewName);
     }
 
     private List<TemplateType> templateTypeOptionsForForm(String currentTemplateTypeId) {
         List<TemplateType> options = new ArrayList<>(templateTypeService.queryEnabled());
         if (currentTemplateTypeId != null && options.stream().noneMatch(type -> currentTemplateTypeId.equals(type.getId()))) {
-            options.add(templateTypeService.getRequired(currentTemplateTypeId));
+            options.add(templateTypeService.get(currentTemplateTypeId));
         }
         return options;
     }

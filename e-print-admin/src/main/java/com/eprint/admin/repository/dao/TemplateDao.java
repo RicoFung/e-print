@@ -1,6 +1,11 @@
 package com.eprint.admin.repository.dao;
 
 import com.eprint.admin.repository.model.entity.Template;
+import com.eprint.admin.repository.model.param.TemplateCreateParam;
+import com.eprint.admin.repository.model.param.TemplateDisableParam;
+import com.eprint.admin.repository.model.param.TemplateEnableParam;
+import com.eprint.admin.repository.model.param.TemplateModifyParam;
+import com.eprint.admin.repository.model.param.TemplateRemoveParam;
 import com.niko.boot.dao.BaseDao;
 import jakarta.annotation.Resource;
 import org.apache.ibatis.session.SqlSession;
@@ -24,19 +29,27 @@ public class TemplateDao extends BaseDao {
         return getClass().getName();
     }
 
+    public int create(TemplateCreateParam param) {
+        return create("create", param);
+    }
+
+    public int remove(TemplateRemoveParam param) {
+        return getSqlSession().delete(getStatementName("remove"), param);
+    }
+
+    public int modify(TemplateModifyParam param) {
+        return modify("modify", param);
+    }
+
+    public int disable(TemplateDisableParam param) {
+        return modify("disable", param);
+    }
+
+    public int enable(TemplateEnableParam param) {
+        return modify("enable", param);
+    }
+
     public Template getByTemplateTypeIdAndCode(String templateTypeId, String templateCode) {
         return get("getByTemplateTypeIdAndCode", Map.of("templateTypeId", templateTypeId, "templateCode", templateCode));
-    }
-
-    public int disable(String id) {
-        return modify("disable", id);
-    }
-
-    public int enable(String id) {
-        return modify("enable", id);
-    }
-
-    public int updateStatusByIds(String[] ids, Integer status) {
-        return modify("updateStatusByIds", Map.of("ids", ids, "status", status));
     }
 }

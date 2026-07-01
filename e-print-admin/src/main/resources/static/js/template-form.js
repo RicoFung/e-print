@@ -589,6 +589,7 @@
     const selectionSummary = document.getElementById('templateTypeSelectionSummary');
     const keywordFilter = document.getElementById('keyword');
     const statusFilter = document.getElementById('status');
+    const createTemplateTypeLink = document.getElementById('createTemplateTypeLink');
     const initialPage = Math.max(1, Number(templateTypeTable.dataset.initialPage) || 1);
     const initialPageSize = Math.max(1, Number(templateTypeTable.dataset.initialPageSize) || 10);
     const tableWrap = templateTypeTable.closest('.list-table-wrap');
@@ -716,7 +717,15 @@
     const syncListUrl = () => {
       const options = $typeTable.bootstrapTable('getOptions');
       const returnUrl = currentListUrl(options.pageNumber || 1, options.pageSize || initialPageSize);
+      window.templateTypeListReturnUrl = returnUrl;
       window.history.replaceState(null, '', returnUrl);
+      if (createTemplateTypeLink) {
+        createTemplateTypeLink.href = `/admin/template-types/create?returnUrl=${encodeURIComponent(returnUrl)}`;
+      }
+      document.querySelectorAll('[data-template-type-edit-id]').forEach((link) => {
+        const id = encodeURIComponent(link.getAttribute('data-template-type-edit-id'));
+        link.href = `/admin/template-types/modify?id=${id}&returnUrl=${encodeURIComponent(returnUrl)}`;
+      });
     };
 
     const getSelectedIds = () => $typeTable.bootstrapTable('getSelections')
@@ -957,7 +966,8 @@ function templateTypeCodeFormatter(value) {
 
 function templateTypeActionFormatter(value, row) {
   const id = encodeURIComponent(row.id);
-  const edit = `<a class="btn btn-outline-primary btn-sm" href="/admin/template-types/modify?id=${id}">编辑</a>`;
+  const returnUrl = encodeURIComponent(window.templateTypeListReturnUrl || `${window.location.pathname}${window.location.search}`);
+  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-type-edit-id="${id}" href="/admin/template-types/modify?id=${id}&returnUrl=${returnUrl}">编辑</a>`;
   const statusAction = Number(row.status) === 1
     ? `<form action="/admin/template-types/disable" method="post" data-confirm="确认禁用该模板类型？" data-confirm-title="禁用模板类型" data-confirm-ok="禁用" data-confirm-class="btn-warning"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
     : `<form action="/admin/template-types/enable" method="post" data-confirm="确认启用该模板类型？" data-confirm-title="启用模板类型" data-confirm-ok="启用" data-confirm-class="btn-success"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;

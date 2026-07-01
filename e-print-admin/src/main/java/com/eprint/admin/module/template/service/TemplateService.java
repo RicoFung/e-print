@@ -1,17 +1,24 @@
 package com.eprint.admin.module.template.service;
 
-import com.eprint.admin.module.template.model.PageResult;
+import com.eprint.admin.common.model.page.PageResult;
+import com.eprint.admin.module.template.model.ModelMapper;
 import com.eprint.admin.module.template.model.request.TemplateCreateRequest;
+import com.eprint.admin.module.template.model.request.TemplateDisableRequest;
+import com.eprint.admin.module.template.model.request.TemplateEnableRequest;
 import com.eprint.admin.module.template.model.request.TemplateModifyRequest;
 import com.eprint.admin.module.template.model.request.TemplatePreviewRequest;
 import com.eprint.admin.module.template.model.request.TemplateQueryRequest;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.eprint.admin.module.template.model.request.TemplateRemoveRequest;
 import com.eprint.admin.repository.dao.TemplateDao;
+import com.eprint.admin.repository.dao.TemplateTypeDao;
 import com.eprint.admin.repository.model.entity.Template;
 import com.eprint.admin.repository.model.entity.TemplateType;
+import com.eprint.admin.repository.model.param.TemplateCreateParam;
+import com.eprint.admin.repository.model.param.TemplateModifyParam;
 import com.eprint.admin.repository.model.param.TemplateQueryParam;
 import com.eprint.admin.repository.model.result.TemplateResult;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
@@ -29,13 +36,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,17 +46,8 @@ import java.util.regex.Pattern;
 public class TemplateService {
 
     private static final Integer STATUS_ENABLED = 1;
-    private static final Integer STATUS_DISABLED = 0;
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{\\{\\s*([A-Za-z0-9_.-]+)\\s*}}");
     private static final Pattern EACH_PATTERN = Pattern.compile("\\{\\{#each\\s+([A-Za-z0-9_.-]+)\\s*}}([\\s\\S]*?)\\{\\{/each}}");
-    private static final Map<String, String> SORT_COLUMNS = Map.of(
-            "id", "T.ID",
-            "templateType", "TT.CODE",
-            "templateCode", "T.CODE",
-            "bucketName", "T.BUCKET_NAME",
-            "objectName", "T.OBJECT_NAME",
-            "status", "T.STATUS"
-    );
     private static final String[] CODE128_PATTERNS = {
             "212222", "222122", "222221", "121223", "121322", "131222", "122213", "122312", "132212", "221213",
             "221312", "231212", "112232", "122132", "122231", "113222", "123122", "123221", "223211", "221132",
@@ -70,101 +63,99 @@ public class TemplateService {
     };
 
     private final TemplateDao templateDao;
-    private final TemplateTypeService templateTypeService;
+    private final TemplateTypeDao templateTypeDao;
     private final MinioClient minioClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String defaultBucketName;
     private final String defaultObjectPrefix;
 
     public TemplateService(TemplateDao templateDao,
-                           TemplateTypeService templateTypeService,
+                           TemplateTypeDao templateTypeDao,
                            MinioClient minioClient,
                            @Value("${app.template.default-bucket:e-print}") String defaultBucketName,
                            @Value("${app.template.default-object-prefix:templates/print}") String defaultObjectPrefix) {
         this.templateDao = templateDao;
-        this.templateTypeService = templateTypeService;
+        this.templateTypeDao = templateTypeDao;
         this.minioClient = minioClient;
         this.defaultBucketName = defaultBucketName;
         this.defaultObjectPrefix = trimSlashes(defaultObjectPrefix);
     }
 
-    public PageResult<TemplateResult> query(TemplateQueryRequest request) {
-        int normalizedPageSize = normalizePageSize(request.limit());
-        int normalizedPage = request.page();
-        TemplateQueryParam param = new TemplateQueryParam();
-        param.setTemplateTypeId(StringUtils.hasText(request.getTemplateTypeId()) ? request.getTemplateTypeId().trim() : null);
-        param.setTemplateCode(StringUtils.hasText(request.queryTemplateCode()) ? request.queryTemplateCode().trim() : null);
-        param.setStatus(request.getStatus());
-        param.setOrderBy(toOrderBy(request.getSort()));
-
-        int total = templateDao.count(param);
-        int totalPages = total == 0 ? 0 : (int) Math.ceil((double) total / normalizedPageSize);
-        if (totalPages > 0 && normalizedPage > totalPages) {
-            normalizedPage = totalPages;
-        }
-
-        param.setPage(normalizedPage);
-        param.setPageSize(normalizedPageSize);
-        List<TemplateResult> records = templateDao.query(param);
-        return new PageResult<>(records, normalizedPage, normalizedPageSize, total);
-    }
-
-    private String toOrderBy(String sort) {
-        List<String> clauses = new ArrayList<>();
-        LinkedHashSet<String> sortedFields = new LinkedHashSet<>();
-
-        if (StringUtils.hasText(sort)) {
-            for (String token : sort.split(",")) {
-                if (clauses.size() >= 5) {
-                    break;
-                }
-                String normalizedToken = token == null ? "" : token.trim();
-                int separatorIndex = normalizedToken.lastIndexOf('.');
-                if (separatorIndex <= 0 || separatorIndex >= normalizedToken.length() - 1) {
-                    continue;
-                }
-
-                String field = normalizedToken.substring(0, separatorIndex);
-                String direction = normalizedToken.substring(separatorIndex + 1).toUpperCase(Locale.ROOT);
-                String column = SORT_COLUMNS.get(field);
-                if (column == null || (!"ASC".equals(direction) && !"DESC".equals(direction)) || !sortedFields.add(field)) {
-                    continue;
-                }
-                clauses.add(column + " " + direction);
-            }
-        }
-
-        if (!sortedFields.contains("id")) {
-            clauses.add("T.ID DESC");
-        }
-
-        StringJoiner orderBy = new StringJoiner(", ");
-        clauses.forEach(orderBy::add);
-        return orderBy.toString();
-    }
-
     public TemplateCreateRequest createRequest() {
         TemplateCreateRequest request = new TemplateCreateRequest();
-        List<TemplateType> templateTypes = templateTypeService.queryEnabled();
+        List<TemplateType> templateTypes = templateTypeDao.queryEnabled();
         if (!templateTypes.isEmpty()) {
             request.setTemplateTypeId(templateTypes.get(0).getId());
         }
         request.setBucketName(defaultBucketName);
-        request.setStatus(STATUS_ENABLED);
         request.setContent(defaultTemplateContent());
         return request;
     }
 
+    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
+    public void create(TemplateCreateRequest request) {
+        TemplateCreateParam param = ModelMapper.INSTANCE.map(request);
+        prepare(param, true);
+        if (templateDao.getByTemplateTypeIdAndCode(param.getTemplateTypeId(), param.getTemplateCode()) != null) {
+            throw new IllegalArgumentException("Template code already exists");
+        }
+        putObject(param.getBucketName(), param.getObjectName(), request.getContent());
+        templateDao.create(param);
+    }
+
+    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
+    public int remove(TemplateRemoveRequest request) {
+        var param = ModelMapper.INSTANCE.map(request);
+        return param.getIds().length == 0 ? 0 : templateDao.remove(param);
+    }
+
     public TemplateModifyRequest getModifyRequest(TemplateModifyRequest request) {
-        String id = request.getId();
-        Template template = getRequiredTemplate(id);
-        TemplateModifyRequest result = toModifyRequest(template);
+        Template template = get(request.getId());
+        TemplateModifyRequest result = ModelMapper.INSTANCE.map(template);
         result.setContent(readObject(template.getBucketName(), template.getObjectName()));
         return result;
     }
 
+    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
+    public void modify(TemplateModifyRequest request) {
+        TemplateModifyParam param = ModelMapper.INSTANCE.map(request);
+        Template existing = get(param.getId());
+        prepare(param, STATUS_ENABLED.equals(param.getStatus()));
+        Template sameCode = templateDao.getByTemplateTypeIdAndCode(param.getTemplateTypeId(), param.getTemplateCode());
+        if (sameCode != null && !sameCode.getId().equals(existing.getId())) {
+            throw new IllegalArgumentException("Template code already exists");
+        }
+        putObject(param.getBucketName(), param.getObjectName(), request.getContent());
+        templateDao.modify(param);
+    }
+
+    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
+    public int disable(TemplateDisableRequest request) {
+        var param = ModelMapper.INSTANCE.map(request);
+        return param.getIds().length == 0 ? 0 : templateDao.disable(param);
+    }
+
+    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
+    public int enable(TemplateEnableRequest request) {
+        var param = ModelMapper.INSTANCE.map(request);
+        return param.getIds().length == 0 ? 0 : templateDao.enable(param);
+    }
+
+    public PageResult<TemplateResult> query(TemplateQueryRequest request) {
+        TemplateQueryParam param = ModelMapper.INSTANCE.map(request);
+        return new PageResult<>(templateDao.query(param), param.getPage(), param.getPageSize(), templateDao.count(param));
+    }
+
+    public Template get(String id) {
+        Template template = templateDao.get(id);
+        if (template == null) {
+            throw new IllegalArgumentException("Template not found");
+        }
+        return template;
+    }
+
     public String getPreviewContent(String id) {
-        Template template = getRequiredTemplate(id);
+        Template template = get(id);
         return readObject(template.getBucketName(), template.getObjectName());
     }
 
@@ -233,157 +224,27 @@ public class TemplateService {
                 """;
     }
 
-    public Template getRequiredTemplate(String id) {
-        Template template = templateDao.get(id);
-        if (template == null) {
-            throw new IllegalArgumentException("Template not found");
-        }
-        return template;
-    }
-
-    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public void create(TemplateCreateRequest request) {
-        TemplateType templateType = normalize(request, true);
-        if (templateDao.getByTemplateTypeIdAndCode(request.getTemplateTypeId(), request.getTemplateCode()) != null) {
-            throw new IllegalArgumentException("Template code already exists");
-        }
-        putObject(request.getBucketName(), request.getObjectName(), request.getContent());
-
-        Template template = new Template();
-        template.setTemplateTypeId(templateType.getId());
-        template.setTemplateCode(request.getTemplateCode());
-        template.setBucketName(request.getBucketName());
-        template.setObjectName(request.getObjectName());
-        template.setStatus(request.getStatus());
-        templateDao.create(template);
-    }
-
-    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public void modify(TemplateModifyRequest request) {
-        Template existing = getRequiredTemplate(request.getId());
-        TemplateType templateType = normalize(request, STATUS_ENABLED.equals(request.getStatus()));
-        Template sameCode = templateDao.getByTemplateTypeIdAndCode(request.getTemplateTypeId(), request.getTemplateCode());
-        if (sameCode != null && !sameCode.getId().equals(existing.getId())) {
-            throw new IllegalArgumentException("Template code already exists");
-        }
-
-        putObject(request.getBucketName(), request.getObjectName(), request.getContent());
-
-        existing.setTemplateTypeId(templateType.getId());
-        existing.setTemplateCode(request.getTemplateCode());
-        existing.setBucketName(request.getBucketName());
-        existing.setObjectName(request.getObjectName());
-        existing.setStatus(request.getStatus());
-        templateDao.modify(existing);
-    }
-
-    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public void disable(String id) {
-        getRequiredTemplate(id);
-        templateDao.disable(id);
-    }
-
-    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public void enable(String id) {
-        getRequiredTemplate(id);
-        templateDao.enable(id);
-    }
-
-    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public int disable(List<String> ids) {
-        return updateStatus(ids, STATUS_DISABLED);
-    }
-
-    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public int enable(List<String> ids) {
-        return updateStatus(ids, STATUS_ENABLED);
-    }
-
-    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public void remove(String id) {
-        getRequiredTemplate(id);
-        templateDao.remove(new String[]{id});
-    }
-
-    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public int remove(List<String> ids) {
-        List<String> normalizedIds = normalizeIds(ids);
-        if (normalizedIds.isEmpty()) {
-            return 0;
-        }
-        return templateDao.remove(normalizedIds.toArray(String[]::new));
-    }
-
-    private int updateStatus(List<String> ids, Integer status) {
-        List<String> normalizedIds = normalizeIds(ids);
-        if (normalizedIds.isEmpty()) {
-            return 0;
-        }
-        return templateDao.updateStatusByIds(normalizedIds.toArray(String[]::new), status);
-    }
-
-    private List<String> normalizeIds(List<String> ids) {
-        return ids == null ? List.of() : ids.stream()
-                .filter(StringUtils::hasText)
-                .map(String::trim)
-                .distinct()
-                .toList();
-    }
-
-    private TemplateModifyRequest toModifyRequest(Template template) {
-        TemplateModifyRequest request = new TemplateModifyRequest();
-        request.setId(template.getId());
-        request.setTemplateTypeId(template.getTemplateTypeId());
-        request.setTemplateCode(template.getTemplateCode());
-        request.setBucketName(template.getBucketName());
-        request.setObjectName(template.getObjectName());
-        request.setStatus(template.getStatus());
-        return request;
-    }
-
-    private TemplateType normalize(TemplateCreateRequest request, boolean requireEnabledType) {
-        request.setTemplateTypeId(request.getTemplateTypeId().trim());
-        TemplateType templateType = requireEnabledType
-                ? templateTypeService.getEnabledRequired(request.getTemplateTypeId())
-                : templateTypeService.getRequired(request.getTemplateTypeId());
-        request.setTemplateCode(request.getTemplateCode().trim());
-        request.setBucketName(request.getBucketName().trim());
-        if (!StringUtils.hasText(request.getObjectName())) {
-            request.setObjectName(defaultObjectName(templateType.getCode(), request.getTemplateCode()));
+    private void prepare(Template param, boolean requireEnabledType) {
+        TemplateType templateType = getTemplateType(param.getTemplateTypeId(), requireEnabledType);
+        if (!StringUtils.hasText(param.getObjectName())) {
+            param.setObjectName(defaultObjectName(templateType.getCode(), param.getTemplateCode()));
         } else {
-            request.setObjectName(trimLeadingSlash(request.getObjectName().trim()));
+            param.setObjectName(trimLeadingSlash(param.getObjectName().trim()));
         }
-        if (request.getStatus() == null) {
-            request.setStatus(STATUS_ENABLED);
+    }
+
+    private TemplateType getTemplateType(String id, boolean requireEnabled) {
+        TemplateType templateType = templateTypeDao.get(id);
+        if (templateType == null) {
+            throw new IllegalArgumentException("Template type not found");
         }
-        if (!STATUS_ENABLED.equals(request.getStatus()) && !STATUS_DISABLED.equals(request.getStatus())) {
-            throw new IllegalArgumentException("Invalid template status");
+        if (requireEnabled && !STATUS_ENABLED.equals(templateType.getStatus())) {
+            throw new IllegalArgumentException("Template type is disabled");
         }
         return templateType;
     }
 
-    private TemplateType normalize(TemplateModifyRequest request, boolean requireEnabledType) {
-        request.setTemplateTypeId(request.getTemplateTypeId().trim());
-        TemplateType templateType = requireEnabledType
-                ? templateTypeService.getEnabledRequired(request.getTemplateTypeId())
-                : templateTypeService.getRequired(request.getTemplateTypeId());
-        request.setTemplateCode(request.getTemplateCode().trim());
-        request.setBucketName(request.getBucketName().trim());
-        if (!StringUtils.hasText(request.getObjectName())) {
-            request.setObjectName(defaultObjectName(templateType.getCode(), request.getTemplateCode()));
-        } else {
-            request.setObjectName(trimLeadingSlash(request.getObjectName().trim()));
-        }
-        if (request.getStatus() == null) {
-            request.setStatus(STATUS_ENABLED);
-        }
-        if (!STATUS_ENABLED.equals(request.getStatus()) && !STATUS_DISABLED.equals(request.getStatus())) {
-            throw new IllegalArgumentException("Invalid template status");
-        }
-        return templateType;
-    }
-
-    public String defaultObjectName(String templateType, String templateCode) {
+    private String defaultObjectName(String templateType, String templateCode) {
         return defaultObjectPrefix + "/" + templateType + "/" + templateCode + ".html";
     }
 
@@ -643,13 +504,4 @@ public class TemplateService {
         return result;
     }
 
-    private static int normalizePageSize(Integer pageSize) {
-        if (pageSize == null) {
-            return 10;
-        }
-        if (pageSize < 5) {
-            return 5;
-        }
-        return Math.min(pageSize, 100);
-    }
 }

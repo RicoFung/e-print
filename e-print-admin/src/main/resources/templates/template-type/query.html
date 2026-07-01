@@ -48,7 +48,7 @@
                     <div class="table-actionbar-buttons">
                         <button class="btn btn-outline-warning btn-sm" id="disableSelectedTemplateTypes" type="button" disabled>批量禁用</button>
                         <button class="btn btn-outline-success btn-sm" id="enableSelectedTemplateTypes" type="button" disabled>批量启用</button>
-                        <a class="btn btn-primary btn-sm" th:href="@{/admin/template-types/create}">新增</a>
+                        <a class="btn btn-primary btn-sm" id="createTemplateTypeLink" th:href="@{/admin/template-types/create}">新增</a>
                     </div>
                 </div>
                 <table id="templateTypeTable"
@@ -56,8 +56,8 @@
                        data-url="/admin/template-types/query"
                        data-side-pagination="server"
                        data-pagination="true"
-                       data-page-size="10"
-                       data-page-list="[10, 20, 50, 100]"
+                       data-page-size="2"
+                       data-page-list="[2, 20, 50, 100]"
                        data-search="false"
                        data-search-on-enter-key="false"
                        data-show-refresh="false"

@@ -1,26 +1,33 @@
-package com.eprint.admin.module.template.model;
+package com.eprint.admin.common.model.page;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Collections;
 import java.util.List;
 
 public class PageResult<T> {
 
-    private final List<T> records;
+    private final List<T> rows;
     private final int page;
     private final int pageSize;
     private final int total;
     private final int totalPages;
 
-    public PageResult(List<T> records, int page, int pageSize, int total) {
-        this.records = records == null ? Collections.emptyList() : records;
+    public PageResult(List<T> rows, int page, int pageSize, int total) {
+        this.rows = rows == null ? Collections.emptyList() : rows;
         this.page = page;
         this.pageSize = pageSize;
         this.total = total;
         this.totalPages = total == 0 ? 0 : (int) Math.ceil((double) total / pageSize);
     }
 
+    @JsonIgnore
     public List<T> getRecords() {
-        return records;
+        return rows;
+    }
+
+    public List<T> getRows() {
+        return rows;
     }
 
     public int getPage() {

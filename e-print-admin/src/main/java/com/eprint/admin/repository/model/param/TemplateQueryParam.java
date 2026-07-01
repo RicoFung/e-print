@@ -1,13 +1,12 @@
 package com.eprint.admin.repository.model.param;
 
-public class TemplateQueryParam {
+import com.eprint.admin.common.model.page.PageParam;
+
+public class TemplateQueryParam extends PageParam {
 
     private String templateTypeId;
     private String templateCode;
     private Integer status;
-    private Integer page;
-    private Integer pageSize;
-    private String orderBy;
 
     public String getTemplateTypeId() {
         return templateTypeId;
@@ -33,35 +32,4 @@ public class TemplateQueryParam {
         this.status = status;
     }
 
-    public Integer getPage() {
-        return page;
-    }
-
-    public void setPage(Integer page) {
-        this.page = page;
-    }
-
-    public Integer getPageSize() {
-        return pageSize;
-    }
-
-    public void setPageSize(Integer pageSize) {
-        this.pageSize = pageSize;
-    }
-
-    public int getRowStart() {
-        return (page - 1) * pageSize;
-    }
-
-    public int getRowEnd() {
-        return page * pageSize;
-    }
-
-    public String getOrderBy() {
-        return orderBy;
-    }
-
-    public void setOrderBy(String orderBy) {
-        this.orderBy = orderBy;
-    }
 }

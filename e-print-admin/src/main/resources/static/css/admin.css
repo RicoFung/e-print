@@ -13,6 +13,8 @@
   --admin-row-selected-bg-hover: #d3edf4;
   --admin-row-selected-fg: #102a3a;
   --admin-row-selected-line: #1680a0;
+  --admin-home-panel: rgba(255, 255, 255, .9);
+  --admin-home-panel-hover: rgba(255, 255, 255, .97);
 }
 
 [data-bs-theme="dark"] {
@@ -30,6 +32,8 @@
   --admin-row-selected-bg-hover: #1d4059;
   --admin-row-selected-fg: #f4fbff;
   --admin-row-selected-line: #58c7df;
+  --admin-home-panel: rgba(21, 31, 46, .9);
+  --admin-home-panel-hover: rgba(21, 31, 46, .97);
 }
 
 * {
@@ -211,6 +215,133 @@ body.sidebar-collapse .admin-sidebar .sidebar-menu .nav-link[title]:hover::after
 .app-main > div {
   height: 100%;
   min-height: 0;
+}
+
+.home-page {
+  height: 100%;
+  overflow: hidden auto;
+  position: relative;
+  isolation: isolate;
+}
+
+.home-page::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: url("../img/home-background.svg") center / cover no-repeat;
+  content: "";
+  opacity: .82;
+  pointer-events: none;
+}
+
+[data-bs-theme="dark"] .home-page::before {
+  filter: brightness(.58) saturate(.7);
+  opacity: .42;
+}
+
+.home-header {
+  padding-top: 28px;
+  padding-bottom: 16px;
+}
+
+.home-header h1 {
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.home-content {
+  padding-bottom: 32px;
+}
+
+.home-content > .container-fluid {
+  padding-top: 4px;
+}
+
+.home-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.home-shortcut {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  min-height: 112px;
+  padding: 24px;
+  border: 1px solid var(--admin-line);
+  color: var(--admin-ink);
+  background: var(--admin-home-panel);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--admin-shadow-soft);
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.home-shortcut:hover,
+.home-shortcut:focus-visible {
+  border-color: var(--admin-accent);
+  color: var(--admin-ink);
+  background: var(--admin-home-panel-hover);
+  box-shadow: inset 0 3px 0 var(--admin-accent), 0 14px 32px rgba(21, 32, 49, .12);
+}
+
+.home-shortcut:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--admin-accent) 38%, transparent);
+  outline-offset: 3px;
+}
+
+.home-shortcut__icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+  border-radius: 8px;
+}
+
+.home-shortcut__icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.home-shortcut strong {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.home-shortcut__arrow {
+  color: var(--admin-accent);
+  font-size: 24px;
+  transition: transform .18s ease;
+}
+
+.home-shortcut:hover .home-shortcut__arrow {
+  transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-shortcut,
+  .home-shortcut__arrow {
+    transition: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .home-page::before {
+    background-position: 62% center;
+    opacity: .64;
+  }
+
+  .home-shortcuts {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-content {

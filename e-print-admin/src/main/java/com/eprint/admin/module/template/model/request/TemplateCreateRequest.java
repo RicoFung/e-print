@@ -2,6 +2,8 @@ package com.eprint.admin.module.template.model.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -23,6 +25,8 @@ public class TemplateCreateRequest {
     private String objectName;
 
     @NotNull(message = "Status is required")
+    @Min(value = 0, message = "Status must be 0 or 1")
+    @Max(value = 1, message = "Status must be 0 or 1")
     private Integer status = 1;
 
     @NotBlank(message = "Template content is required")
