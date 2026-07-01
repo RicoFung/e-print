@@ -1,702 +1,339 @@
-# e-print-admin 代码生成模板
+# e-print-admin 代码规范
 
-本文档是 `e-print-admin` 新增或重构后台管理模块时的唯一标准模板。生成代码时直接按本文档落地。
+本文描述仓库当前采用的代码风格。生成或重构代码前，应同时查看目标模块和相邻模块；现有代码与本文不一致时，以用户目标和当前有效实现为准，并同步修正规范。
 
-## 1. 项目边界
+## 目录
 
-仅适用于 `e-print-admin`：
+- [1. 技术与边界](#1-技术与边界)
+- [2. 分层和包结构](#2-分层和包结构)
+- [3. 方法命名与排列](#3-方法命名与排列)
+- [4. 分页模型](#4-分页模型)
+- [5. Request、Param、Entity 和 Result](#5-requestparamentity-和-result)
+- [6. MapStruct ModelMapper](#6-mapstruct-modelmapper)
+- [7. Controller](#7-controller)
+- [8. Service](#8-service)
+- [9. Dao](#9-dao)
+- [10. MyBatis Mapper XML](#10-mybatis-mapper-xml)
+- [11. 路由与页面](#11-路由与页面)
+- [12. 首页和错误页](#12-首页和错误页)
+- [13. Oracle 约束](#13-oracle-约束)
+- [14. 检查清单](#14-检查清单)
 
-- 页面模块：`src/main/java/com/eprint/admin/module/**`
-- 持久化层：`src/main/java/com/eprint/admin/repository/**`
-- Thymeleaf 页面：`src/main/resources/templates/**`
-- 静态资源：`src/main/resources/static/**`
-- Oracle 脚本：仓库根目录 `db/oracle/**`
+## 1. 技术与边界
 
-不生成 `e-print-server` API 代码，不生成 REST-only 后台模块。
+- Java 21、Spring Boot 4、Spring MVC、Spring Security、Thymeleaf、Jakarta Validation。
+- MapStruct 负责模块内对象映射。
+- MyBatis 与 Oracle 负责持久化。
+- 管理页面使用 AdminLTE、Bootstrap Table、SweetAlert 等现有前端能力。
+- 文件正文等大对象可存放在 MinIO，数据库保存元数据；保持两者职责分离。
+- 不引入与项目现有结构重复的框架或抽象层。
 
-## 2. 技术栈
+## 2. 分层和包结构
 
-- Java 21。
-- Spring Boot 4.x。
-- Spring MVC + Thymeleaf。
-- Bean Validation 使用 `jakarta.validation.*`。
-- Dao 继承 `com.niko.boot.dao.BaseDao`，并注入 MyBatis `SqlSession`。
-- 数据库为 Oracle。
-- 列表页使用 Bootstrap Table。
-- 提示弹窗使用现有 SweetAlert 风格。
-
-禁止在新代码中引入以下非本项目模板能力：
-
-- Swagger/OpenAPI 注解。
-- `NikoResult`。
-- `BaseRestController`。
-- MapStruct。
-- Manager 层。
-- 缓存注解。
-- `Admin` 类名前缀或中缀。
-
-## 3. 标准分层
+常用目录如下：
 
 ```text
-e-print-admin/src/main/java/com/eprint/admin/
-├── module/{domain}/
-│   ├── controller/{Module}Controller.java
-│   ├── service/{Module}Service.java
-│   └── model/request/
-│       ├── {Module}QueryRequest.java
-│       ├── {Module}CreateRequest.java
-│       ├── {Module}ModifyRequest.java
-│       ├── {Module}RemoveRequest.java
-│       └── {Module}PreviewRequest.java
-└── repository/
-    ├── dao/{Module}Dao.java
-    ├── mapper/{Module}.xml
-    └── model/
-        ├── entity/{Module}.java
-        ├── param/{Module}QueryParam.java
-        └── result/{Module}Result.java
+com.eprint.admin
+├─ common
+│  ├─ controller/BaseController.java
+│  ├─ model/page/{PageRequest,PageParam,PageResult}.java
+│  └─ support/PageSupport.java
+├─ module/<module>
+│  ├─ controller/*Controller.java
+│  ├─ service/*Service.java
+│  └─ model
+│     ├─ ModelMapper.java
+│     └─ request/*Request.java
+└─ repository
+   ├─ dao/*Dao.java
+   ├─ mapper/*.xml
+   └─ model
+      ├─ entity/*.java
+      ├─ param/*.java
+      └─ result/*.java
 ```
 
-规则：
-
-- Controller 只处理路由、请求绑定、页面模型和响应封装。
-- Service 处理业务校验、事务、转换、排序白名单和关联检查。
-- Dao 继承 `BaseDao`，只提供 SqlSession、namespace 和必要的类型化业务方法。
-- Mapper XML 只写 SQL。
-- Web Request 不作为 MyBatis `parameterType`。
-- 不创建 `{Module}Form`。
-- Result 承载列表、详情和关联查询返回值；Entity 只表达可写入的表字段。
-
-## 4. 路由、方法、页面
-
-Controller 根路径使用复数资源名：
-
-```java
-@Controller
-@RequestMapping("/admin/templates")
-public class TemplateController {
-}
-```
-
-页面动作必须一一对应：
-
-| 动作 | HTTP | 路径 | Controller 方法 | 页面 |
-| --- | --- | --- | --- | --- |
-| 查询页 | GET | `/` | `query(...)` | `template/query.html` |
-| 新增页 | GET | `/create` | `create(...)` | `template/create.html` |
-| 新增提交 | POST | `/create` | `create(...)` | redirect |
-| 编辑页 | GET | `/modify` | `modify(...)` | `template/modify.html` |
-| 编辑提交 | POST | `/modify` | `modify(...)` | redirect |
-| 预览页 | GET | `/preview` | `preview(...)` | `template/preview.html` |
-
-数据和操作接口：
-
-| 动作 | HTTP | 路径 | 方法 |
-| --- | --- | --- | --- |
-| 表格数据 | GET | `/query` | `query(...)` |
-| 启用 | POST | `/enable` | `enable(...)` |
-| 禁用 | POST | `/disable` | `disable(...)` |
-| 删除 | POST | `/remove` | `remove(...)` |
-| 预览渲染 | POST | `/preview/render` | `renderPreview(...)` |
-
-## 5. Request 模板
-
-每个请求动作独立 Request，不复用、不继承。
+标准调用链：
 
 ```text
-{Module}QueryRequest
-{Module}CreateRequest
-{Module}ModifyRequest
-{Module}RemoveRequest
-{Module}PreviewRequest
+Request → ModelMapper → Param → Service → Dao → Mapper XML
 ```
 
-位置：
+Controller 负责 HTTP、校验、页面模型和响应；Service 负责业务规则与事务；Dao 和 XML 负责持久化。
+
+## 3. 方法命名与排列
+
+Controller、Service、Dao 和 Mapper XML 的业务方法尽量同名：
 
 ```text
-com.eprint.admin.module.{domain}.model.request
+POST /disable
+→ TemplateController.disable(...)
+→ TemplateService.disable(...)
+→ TemplateDao.disable(...)
+→ <update id=disable>
 ```
+
+类内按下列顺序排列：
+
+1. `create`
+2. `remove`
+3. `modify`
+4. `disable`
+5. `enable`
+6. `query`
+7. `get`、`preview` 等单条查询或展示方法
+8. 必要的私有辅助方法
+
+单条和批量操作使用同名重载，通过 Spring MVC 的 `params = id`、`params = ids` 区分，不使用 `removeSelected`、`disableSelected` 等名称。
+
+## 4. 分页模型
+
+分页模型统一位于 `com.eprint.admin.common.model.page`：
+
+- `PageRequest`：Web 查询字段，包含 `search`、`sort`、`order`、`offset`、`limit`、`page`、`pageSize`。
+- `PageParam`：持久层分页字段，包含 `page`、`pageSize`、`sort`。
+- `PageResult<T>`：响应字段，直接提供 `rows`、`total` 及分页辅助信息。
+
+模块查询 Request 继承 `PageRequest`，查询 Param 继承 `PageParam`。同名字段由 MapStruct 自动复制。
+
+分页大小统一通过 `PageSupport` 规范化：默认 10，最小 5，最大 100。不要在各 Service 重复实现边界逻辑。
+
+## 5. Request、Param、Entity 和 Result
+
+### 5.1 Request
+
+- Request 只表示 Web 输入，放在模块的 `model.request` 包。
+- 使用 Jakarta Validation 表达必填、长度、范围等输入约束。
+- 状态字段可使用 `@NotNull`、`@Min(0)`、`@Max(1)`。
+- 查询 Request 继承 `PageRequest`；新增、修改和批量操作 Request 各自独立定义。
+- 不把 Entity 直接作为 Controller 入参。
+
+常见类型：
+
+```text
+TemplateCreateRequest
+TemplateRemoveRequest
+TemplateModifyRequest
+TemplateDisableRequest
+TemplateEnableRequest
+TemplateQueryRequest
+```
+
+### 5.2 Param
+
+- Param 是 Dao 和 Mapper XML 的入参，放在 `repository.model.param`。
+- `*CreateParam`、`*ModifyParam` 默认继承对应 Entity，避免重复声明持久化字段。
+- 批量删除、启用、禁用 Param 默认继承公共 `IdsParam`；XML 遍历属性名固定为 `ids`。
+- Request 不能直接传入 Dao 或 XML。
 
 示例：
 
 ```java
-package com.eprint.admin.module.template.model.request;
+public class TemplateCreateParam extends Template {
+}
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
-public class TemplateCreateRequest {
-
-    @NotBlank(message = "类型不能为空")
-    private String templateTypeId;
-
-    @NotBlank(message = "编码不能为空")
-    private String templateCode;
-
-    @NotBlank(message = "Bucket 不能为空")
-    private String bucketName;
-
-    @NotBlank(message = "Object 不能为空")
-    private String objectName;
-
-    @NotNull(message = "状态不能为空")
-    private Integer status;
-
-    // getters and setters
+public class TemplateDisableParam extends IdsParam {
 }
 ```
 
-分页查询 Request 示例：
+### 5.3 Entity 和 Result
+
+- Entity 与表字段对应，不承担 Web 校验、页面回显或业务组合逻辑。
+- Result 用于查询输出，可组合关联表显示字段。
+- 不因为少量字段相同就混用 Request、Param、Entity、Result。
+
+## 6. MapStruct ModelMapper
+
+每个模块使用 MapStruct `ModelMapper` 统一映射：
 
 ```java
-public class TemplateQueryRequest {
+@Mapper
+public interface ModelMapper {
 
-    private String templateTypeId;
-    private String templateCode;
-    private Integer status;
-    private String search;
-    private String sort;
-    private Integer offset = 0;
-    private Integer limit = 10;
+    ModelMapper INSTANCE = Mappers.getMapper(ModelMapper.class);
 
-    public int page() {
-        int size = limit();
-        return offset == null || offset < 0 ? 1 : (offset / size) + 1;
-    }
+    TemplateQueryParam map(TemplateQueryRequest source);
 
-    public int limit() {
-        return limit == null || limit < 1 ? 10 : limit;
-    }
+    TemplateCreateParam map(TemplateCreateRequest source);
 
-    public String queryTemplateCode() {
-        return templateCode == null || templateCode.isBlank() ? search : templateCode;
-    }
-
-    // getters and setters
-}
-```
-
-## 6. Controller 模板
-
-```java
-package com.eprint.admin.module.template.controller;
-
-import com.eprint.admin.module.template.model.PageResult;
-import com.eprint.admin.module.template.model.request.TemplateCreateRequest;
-import com.eprint.admin.module.template.model.request.TemplateModifyRequest;
-import com.eprint.admin.module.template.model.request.TemplateQueryRequest;
-import com.eprint.admin.module.template.service.TemplateService;
-import com.eprint.admin.repository.model.result.TemplateResult;
-import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-@Controller
-@RequestMapping("/admin/templates")
-public class TemplateController {
-
-    private final TemplateService templateService;
-
-    public TemplateController(TemplateService templateService) {
-        this.templateService = templateService;
-    }
-
-    @GetMapping
-    public String query(TemplateQueryRequest request, Model model) {
-        model.addAttribute("request", request);
-        return "template/query";
-    }
-
-    @GetMapping("/query")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> query(TemplateQueryRequest request) {
-        PageResult<TemplateResult> pageResult = templateService.query(request);
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("total", pageResult.getTotal());
-        body.put("rows", pageResult.getRecords());
-        return ResponseEntity.ok(body);
-    }
-
-    @GetMapping("/create")
-    public String create(Model model) {
-        model.addAttribute("request", new TemplateCreateRequest());
-        return "template/create";
-    }
-
-    @PostMapping("/create")
-    public String create(@Valid @ModelAttribute("request") TemplateCreateRequest request,
-                         BindingResult bindingResult,
-                         Model model,
-                         RedirectAttributes redirectAttributes) {
-        if (bindingResult.hasErrors()) {
-            return "template/create";
-        }
-        templateService.create(request);
-        redirectAttributes.addFlashAttribute("message", "Template created");
-        return "redirect:/admin/templates";
-    }
-
-    @GetMapping("/modify")
-    public String modify(TemplateModifyRequest request, Model model) {
-        model.addAttribute("request", templateService.getModifyRequest(request));
-        return "template/modify";
-    }
-
-    @PostMapping("/modify")
-    public String modify(@Valid @ModelAttribute("request") TemplateModifyRequest request,
-                         BindingResult bindingResult,
-                         Model model,
-                         RedirectAttributes redirectAttributes) {
-        if (bindingResult.hasErrors()) {
-            return "template/modify";
-        }
-        templateService.modify(request);
-        redirectAttributes.addFlashAttribute("message", "Template saved");
-        return "redirect:/admin/templates";
-    }
+    TemplateModifyParam map(TemplateModifyRequest source);
 }
 ```
 
 规则：
 
-- 页面方法返回模板名。
-- 数据接口返回 `ResponseEntity<Map<String, Object>>`。
-- 表单模型属性统一命名为 `request`。
-- 不在 Controller 中创建 Entity。
-- 不在 Controller 中拼接 SQL 排序字段。
+- 同名同类型字段交给 MapStruct 自动复制。
+- 需要去除首尾空格的写入字段使用 `@Named(trim)` 等显式转换。
+- 单个 `id` 与批量 `ids` 合并时，过滤空值、去除首尾空格并去重。
+- Entity 回显到 ModifyRequest 时，可以忽略数据库之外的内容字段，再由 Service 从 MinIO 等存储读取。
+- 禁止在 Service 手写重复的 `setXxx`，禁止创建 `toQueryParam`。
+- 映射后若需业务默认值或合法性判断，应处理 Param，不修改 Controller 收到的 Request。
 
-## 7. Service 模板
+## 7. Controller
 
-```java
-package com.eprint.admin.module.template.service;
+Controller 负责路由、参数绑定、`@Valid` 校验、对象映射、页面模型和 HTTP 响应。一个页面调用多个 Service 是允许的。
 
-import com.eprint.admin.module.template.model.PageResult;
-import com.eprint.admin.module.template.model.request.TemplateCreateRequest;
-import com.eprint.admin.module.template.model.request.TemplateModifyRequest;
-import com.eprint.admin.module.template.model.request.TemplateQueryRequest;
-import com.eprint.admin.repository.dao.TemplateDao;
-import com.eprint.admin.repository.model.param.TemplateQueryParam;
-import com.eprint.admin.repository.model.result.TemplateResult;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+Controller 不负责 SQL 排序转换、业务唯一性和关联状态校验，不直接调用 Dao，也不手工复制 Request 字段到 Param。
 
-import java.util.List;
-import java.util.Map;
-
-@Service
-public class TemplateService {
-
-    private final TemplateDao templateDao;
-
-    public TemplateService(TemplateDao templateDao) {
-        this.templateDao = templateDao;
-    }
-
-    public PageResult<TemplateResult> query(TemplateQueryRequest request) {
-        TemplateQueryParam param = new TemplateQueryParam();
-        param.setTemplateTypeId(request.getTemplateTypeId());
-        param.setTemplateCode(request.queryTemplateCode());
-        param.setStatus(request.getStatus());
-        param.setOrderBy(resolveOrderBy(request.getSort()));
-        param.setPage(request.page());
-        param.setPageSize(request.limit());
-        return new PageResult<>(templateDao.query(param), templateDao.count(param));
-    }
-
-    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public void create(TemplateCreateRequest request) {
-        Template template = toEntity(request);
-        templateDao.create(template);
-    }
-
-    @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
-    public void modify(TemplateModifyRequest request) {
-        Template template = toEntity(request);
-        template.setId(request.getId());
-        templateDao.modify(template);
-    }
-
-    private String resolveOrderBy(String sort) {
-        Map<String, String> allowed = Map.of(
-                "templateType", "TT.NAME",
-                "templateCode", "T.CODE",
-                "status", "T.STATUS"
-        );
-        // parse sort and only emit allowed columns
-        return "T.ID DESC";
-    }
-
-    private Template toEntity(TemplateCreateRequest request) {
-        Template template = new Template();
-        template.setTemplateTypeId(request.getTemplateTypeId());
-        template.setTemplateCode(request.getTemplateCode());
-        template.setBucketName(request.getBucketName());
-        template.setObjectName(request.getObjectName());
-        template.setStatus(request.getStatus());
-        return template;
-    }
-}
-```
-
-规则：
-
-- Service 接收 Web Request。
-- Service 转换 Request 到 Entity/Param。
-- Service 负责唯一性校验、关联校验、删除前检查。
-- Service 负责排序白名单。
-- 写操作加事务。
-- 批量操作不绕过业务约束。
-
-## 8. Dao 模板
+简单结果直接返回，不封装一行私有方法：
 
 ```java
-package com.eprint.admin.repository.dao;
-
-import com.eprint.admin.repository.model.entity.Template;
-import com.eprint.admin.repository.model.param.TemplateQueryParam;
-import com.eprint.admin.repository.model.result.TemplateResult;
-import com.niko.boot.dao.BaseDao;
-import jakarta.annotation.Resource;
-import org.apache.ibatis.session.SqlSession;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-
-@Repository(value = "TemplateDao")
-public class TemplateDao extends BaseDao {
-
-    @Resource(name = "sqlSessionTemplateMybatis")
-    private SqlSession sqlSession;
-
-    @Override
-    protected SqlSession getSqlSession() {
-        return sqlSession;
-    }
-
-    @Override
-    protected String getSqlNamespace() {
-        return getClass().getName();
-    }
-
-    public List<TemplateResult> queryByType(String templateTypeId) {
-        return query("queryByType", templateTypeId);
-    }
-}
+return ResponseEntity.ok(Map.of(modified, modified));
 ```
 
-规则：
+只有需要表单回显和返回列表地址的 Controller 才继承 `BaseController`。登录、健康检查、首页等无回显需求的 Controller 不继承。
 
-- Dao 必须继承 `BaseDao`。
-- 必须注入 `@Resource(name = "sqlSessionTemplateMybatis") SqlSession`。
-- 必须覆写 `getSqlSession()`。
-- 必须覆写 `getSqlNamespace()`，返回 `getClass().getName()`。
-- XML namespace 等于 Dao 完整类名。
-- 基础 CRUD 和分页查询必须使用 BaseDao 方法：`create()`、`modify()`、`remove()`、`get()`、`query()`、`count()`。
-- Dao 不直接调用 `sqlSession.selectList()`、`sqlSession.selectOne()`、`sqlSession.insert()`、`sqlSession.update()`、`sqlSession.delete()`。
-- Dao 只为特殊查询增加类型化方法，例如 `queryByType()`、`countTemplates()`。
-- 自定义 Dao 方法的 statement id 必须与方法名一致。
-- 不在 Dao 做业务判断。
+`BaseController` 的返回地址必须限制在当前模块列表路径及其查询串，并拒绝空值、`//`、回车和换行，防止开放重定向和响应头注入。
 
-## 9. Entity、Param 和 Result 模板
+编辑表单的下拉选项应包含当前记录已关联但后来被禁用的选项，避免回显丢失；新增表单通常只展示启用项。
 
-Entity：
+## 8. Service
+
+Service 负责业务默认值与规范化、唯一性与关联关系检查、状态转换、数据存在性检查、写操作事务，以及同一业务流程中的数据库与 MinIO 协调。
+
+强制约束：
+
+- 禁止 Service 调用 Service。
+- 一个 Service 需要跨表检查时，直接注入所需 Dao。
+- 写操作使用项目既有的 `transactionManagerMybatis` 事务配置。
+- 不把 Web Request 下传到 Dao。
+- 不在 Service 解析排序字段或生成 SQL 排序片段。
+- 不为简单默认值和输入约束保留两套重复的 `normalize(CreateRequest)`、`normalize(ModifyRequest)`；优先使用 Bean Validation、MapStruct 转换和 Param 级共用逻辑。
+
+## 9. Dao
+
+Dao 继承项目公共 `BaseDao`，并注入：
 
 ```java
-package com.eprint.admin.repository.model.entity;
-
-import java.io.Serializable;
-
-public class Template implements Serializable {
-    private static final long serialVersionUID = 1L;
-
-    private String id;
-    private String templateTypeId;
-    private String templateCode;
-    private String bucketName;
-    private String objectName;
-    private Integer status;
-
-    // getters and setters
-}
+@Resource(name = sqlSessionTemplateMybatis)
+private SqlSessionTemplate sqlSessionTemplate;
 ```
 
-Result：
+Dao 方法使用明确的业务 Param：
 
 ```java
-package com.eprint.admin.repository.model.result;
-
-import com.eprint.admin.repository.model.entity.Template;
-
-public class TemplateResult extends Template {
-    private static final long serialVersionUID = 1L;
-
-    private String templateType;
-    private String templateTypeName;
-
-    // getters and setters
-}
+public int create(TemplateCreateParam param) { ... }
+public int remove(TemplateRemoveParam param) { ... }
+public int modify(TemplateModifyParam param) { ... }
+public int disable(TemplateDisableParam param) { ... }
+public int enable(TemplateEnableParam param) { ... }
 ```
 
-QueryParam：
+优先复用 `BaseDao`。如果公共删除方法不能接收业务 Param，可直接调用：
 
 ```java
-package com.eprint.admin.repository.model.param;
-
-public class TemplateQueryParam {
-
-    private String templateTypeId;
-    private String templateCode;
-    private Integer status;
-    private String orderBy;
-    private Integer page;
-    private Integer pageSize;
-
-    public int getRowStart() {
-        return (page - 1) * pageSize;
-    }
-
-    public int getRowEnd() {
-        return page * pageSize;
-    }
-
-    // getters and setters
-}
+return getSqlSession().delete(getStatementName(remove), param);
 ```
 
-规则：
+Dao 不做业务判断、不调用其他 Dao、不拼接 SQL。
 
-- Entity 字段使用 Java 小驼峰，只包含表内字段。
-- Result 字段使用 Java 小驼峰，用于承载查询返回值和关联展示字段。
-- 单表查询 Result 继承 Entity；多表或复杂查询 Result 可独立实现 `Serializable`。
-- QueryParam 只服务 MyBatis 查询。
-- QueryParam 不使用 Web 层命名，例如 `offset`、`limit`；统一转换为 `page`、`pageSize`、`rowStart`、`rowEnd`。
+## 10. MyBatis Mapper XML
 
-## 10. MyBatis XML 模板
+### 10.1 查询条件
 
-位置：
+查询条件片段统一命名为 `where`，查询和计数复用同一片段。动态条件使用 `<where>`、`<if>` 和参数绑定，不重复维护 count 条件。
+
+### 10.2 排序
+
+排序片段统一命名为 `order`。排序白名单必须在 XML 中完成，不能在 Service 使用 `SortSupport.resolve`。
+
+参照 `Template.xml`、`TemplateType.xml` 的当前实现：对 `sort.split(',', -1)` 使用 `<foreach>`，每项通过 `<choose>` 映射到写死的列名和方向，并限制可处理的排序项数量。
+
+排序必须满足：
+
+- 禁止直接使用用户输入替换排序字段。
+- 无排序或非法排序时使用稳定的主键兜底。
+- 多字段排序最后追加主键，保证分页稳定。
+- 排序列、升降序和表达式都必须来自 XML 白名单。
+
+### 10.3 写操作和批量操作
+
+- `parameterType` 使用对应的 `*CreateParam`、`*RemoveParam`、`*ModifyParam`、`*DisableParam`、`*EnableParam`。
+- 批量操作遍历 `ids`，不要遍历隐式的 `array`。
+- SQL 的 `id` 与 Controller、Service、Dao 方法名一致。
+- 参数值一律使用 `#{...}` 绑定。
+
+### 10.4 Oracle 分页
+
+沿用项目现有 `ROW_NUMBER()` 分页结构，查询数据和统计总数复用 `where`。排序先通过 `order` 白名单生成，再参与行号计算。
+
+## 11. 路由与页面
+
+后台资源通常采用：
 
 ```text
-e-print-admin/src/main/java/com/eprint/admin/repository/mapper/{Module}.xml
+GET  /admin/<resources>
+GET  /admin/<resources>/create
+POST /admin/<resources>/create
+POST /admin/<resources>/remove
+GET  /admin/<resources>/modify
+POST /admin/<resources>/modify
+POST /admin/<resources>/disable
+POST /admin/<resources>/enable
+POST /admin/<resources>/query
+GET  /admin/<resources>/preview
 ```
 
-模板：
+页面规则：
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.eprint.admin.repository.dao.TemplateDao">
+- 复用现有布局、菜单和 `admin.css`，不另建重复样式体系。
+- 列表页沿用 Bootstrap Table 的分页、搜索、排序和批量操作模式。
+- 表单错误时保留用户输入、选项数据和安全的 `returnUrl`。
+- 成功后返回规范化后的列表地址，取消按钮也使用安全地址。
+- 删除、启用、禁用等危险操作延续现有确认交互。
+- 所有用户可见文案使用中文。
 
-    <resultMap type="com.eprint.admin.repository.model.result.TemplateResult" id="templateResult">
-        <result property="id" column="ID"/>
-        <result property="templateTypeId" column="TEMPLATE_TYPE_ID"/>
-        <result property="templateType" column="TEMPLATE_TYPE"/>
-        <result property="templateTypeName" column="TEMPLATE_TYPE_NAME"/>
-        <result property="templateCode" column="CODE"/>
-        <result property="bucketName" column="BUCKET_NAME"/>
-        <result property="objectName" column="OBJECT_NAME"/>
-        <result property="status" column="STATUS"/>
-    </resultMap>
+## 12. 首页和错误页
 
-    <select id="query"
-            parameterType="com.eprint.admin.repository.model.param.TemplateQueryParam"
-            resultMap="templateResult">
-        SELECT
-            ID,
-            TEMPLATE_TYPE_ID,
-            TEMPLATE_TYPE,
-            TEMPLATE_TYPE_NAME,
-            CODE,
-            BUCKET_NAME,
-            OBJECT_NAME,
-            STATUS
-        FROM (
-            SELECT
-                T.ID,
-                T.TEMPLATE_TYPE_ID,
-                TT.CODE AS TEMPLATE_TYPE,
-                TT.NAME AS TEMPLATE_TYPE_NAME,
-                T.CODE,
-                T.BUCKET_NAME,
-                T.OBJECT_NAME,
-                T.STATUS,
-                ROW_NUMBER() OVER (
-                    ORDER BY
-                    <choose>
-                        <when test="orderBy != null and orderBy != ''">${orderBy}</when>
-                        <otherwise>T.ID DESC</otherwise>
-                    </choose>
-                ) RN
-            FROM E_PRINT_TEMPLATE T
-            LEFT JOIN E_PRINT_TEMPLATE_TYPE TT ON TT.ID = T.TEMPLATE_TYPE_ID
-            WHERE 1 = 1
-            <if test="templateTypeId != null and templateTypeId != ''">
-                AND T.TEMPLATE_TYPE_ID = #{templateTypeId}
-            </if>
-            <if test="templateCode != null and templateCode != ''">
-                AND LOWER(T.CODE) LIKE '%' || LOWER(#{templateCode}) || '%'
-            </if>
-            <if test="status != null">
-                AND T.STATUS = #{status}
-            </if>
-        )
-        WHERE RN &gt; #{rowStart}
-          AND RN &lt;= #{rowEnd}
-        ORDER BY RN
-    </select>
+- 后台首页路由为 `/admin`，根路径和登录成功后的默认地址跳转到 `/admin`。
+- 首页只展示快捷入口，不为装饰性统计查询 Service 或数据库。
+- 导航菜单显示“首页”。
+- 错误页至少覆盖 400、403、404、500 和通用错误模板，并复用公共结构。
 
-    <select id="count"
-            parameterType="com.eprint.admin.repository.model.param.TemplateQueryParam"
-            resultType="int">
-        SELECT COUNT(1)
-        FROM E_PRINT_TEMPLATE T
-        WHERE 1 = 1
-        <if test="templateTypeId != null and templateTypeId != ''">
-            AND T.TEMPLATE_TYPE_ID = #{templateTypeId}
-        </if>
-        <if test="templateCode != null and templateCode != ''">
-            AND LOWER(T.CODE) LIKE '%' || LOWER(#{templateCode}) || '%'
-        </if>
-        <if test="status != null">
-            AND T.STATUS = #{status}
-        </if>
-    </select>
+Spring Boot 4 错误页配置使用：
 
-    <insert id="create" parameterType="com.eprint.admin.repository.model.entity.Template">
-        INSERT INTO E_PRINT_TEMPLATE (
-            ID,
-            TEMPLATE_TYPE_ID,
-            CODE,
-            BUCKET_NAME,
-            OBJECT_NAME,
-            STATUS
-        ) VALUES (
-            SEQ_E_PRINT_TEMPLATE.NEXTVAL,
-            #{templateTypeId},
-            #{templateCode},
-            #{bucketName},
-            #{objectName},
-            #{status}
-        )
-    </insert>
-
-    <update id="modify" parameterType="com.eprint.admin.repository.model.entity.Template">
-        UPDATE E_PRINT_TEMPLATE
-        SET
-            TEMPLATE_TYPE_ID = #{templateTypeId},
-            CODE = #{templateCode},
-            BUCKET_NAME = #{bucketName},
-            OBJECT_NAME = #{objectName},
-            STATUS = #{status}
-        WHERE ID = #{id}
-    </update>
-
-    <delete id="remove">
-        DELETE FROM E_PRINT_TEMPLATE
-        WHERE ID IN
-        <foreach collection="array" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
-    </delete>
-
-</mapper>
+```yaml
+spring:
+  web:
+    error:
+      whitelabel:
+        enabled: false
+      include-message: never
+      include-stacktrace: never
 ```
 
-规则：
+不要继续使用已弃用的 `server.error` 下相关配置。
 
-- 普通参数只使用 `#{}`。
-- `${orderBy}` 只允许接收 Service 白名单生成值。
-- `query` 和 `count` 查询条件必须一致。
-- 所有关联字段必须显式别名。
-- `resultMap` 必须显式映射。
-- `INSERT` 使用 `SEQ_{TABLE}.NEXTVAL`。
+## 13. Oracle 约束
 
-## 11. 数据库模板
+- 使用 Oracle 兼容语法与函数，避免 MySQL 或 PostgreSQL 专用语法。
+- 分页和排序必须稳定。
+- 字符串搜索、空值处理、时间函数和批量语句参照仓库已有 Mapper。
+- 数据库字段名与别名保持大写下划线风格，Java 属性保持小驼峰。
 
-表字段：
+## 14. 检查清单
 
-- 主键：`ID`
-- 编码：`CODE`
-- 名称：`NAME`
-- 状态：`STATUS`
-- 排序：`SORT_NO`
-- 外键：`{REFERENCED_TABLE_NAME}_ID` 或业务上更清晰的 `{DOMAIN}_ID`
+### 分层和模型
 
-约束和索引命名：
+- [ ] Request 没有直接进入 Dao 或 XML，Entity 没有直接作为 Controller 写接口入参。
+- [ ] Controller、Service、Dao、XML 方法名尽量一致且排列一致。
+- [ ] Service 没有调用其他 Service，业务校验位于 Service。
+- [ ] 同名字段使用 MapStruct，没有手写重复转换或 `toQueryParam`。
+- [ ] 新增、修改 Param 按需继承 Entity；批量 Param 继承 `IdsParam`。
+- [ ] 分页统一使用 `PageRequest`、`PageParam`、`PageResult`。
 
-- 主键：`PK_{TABLE}_00`
-- 唯一索引：`UK_{TABLE}_00`
-- 普通索引：`IDX_{TABLE}_00`
-- 外键：`FK_{TABLE}_00`
-- 序列：`SEQ_{TABLE}`
+### SQL 和页面
 
-规则：
+- [ ] 查询片段名为 `where`，排序片段名为 `order`。
+- [ ] 排序白名单位于 XML，且没有直接字符串拼接排序字段。
+- [ ] 非法排序和无排序都有稳定主键兜底，查询与计数复用过滤条件。
+- [ ] 只有需要回显的 Controller 继承 `BaseController`，`returnUrl` 已限制路径。
+- [ ] 简单 JSON 响应没有无意义的私有包装方法。
+- [ ] 首页只保留快捷入口，错误页使用当前 Spring Boot 配置。
 
-- 后缀使用双数字，从 `00` 开始。
-- `SEQ_*` 不加数字后缀。
-- Oracle 标识符控制在 30 字符以内。
-- 表名、字段名、索引名、约束名统一大写。
+### 验证
 
-## 12. Thymeleaf 页面模板
-
-每个页面独立文件：
-
-```text
-templates/{module}/query.html
-templates/{module}/create.html
-templates/{module}/modify.html
-templates/{module}/preview.html
-```
-
-列表页标准：
-
-- 页面标题、导航名称、列表标题一致。
-- 查询区在表格上方。
-- Bootstrap Table 开启分页、固定表头/列、多列排序。
-- 批量按钮和新增按钮放在表格抬头按钮区。
-- 新增按钮在最右侧。
-- 表格数据接口返回 `{ total, rows }`。
-- 表格列默认不换行。
-- 长文本使用省略、tooltip 或横向滚动。
-- 选中行和固定列选中样式保持一致。
-
-表单页标准：
-
-- `create.html` 只服务新增。
-- `modify.html` 只服务编辑。
-- 模型属性统一 `request`。
-- 表单 action 分别指向 `/create`、`/modify`。
-- 单表单页面居中，宽度受控。
-- 按钮区包含保存、返回。
-
-## 13. 生成检查清单
-
-生成或重构模块时按顺序完成：
-
-1. Controller。
-2. Request。
-3. Service。
-4. Entity。
-5. QueryParam。
-6. Dao。
-7. Mapper XML。
-8. Thymeleaf 页面。
-9. 静态 JS/CSS。
-10. Oracle DDL/DML。
-11. README 或模块说明。
-
-验证：
-
-- 改动 JS：运行 `node --check`。
-- 改动 Java：运行 `mvn -DskipTests compile`，必须使用 JDK 21。
-- 改动 skill：运行 skill `quick_validate.py`。
+- [ ] Java/XML 变更已编译；MapStruct 变化已按需 clean compile。
+- [ ] 模板、脚本和路由引用已检查。
+- [ ] `git diff --check` 通过。
+- [ ] 技能规则变更已通过 `quick_validate.py`。

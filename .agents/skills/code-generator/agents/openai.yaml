@@ -1,4 +1,4 @@
 interface:
-  display_name: "e-print-admin Code Generator"
-  short_description: "Generate e-print-admin code with project conventions."
-  default_prompt: "Use $code-generator to add or modify an e-print-admin CRUD module."
+  display_name: e-print-admin 代码生成器
+  short_description: 按项目现有规范生成和重构后台代码
+  default_prompt: 使用 $code-generator 按当前项目风格新增或修改 e-print-admin 模块。

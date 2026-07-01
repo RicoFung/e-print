@@ -1,72 +1,41 @@
 ---
 name: code-generator
-description: Generate or refactor e-print-admin module code using this project's Spring MVC, Thymeleaf, MyBatis, Oracle, Bootstrap Table, layered module/repository structure, route/template naming, Request DTO, and admin UI conventions. Use when adding or modifying e-print-admin CRUD pages, Controller/Service/Dao/Mapper/Request classes, Thymeleaf pages, template/type management flows, or code-generator rules for the e-print-admin project.
+description: 按 e-print-admin 当前项目风格生成或重构代码。用于新增或修改后台模块、Controller、Service、MapStruct ModelMapper、Request、Param、Entity、Result、Dao、MyBatis XML、Thymeleaf 页面、首页、错误页、分页排序和批量操作；也用于维护本技能规则。
 ---
 
-# e-print Code Generator
+# e-print-admin 代码生成器
 
-## Overview
+依据仓库中的现有实现生成或重构 `e-print-admin` 代码。仓库代码是事实来源；规范与代码冲突时，先核对相邻模块及近期变更，再按用户目标处理。
 
-Use this skill when generating or refactoring `e-print-admin` backend page code. It enforces project-specific conventions for layered code structure, Controller routes, method names, request DTOs, Thymeleaf page names, service boundaries, Dao/MyBatis usage, Oracle SQL, Bootstrap Table behavior, and validation.
+## 使用步骤
 
-Currently, this skill only contains `e-print-admin` rules. Reserve this skill package for future `e-print-server` generation rules, but do not apply server-side conventions until a dedicated server reference is added.
+1. 阅读 [references/code-template.md](references/code-template.md)。
+2. 检查目标模块及相邻模块，确认当前包结构、方法命名、路由、SQL 和页面写法。
+3. 先确定本次变更涉及的分层文件，避免跨层复用不合适的模型。
+4. 按 `Request → ModelMapper → Param → Service → Dao → XML` 实现数据流。
+5. 同步修改 Java、Mapper XML、Thymeleaf、配置和测试中受影响的引用。
+6. 执行与风险相称的编译、静态检查和页面验证。
 
-## Required Context
+## 强制规则
 
-Before changing code, read the project convention document:
+- Controller、Service、Dao 的业务方法尽量同名，统一按 `create → remove → modify → disable → enable → query → get/preview` 排列。
+- Web 入参使用 `*Request`，持久层入参使用 `*Param`；禁止把 Request 直接传给 Dao 或 Mapper XML。
+- 使用模块内 MapStruct `ModelMapper.INSTANCE.map(...)` 完成同名字段复制；禁止手写重复字段转换和 `toQueryParam` 一类方法。
+- Service 可以依赖多个 Dao，但禁止 Service 调用 Service。
+- 新增、修改 Param 默认继承 Entity；批量删除、启用、禁用 Param 默认继承 `IdsParam`。
+- 分页请求、参数、结果统一使用 `common.model.page` 下的 `PageRequest`、`PageParam`、`PageResult`。
+- 排序字段统一命名为 `sort`，排序白名单必须在 Mapper XML 的 `<sql id=order>` 中实现；禁止使用 `${sort}` 或其他用户输入的 SQL 字符串拼接。
+- Mapper XML 的查询条件片段命名为 `where`，排序片段命名为 `order`。
+- Controller 直接返回 `ResponseEntity.ok(Map.of(...))`；不要为一行返回值封装无意义的私有方法。
+- 只有需要表单回显和安全返回地址的 Controller 才继承 `BaseController`。
+- 业务校验、关联检查和唯一性检查放在 Service；Dao 与 Mapper XML 只负责持久化。
+- 不新增 Manager 层，不在 Service 中保留排序 SQL 转换逻辑。
+- 页面文案使用中文；Java 类型名、方法名、字段名保持英文。
+- 除非用户明确要求维护本技能，否则不要修改 `.agents/skills/code-generator`。
 
-```text
-references/code-template.md
-```
+## 验证要求
 
-This reference is bundled with the skill under `.agents/skills/code-generator/references`.
-
-## Core Rules
-
-- Keep request path, Controller method name, and Thymeleaf template file name aligned:
-  - `/` query page -> `query()` -> `query.html`
-  - `/query` table data -> `query()` -> JSON `{ total, rows }`
-  - `/create` -> `create()` -> `create.html`
-  - `/modify` -> `modify()` -> `modify.html`
-  - `/preview` -> `preview()` -> `preview.html`
-- Model each request independently with `{Module}{Action}Request`.
-- Keep admin page modules under `module/{domain}` and persistence under the shared `repository` package.
-- Use Spring MVC `@Controller` for pages; do not generate REST-only controllers for admin pages.
-- Do not reuse a create request as a modify request, a query request as a remove request, or a web Request as a MyBatis parameter object.
-- Do not use `Admin` in Controller or Service class names.
-- Keep Controller thin; put validation, transactions, relation checks, and sorting whitelist logic in Service.
-- Keep Dao based on `BaseDao`, with explicit `SqlSession` injection and MyBatis XML mapper namespaces.
-- Keep external API semantics separate from admin UI semantics. For templates, external `templateType` means `E_PRINT_TEMPLATE_TYPE.CODE`; admin forms use `templateTypeId`.
-
-## Workflow
-
-1. Inspect existing module files before generating code.
-2. Identify the module root path and actions.
-3. Create or update action-specific Request classes under `model/request`.
-4. Align Controller paths, method names, model attributes, redirects, and view names with the clean convention.
-5. Align templates and links with the new paths.
-6. Update Service signatures and conversions to accept the new request objects.
-7. Keep MyBatis SQL parameter objects in `repository/model/param` separate from web requests.
-8. Update Dao and Mapper XML together; namespace must match the Dao class name.
-9. Update JS endpoint paths and README entries when routes change.
-10. Validate with `node --check` for changed JS and `mvn -DskipTests compile` when JDK 21 is available.
-
-## Repository Patterns
-
-Use these directories:
-
-```text
-e-print-admin/src/main/java/com/eprint/admin/module/{module}/controller
-e-print-admin/src/main/java/com/eprint/admin/module/{module}/service
-e-print-admin/src/main/java/com/eprint/admin/module/{module}/model/request
-e-print-admin/src/main/java/com/eprint/admin/repository/dao
-e-print-admin/src/main/java/com/eprint/admin/repository/mapper
-e-print-admin/src/main/java/com/eprint/admin/repository/model/entity
-e-print-admin/src/main/java/com/eprint/admin/repository/model/param
-e-print-admin/src/main/java/com/eprint/admin/repository/model/result
-e-print-admin/src/main/resources/templates/{module}
-e-print-admin/src/main/resources/static/js
-e-print-admin/src/main/resources/static/css
-```
-
-Prefer the current codebase's Bootstrap Table, SweetAlert, AdminLTE, MyBatis DAO, and Oracle pagination patterns over introducing new frameworks.
+- Java 或 XML 变更：至少执行模块编译；MapStruct 映射变化优先执行 clean compile。
+- 页面或脚本变更：检查模板引用和 JavaScript 语法；条件允许时运行页面验证。
+- 技能自身变更：运行 `skill-creator/scripts/quick_validate.py`。
+- 提交结果前执行 `git diff --check`，并确认没有误改用户已有内容。
