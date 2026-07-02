@@ -23,7 +23,7 @@
             document.documentElement.style.colorScheme = resolvedTheme;
         })();
     </script>
-    <title th:text="${title} + ' - e-print-admin'">e-print-admin</title>
+    <title th:text="${title} + ' - E-PRINT-ADMIN'">E-PRINT-ADMIN</title>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/vendor/adminlte/css/adminlte.min.css}">
     <link rel="stylesheet" th:href="@{/vendor/bootstrap-table/bootstrap-table.min.css}">
@@ -49,6 +49,23 @@
         <symbol id="admin-icon-check" viewBox="0 0 24 24">
             <path d="m5 12 4 4 10-10"></path>
         </symbol>
+        <symbol id="admin-icon-home" viewBox="0 0 24 24">
+            <path d="m3 11 9-8 9 8"></path>
+            <path d="M5 10v11h14V10"></path>
+            <path d="M9 21v-7h6v7"></path>
+        </symbol>
+        <symbol id="admin-icon-template-type" viewBox="0 0 24 24">
+            <path d="M4 5h16"></path>
+            <path d="M4 12h16"></path>
+            <path d="M4 19h16"></path>
+            <path d="M8 5v14"></path>
+        </symbol>
+        <symbol id="admin-icon-template" viewBox="0 0 24 24">
+            <path d="M6 3h8l4 4v14H6Z"></path>
+            <path d="M14 3v5h5"></path>
+            <path d="M9 12h6"></path>
+            <path d="M9 16h6"></path>
+        </symbol>
     </svg>
     <nav class="app-header navbar navbar-expand bg-body border-bottom">
         <div class="container-fluid">
@@ -58,11 +75,8 @@
                         <span class="navbar-toggler-icon"></span>
                     </a>
                 </li>
-                <li class="nav-item d-none d-md-block">
-                    <span class="nav-link admin-section-title">打印模板运营</span>
-                </li>
             </ul>
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav ms-auto admin-top-actions">
                 <li class="nav-item dropdown">
                     <button class="nav-link btn btn-link admin-theme-toggle"
                             id="bd-theme"
@@ -124,29 +138,59 @@
                         </li>
                     </ul>
                 </li>
-                <li class="nav-item">
-                    <form th:action="@{/logout}" method="post">
-                        <button class="btn btn-outline-secondary btn-sm" type="submit">退出</button>
+                <li class="nav-item d-flex align-items-center">
+                    <form class="admin-logout-form" th:action="@{/logout}" method="post">
+                        <button class="btn btn-outline-secondary admin-logout-button" type="submit">退出</button>
                     </form>
                 </li>
             </ul>
         </div>
     </nav>
 
-    <aside class="app-sidebar admin-sidebar shadow" data-bs-theme="dark">
+    <aside class="app-sidebar admin-sidebar">
         <div class="sidebar-brand">
-            <a class="brand-link" th:href="@{/admin/templates}">
-                <span class="brand-mark">EP</span>
-                <span class="brand-text fw-semibold">e-print-admin</span>
+            <a class="brand-link" th:href="@{/admin}">
+                <img class="brand-mark" th:src="@{/img/e-print-logo.svg}" alt="" width="38" height="38">
+                <span class="brand-text fw-semibold">E-PRINT-ADMIN</span>
             </a>
         </div>
         <div class="sidebar-wrapper">
             <nav class="mt-2">
                 <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" data-accordion="false">
-                    <li class="nav-header">运营</li>
+                    <li class="nav-header"></li>
                     <li class="nav-item">
-                        <a class="nav-link active" th:href="@{/admin/templates}">
-                            <span class="nav-icon admin-nav-icon">T</span>
+                        <a class="nav-link"
+                            th:classappend="${(currentRequestUri == '/admin' or currentRequestUri == '/admin/') ? ' active' : ''}"
+                            title="首页"
+                            aria-label="首页"
+                            th:href="@{/admin}">
+                            <span class="nav-icon admin-nav-icon" aria-hidden="true">
+                                <svg><use href="#admin-icon-home"></use></svg>
+                            </span>
+                            <p>首页</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link"
+                            th:classappend="${(currentRequestUri == '/admin/template-types' or #strings.startsWith(currentRequestUri, '/admin/template-types/')) ? ' active' : ''}"
+                            title="类型管理"
+                            aria-label="类型管理"
+                            th:href="@{/admin/template-types}">
+                            <span class="nav-icon admin-nav-icon" aria-hidden="true">
+                                <svg><use href="#admin-icon-template-type"></use></svg>
+                            </span>
+                            <p>类型管理</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link"
+                            th:classappend="${(currentRequestUri == '/admin/templates' or #strings.startsWith(currentRequestUri, '/admin/templates/')) ? ' active' : ''}"
+                            title="模板管理"
+                            aria-label="模板管理"
+                            th:href="@{/admin/templates}">
+                            <span class="nav-icon admin-nav-icon" aria-hidden="true">
+                                <svg><use href="#admin-icon-template"></use></svg>
+                            </span>
                             <p>模板管理</p>
                         </a>
                     </li>

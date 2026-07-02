@@ -1,69 +1,55 @@
 package com.eprint.admin.repository.dao;
 
 import com.eprint.admin.repository.model.entity.Template;
-import com.eprint.admin.repository.model.param.TemplateQueryParam;
+import com.eprint.admin.repository.model.param.TemplateCreateParam;
+import com.eprint.admin.repository.model.param.TemplateDisableParam;
+import com.eprint.admin.repository.model.param.TemplateEnableParam;
+import com.eprint.admin.repository.model.param.TemplateModifyParam;
+import com.eprint.admin.repository.model.param.TemplateRemoveParam;
+import com.niko.boot.dao.BaseDao;
 import jakarta.annotation.Resource;
 import org.apache.ibatis.session.SqlSession;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Map;
 
 @Repository(value = "TemplateDao")
-public class TemplateDao {
-
-    private static final String NAMESPACE = TemplateDao.class.getName();
+public class TemplateDao extends BaseDao {
 
     @Resource(name = "sqlSessionTemplateMybatis")
     private SqlSession sqlSession;
 
-    public List<Template> list(TemplateQueryParam param) {
-        return sqlSession.selectList(statement("list"), param);
+    @Override
+    protected SqlSession getSqlSession() {
+        return sqlSession;
     }
 
-    public int count(TemplateQueryParam param) {
-        Integer count = sqlSession.selectOne(statement("count"), param);
-        return count == null ? 0 : count;
+    @Override
+    protected String getSqlNamespace() {
+        return getClass().getName();
     }
 
-    public Template getById(String id) {
-        return sqlSession.selectOne(statement("getById"), id);
+    public int create(TemplateCreateParam param) {
+        return create("create", param);
     }
 
-    public Template getByTemplateTypeAndCode(String templateType, String templateCode) {
-        return sqlSession.selectOne(statement("getByTemplateTypeAndCode"),
-                Map.of("templateType", templateType, "templateCode", templateCode));
+    public int remove(TemplateRemoveParam param) {
+        return getSqlSession().delete(getStatementName("remove"), param);
     }
 
-    public int insert(Template template) {
-        return sqlSession.insert(statement("insert"), template);
+    public int modify(TemplateModifyParam param) {
+        return modify("modify", param);
     }
 
-    public int update(Template template) {
-        return sqlSession.update(statement("update"), template);
+    public int disable(TemplateDisableParam param) {
+        return modify("disable", param);
     }
 
-    public int disable(String id) {
-        return sqlSession.update(statement("disable"), id);
+    public int enable(TemplateEnableParam param) {
+        return modify("enable", param);
     }
 
-    public int enable(String id) {
-        return sqlSession.update(statement("enable"), id);
-    }
-
-    public int updateStatusByIds(List<String> ids, Integer status) {
-        return sqlSession.update(statement("updateStatusByIds"), Map.of("ids", ids, "status", status));
-    }
-
-    public int deleteById(String id) {
-        return sqlSession.delete(statement("deleteById"), id);
-    }
-
-    public int deleteByIds(List<String> ids) {
-        return sqlSession.delete(statement("deleteByIds"), ids);
-    }
-
-    private String statement(String id) {
-        return NAMESPACE + "." + id;
+    public Template getByTemplateTypeIdAndCode(String templateTypeId, String templateCode) {
+        return get("getByTemplateTypeIdAndCode", Map.of("templateTypeId", templateTypeId, "templateCode", templateCode));
     }
 }

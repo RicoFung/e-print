@@ -22,6 +22,41 @@
     }).then((result) => result.isConfirmed);
   }
 
+  function alertAction(message, options = {}) {
+    if (!window.Swal) {
+      window.alert(message || '操作失败，请稍后重试');
+      return Promise.resolve();
+    }
+
+    return window.Swal.fire({
+      title: options.title || '操作失败',
+      text: message || '操作失败，请稍后重试',
+      icon: options.icon || 'error',
+      confirmButtonText: options.okText || '确认',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'admin-swal',
+        confirmButton: 'btn btn-primary'
+      }
+    });
+  }
+
+  function syncSelectedTableRows($table, tableWrap, selectedIds) {
+    if (!tableWrap) {
+      return;
+    }
+    const selectedIdSet = new Set((selectedIds || []).map((id) => String(id)));
+    const selectedIndexes = new Set();
+    ($table.bootstrapTable('getData') || []).forEach((row, index) => {
+      if (row && selectedIdSet.has(String(row.id))) {
+        selectedIndexes.add(String(index));
+      }
+    });
+    tableWrap.querySelectorAll('tbody tr[data-index]').forEach((row) => {
+      row.classList.toggle('admin-row-selected', selectedIndexes.has(row.getAttribute('data-index')));
+    });
+  }
+
   document.addEventListener('submit', async (event) => {
     const form = event.target.closest('form[data-confirm]');
     if (!form) {
@@ -59,7 +94,8 @@
         return;
       }
       const prefix = templateCode.getAttribute('data-object-prefix') || 'templates/print';
-      const type = templateType ? templateType.value.trim() : '';
+      const selectedType = templateType ? templateType.options[templateType.selectedIndex] : null;
+      const type = selectedType ? (selectedType.dataset.templateTypeCode || '').trim() : '';
       objectName.value = type ? `${prefix}/${type}/${code}.html` : `${prefix}/${code}.html`;
     });
   }
@@ -100,6 +136,9 @@
     }
     const body = new URLSearchParams();
     body.set('sampleData', sampleData.value);
+    if (previewRequest.id) {
+      body.set('id', previewRequest.id);
+    }
     if (previewRequest.contentProvider) {
       body.set('content', previewRequest.contentProvider());
     }
@@ -167,7 +206,8 @@
     }
     const id = encodeURIComponent(button.getAttribute('data-template-preview-id'));
     openPreview({
-      url: `/admin/templates/${id}/preview/render`,
+      url: '/admin/templates/preview/render',
+      id,
       subtitle: button.getAttribute('data-template-preview-name') || '已保存模板'
     });
   });
@@ -188,8 +228,8 @@
     const resetFilter = document.getElementById('resetTemplateFilter');
     const bulkDisable = document.getElementById('disableSelectedTemplates');
     const bulkEnable = document.getElementById('enableSelectedTemplates');
-    const bulkDelete = document.getElementById('deleteSelectedTemplates');
-    const bulkButtons = [bulkDisable, bulkEnable, bulkDelete].filter(Boolean);
+    const bulkRemove = document.getElementById('removeSelectedTemplates');
+    const bulkButtons = [bulkDisable, bulkEnable, bulkRemove].filter(Boolean);
     const selectionSummary = document.getElementById('templateSelectionSummary');
     const templateTypeFilter = document.getElementById('templateTypeFilter');
     const templateCodeFilter = document.getElementById('templateCodeFilter');
@@ -301,12 +341,12 @@
 
     const currentListUrl = (pageNumber, pageSize) => {
       const params = new URLSearchParams();
-      const templateType = templateTypeFilter ? templateTypeFilter.value : '';
+      const templateTypeId = templateTypeFilter ? templateTypeFilter.value : '';
       const templateCode = templateCodeFilter ? templateCodeFilter.value.trim() : '';
       const status = statusFilter ? statusFilter.value : '';
       const sort = encodeSortState();
-      if (templateType) {
-        params.set('templateType', templateType);
+      if (templateTypeId) {
+        params.set('templateTypeId', templateTypeId);
       }
       if (templateCode) {
         params.set('templateCode', templateCode);
@@ -328,11 +368,11 @@
       window.templateListReturnUrl = returnUrl;
       window.history.replaceState(null, '', returnUrl);
       if (createTemplateLink) {
-        createTemplateLink.href = `/admin/templates/new?returnUrl=${encodeURIComponent(returnUrl)}`;
+        createTemplateLink.href = `/admin/templates/create?returnUrl=${encodeURIComponent(returnUrl)}`;
       }
       document.querySelectorAll('[data-template-edit-id]').forEach((link) => {
         const id = encodeURIComponent(link.getAttribute('data-template-edit-id'));
-        link.href = `/admin/templates/${id}/edit?returnUrl=${encodeURIComponent(returnUrl)}`;
+        link.href = `/admin/templates/modify?id=${id}&returnUrl=${encodeURIComponent(returnUrl)}`;
       });
     };
 
@@ -341,7 +381,9 @@
       .filter((id) => id != null);
 
     const syncBulkState = () => {
-      const count = getSelectedIds().length;
+      const selectedIds = getSelectedIds();
+      const count = selectedIds.length;
+      syncSelectedTableRows($table, tableWrap, selectedIds);
       if (selectionSummary) {
         selectionSummary.textContent = count > 0 ? `已选择 ${count} 项` : '未选择';
       }
@@ -354,8 +396,8 @@
       if (bulkEnable) {
         bulkEnable.textContent = '批量启用';
       }
-      if (bulkDelete) {
-        bulkDelete.textContent = '批量删除';
+      if (bulkRemove) {
+        bulkRemove.textContent = '批量删除';
       }
     };
 
@@ -430,7 +472,7 @@
           limit: params.limit,
           offset: params.offset,
           search: '',
-          templateType: templateTypeFilter ? templateTypeFilter.value : '',
+          templateTypeId: templateTypeFilter ? templateTypeFilter.value : '',
           templateCode: templateCodeFilter ? templateCodeFilter.value.trim() : '',
           status: statusFilter ? statusFilter.value : '',
           sort: encodeSortState()
@@ -452,7 +494,7 @@
       }
     });
 
-    $table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table load-success.bs.table post-body.bs.table', syncBulkState);
+    $table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table load-success.bs.table post-body.bs.table reset-view.bs.table', syncBulkState);
     $table.on('load-success.bs.table page-change.bs.table', syncListUrl);
     $table.on('post-header.bs.table post-body.bs.table reset-view.bs.table load-success.bs.table', syncSortHeaders);
 
@@ -514,9 +556,9 @@
       }));
     }
 
-    if (bulkDelete) {
-      bulkDelete.addEventListener('click', () => runBulkAction({
-        url: '/admin/templates/delete',
+    if (bulkRemove) {
+      bulkRemove.addEventListener('click', () => runBulkAction({
+        url: '/admin/templates/remove',
         title: '批量删除',
         okText: '删除',
         okClass: 'btn-danger',
@@ -531,6 +573,362 @@
     if (window.ResizeObserver) {
       const tableWrapObserver = new ResizeObserver(resizeTable);
       tableWrapObserver.observe(templateTable.closest('.list-table-wrap'));
+    }
+    setTimeout(syncSortHeaders, 0);
+    setTimeout(resizeTable, 0);
+  }
+
+  const templateTypeTable = document.getElementById('templateTypeTable');
+  if (templateTypeTable && window.jQuery && typeof window.jQuery.fn.bootstrapTable === 'function') {
+    const $typeTable = window.jQuery(templateTypeTable);
+    const filterForm = document.getElementById('templateTypeFilterForm');
+    const resetFilter = document.getElementById('resetTemplateTypeFilter');
+    const bulkDisable = document.getElementById('disableSelectedTemplateTypes');
+    const bulkEnable = document.getElementById('enableSelectedTemplateTypes');
+    const bulkButtons = [bulkDisable, bulkEnable].filter(Boolean);
+    const selectionSummary = document.getElementById('templateTypeSelectionSummary');
+    const keywordFilter = document.getElementById('keyword');
+    const statusFilter = document.getElementById('status');
+    const createTemplateTypeLink = document.getElementById('createTemplateTypeLink');
+    const initialPage = Math.max(1, Number(templateTypeTable.dataset.initialPage) || 1);
+    const initialPageSize = Math.max(1, Number(templateTypeTable.dataset.initialPageSize) || 10);
+    const tableWrap = templateTypeTable.closest('.list-table-wrap');
+    const sortableFields = new Set(['code', 'name', 'sortNo', 'status']);
+
+    const parseSortState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const seenFields = new Set();
+      return (params.get('sort') || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => {
+          const separatorIndex = item.lastIndexOf('.');
+          if (separatorIndex <= 0 || separatorIndex >= item.length - 1) {
+            return null;
+          }
+          return {
+            field: item.slice(0, separatorIndex),
+            order: item.slice(separatorIndex + 1).toLowerCase()
+          };
+        })
+        .filter((item) => item
+          && sortableFields.has(item.field)
+          && (item.order === 'asc' || item.order === 'desc')
+          && !seenFields.has(item.field)
+          && seenFields.add(item.field));
+    };
+    let sortState = parseSortState();
+
+    const encodeSortState = () => sortState
+      .map((item) => `${item.field}.${item.order}`)
+      .join(',');
+
+    const nextSortOrder = (field) => {
+      const current = sortState.find((item) => item.field === field);
+      if (!current) {
+        return 'asc';
+      }
+      return current.order === 'asc' ? 'desc' : '';
+    };
+
+    const syncSortHeaders = () => {
+      if (!tableWrap) {
+        return;
+      }
+      tableWrap.querySelectorAll('th[data-field]').forEach((header) => {
+        const field = header.getAttribute('data-field');
+        const inner = header.querySelector('.th-inner') || header;
+        const existingIndicator = inner.querySelector('.admin-sort-indicator');
+        if (existingIndicator) {
+          existingIndicator.remove();
+        }
+
+        header.classList.remove('admin-sortable', 'admin-sort-active', 'admin-sort-asc', 'admin-sort-desc');
+        header.removeAttribute('aria-sort');
+        header.removeAttribute('title');
+        if (!sortableFields.has(field)) {
+          return;
+        }
+
+        header.classList.add('admin-sortable');
+        header.setAttribute('title', '点击加入多列排序，Ctrl/⌘ 点击仅排序当前列');
+        const sortIndex = sortState.findIndex((item) => item.field === field);
+        if (sortIndex < 0) {
+          return;
+        }
+
+        const state = sortState[sortIndex];
+        const indicator = document.createElement('span');
+        indicator.className = 'admin-sort-indicator';
+        indicator.innerHTML = '<span class="admin-sort-triangle" aria-hidden="true"></span>';
+        if (sortState.length > 1) {
+          const priority = document.createElement('span');
+          priority.className = 'admin-sort-priority';
+          priority.textContent = String(sortIndex + 1);
+          indicator.appendChild(priority);
+        }
+        inner.appendChild(indicator);
+        header.classList.add('admin-sort-active', `admin-sort-${state.order}`);
+        header.setAttribute('aria-sort', state.order === 'asc' ? 'ascending' : 'descending');
+      });
+    };
+
+    const applySort = (field, singleColumn) => {
+      if (!sortableFields.has(field)) {
+        return;
+      }
+      const order = nextSortOrder(field);
+      if (singleColumn) {
+        sortState = order ? [{ field, order }] : [];
+      } else if (!order) {
+        sortState = sortState.filter((item) => item.field !== field);
+      } else {
+        const existing = sortState.find((item) => item.field === field);
+        if (existing) {
+          existing.order = order;
+        } else {
+          sortState.push({ field, order });
+        }
+      }
+      syncSortHeaders();
+      $typeTable.bootstrapTable('refresh', { pageNumber: 1 });
+    };
+
+    const currentListUrl = (pageNumber, pageSize) => {
+      const params = new URLSearchParams();
+      const keyword = keywordFilter ? keywordFilter.value.trim() : '';
+      const status = statusFilter ? statusFilter.value : '';
+      const sort = encodeSortState();
+      if (keyword) {
+        params.set('keyword', keyword);
+      }
+      if (status !== '') {
+        params.set('status', status);
+      }
+      if (sort) {
+        params.set('sort', sort);
+      }
+      params.set('page', String(pageNumber));
+      params.set('pageSize', String(pageSize));
+      return `/admin/template-types?${params.toString()}`;
+    };
+
+    const syncListUrl = () => {
+      const options = $typeTable.bootstrapTable('getOptions');
+      const returnUrl = currentListUrl(options.pageNumber || 1, options.pageSize || initialPageSize);
+      window.templateTypeListReturnUrl = returnUrl;
+      window.history.replaceState(null, '', returnUrl);
+      if (createTemplateTypeLink) {
+        createTemplateTypeLink.href = `/admin/template-types/create?returnUrl=${encodeURIComponent(returnUrl)}`;
+      }
+      document.querySelectorAll('[data-template-type-edit-id]').forEach((link) => {
+        const id = encodeURIComponent(link.getAttribute('data-template-type-edit-id'));
+        link.href = `/admin/template-types/modify?id=${id}&returnUrl=${encodeURIComponent(returnUrl)}`;
+      });
+    };
+
+    const getSelectedIds = () => $typeTable.bootstrapTable('getSelections')
+      .map((row) => row.id)
+      .filter((id) => id != null);
+
+    const syncBulkState = () => {
+      const selectedIds = getSelectedIds();
+      const count = selectedIds.length;
+      syncSelectedTableRows($typeTable, tableWrap, selectedIds);
+      if (selectionSummary) {
+        selectionSummary.textContent = count > 0 ? `已选择 ${count} 项` : '未选择';
+      }
+      bulkButtons.forEach((button) => {
+        button.disabled = count === 0;
+      });
+    };
+
+    const resizeTable = () => {
+      const rect = tableWrap.getBoundingClientRect();
+      const actionbar = tableWrap.querySelector('.table-actionbar');
+      const actionbarHeight = actionbar ? actionbar.getBoundingClientRect().height : 0;
+      $typeTable.bootstrapTable('resetView', {
+        height: Math.max(280, Math.floor(rect.height - actionbarHeight))
+      });
+    };
+
+    async function postIds(url, ids) {
+      const body = new URLSearchParams();
+      ids.forEach((id) => body.append('ids', id));
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+        },
+        body
+      });
+      if (!response.ok) {
+        let message = '操作失败，请稍后重试';
+        try {
+          const payload = await response.json();
+          message = payload.message || message;
+        } catch (error) {
+          message = await response.text() || message;
+        }
+        throw new Error(message);
+      }
+    }
+
+    async function runBulkAction(options) {
+      const ids = getSelectedIds();
+      if (ids.length === 0) {
+        return;
+      }
+      const confirmed = await confirmAction(options.message(ids.length), {
+        title: options.title,
+        okText: options.okText,
+        okClass: options.okClass
+      });
+      if (!confirmed) {
+        return;
+      }
+
+      bulkButtons.forEach((button) => {
+        button.disabled = true;
+      });
+      try {
+        await postIds(options.url, ids);
+        $typeTable.bootstrapTable('refresh');
+      } catch (error) {
+        await alertAction(error.message, { title: options.failedTitle || '操作失败' });
+        syncBulkState();
+      }
+    }
+
+    $typeTable.bootstrapTable({
+      locale: 'zh-CN',
+      height: Math.max(280, Math.floor(tableWrap.getBoundingClientRect().height - 52)),
+      stickyHeader: true,
+      fixedColumns: true,
+      fixedNumber: 2,
+      fixedRightNumber: 1,
+      mobileResponsive: true,
+      sidePagination: 'server',
+      pagination: true,
+      pageNumber: initialPage,
+      pageSize: initialPageSize,
+      pageList: [10, 20, 50, 100],
+      search: false,
+      searchOnEnterKey: false,
+      showRefresh: false,
+      queryParams(params) {
+        return {
+          limit: params.limit,
+          offset: params.offset,
+          search: '',
+          keyword: keywordFilter ? keywordFilter.value.trim() : '',
+          status: statusFilter ? statusFilter.value : '',
+          sort: encodeSortState()
+        };
+      },
+      classes: 'table table-hover align-middle',
+      undefinedText: '',
+      formatLoadingMessage() {
+        return '<span class="table-loading-text">加载中...</span>';
+      },
+      formatNoMatches() {
+        return '暂无匹配的类型';
+      },
+      formatShowingRows(pageFrom, pageTo, totalRows) {
+        return `第 ${pageFrom}-${pageTo} 条，共 ${totalRows} 条`;
+      },
+      formatRecordsPerPage(pageNumber) {
+        return `${pageNumber} 条/页`;
+      }
+    });
+
+    $typeTable.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table load-success.bs.table post-body.bs.table reset-view.bs.table', syncBulkState);
+    $typeTable.on('load-success.bs.table page-change.bs.table', syncListUrl);
+    $typeTable.on('post-header.bs.table post-body.bs.table reset-view.bs.table load-success.bs.table', syncSortHeaders);
+
+    if (tableWrap) {
+      tableWrap.addEventListener('click', async (event) => {
+        const removeButton = event.target.closest('[data-template-type-remove-id]');
+        if (removeButton) {
+          const id = removeButton.getAttribute('data-template-type-remove-id');
+          const confirmed = await confirmAction('确认删除该模板类型？已被模板使用的类型不能删除。', {
+            title: '删除模板类型',
+            okText: '删除',
+            okClass: 'btn-danger'
+          });
+          if (!confirmed) {
+            return;
+          }
+          try {
+            await postIds('/admin/template-types/remove', [id]);
+            $typeTable.bootstrapTable('refresh');
+          } catch (error) {
+            await alertAction(error.message, { title: '删除失败' });
+          }
+          return;
+        }
+
+        const header = event.target.closest('th[data-field]');
+        if (!header || !tableWrap.contains(header)) {
+          return;
+        }
+        const field = header.getAttribute('data-field');
+        if (!sortableFields.has(field)) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        applySort(field, event.ctrlKey || event.metaKey);
+      }, true);
+    }
+
+    if (filterForm) {
+      filterForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        $typeTable.bootstrapTable('refresh', { pageNumber: 1 });
+      });
+    }
+
+    if (resetFilter) {
+      resetFilter.addEventListener('click', () => {
+        if (keywordFilter) {
+          keywordFilter.value = '';
+        }
+        if (statusFilter) {
+          statusFilter.value = '';
+        }
+        $typeTable.bootstrapTable('refresh', { pageNumber: 1 });
+      });
+    }
+
+    if (bulkDisable) {
+      bulkDisable.addEventListener('click', () => runBulkAction({
+        url: '/admin/template-types/disable',
+        title: '批量禁用',
+        okText: '禁用',
+        okClass: 'btn-warning',
+        message: (count) => `确认禁用选中的 ${count} 个类型？`
+      }));
+    }
+
+    if (bulkEnable) {
+      bulkEnable.addEventListener('click', () => runBulkAction({
+        url: '/admin/template-types/enable',
+        title: '批量启用',
+        okText: '启用',
+        okClass: 'btn-success',
+        message: (count) => `确认启用选中的 ${count} 个类型？`
+      }));
+    }
+
+    window.addEventListener('resize', resizeTable);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', resizeTable);
+    }
+    if (window.ResizeObserver) {
+      const tableWrapObserver = new ResizeObserver(resizeTable);
+      tableWrapObserver.observe(tableWrap);
     }
     setTimeout(syncSortHeaders, 0);
     setTimeout(resizeTable, 0);
@@ -550,18 +948,9 @@ function objectNameFormatter(value) {
   return `<span class="object-name">${escapeHtml(value)}</span>`;
 }
 
-function templateTypeFormatter(value) {
-  const labels = {
-    sales_receipt: '销售小票',
-    sales_receipt_ed: '销售小票-ed',
-    sales_receipt_ed2: '销售小票-ed2',
-    sales_receipt_o2o: '销售小票-o2o',
-    shipping_label: '物流面单',
-    shipping_label_o2o: '物流面单-o2o',
-    shipping_label_transfer_out: '物流面单-横调出库',
-    shipping_label_return_apply: '物流面单-退货申请'
-  };
-  return escapeHtml(labels[value] || value || '');
+function templateTypeFormatter(value, row) {
+  const name = row && row.templateTypeName ? row.templateTypeName : value;
+  return escapeHtml(name || '');
 }
 
 function statusFormatter(value) {
@@ -571,15 +960,30 @@ function statusFormatter(value) {
   return '<span class="badge status-badge status-off">禁用</span>';
 }
 
+function templateTypeCodeFormatter(value) {
+  return `<span class="object-name">${escapeHtml(value)}</span>`;
+}
+
+function templateTypeActionFormatter(value, row) {
+  const id = encodeURIComponent(row.id);
+  const returnUrl = encodeURIComponent(window.templateTypeListReturnUrl || `${window.location.pathname}${window.location.search}`);
+  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-type-edit-id="${id}" href="/admin/template-types/modify?id=${id}&returnUrl=${returnUrl}">编辑</a>`;
+  const statusAction = Number(row.status) === 1
+    ? `<form action="/admin/template-types/disable" method="post" data-confirm="确认禁用该模板类型？" data-confirm-title="禁用模板类型" data-confirm-ok="禁用" data-confirm-class="btn-warning"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
+    : `<form action="/admin/template-types/enable" method="post" data-confirm="确认启用该模板类型？" data-confirm-title="启用模板类型" data-confirm-ok="启用" data-confirm-class="btn-success"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;
+  const removeAction = `<button class="btn btn-outline-danger btn-sm" type="button" data-template-type-remove-id="${id}">删除</button>`;
+  return `<div class="row-actions">${edit}${statusAction}${removeAction}</div>`;
+}
+
 function actionFormatter(value, row) {
   const id = encodeURIComponent(row.id);
   const returnUrl = encodeURIComponent(window.templateListReturnUrl || `${window.location.pathname}${window.location.search}`);
   const previewName = escapeHtml(row.templateCode || '已保存模板');
   const preview = `<button class="btn btn-outline-secondary btn-sm" type="button" data-template-preview-id="${id}" data-template-preview-name="${previewName}">预览</button>`;
-  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-edit-id="${id}" href="/admin/templates/${id}/edit?returnUrl=${returnUrl}">编辑</a>`;
+  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-edit-id="${id}" href="/admin/templates/modify?id=${id}&returnUrl=${returnUrl}">编辑</a>`;
   const statusAction = Number(row.status) === 1
-    ? `<form action="/admin/templates/${id}/disable" method="post" data-confirm="确认禁用该模板？" data-confirm-title="禁用模板" data-confirm-ok="禁用" data-confirm-class="btn-warning"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
-    : `<form action="/admin/templates/${id}/enable" method="post" data-confirm="确认启用该模板？" data-confirm-title="启用模板" data-confirm-ok="启用" data-confirm-class="btn-success"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;
-  const deleteAction = `<form action="/admin/templates/${id}/delete" method="post" data-confirm="确认删除该模板？" data-confirm-title="删除模板" data-confirm-ok="删除" data-confirm-class="btn-danger"><button class="btn btn-outline-danger btn-sm" type="submit">删除</button></form>`;
-  return `<div class="row-actions">${preview}${edit}${statusAction}${deleteAction}</div>`;
+    ? `<form action="/admin/templates/disable" method="post" data-confirm="确认禁用该模板？" data-confirm-title="禁用模板" data-confirm-ok="禁用" data-confirm-class="btn-warning"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
+    : `<form action="/admin/templates/enable" method="post" data-confirm="确认启用该模板？" data-confirm-title="启用模板" data-confirm-ok="启用" data-confirm-class="btn-success"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;
+  const removeAction = `<form action="/admin/templates/remove" method="post" data-confirm="确认删除该模板？" data-confirm-title="删除模板" data-confirm-ok="删除" data-confirm-class="btn-danger"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-danger btn-sm" type="submit">删除</button></form>`;
+  return `<div class="row-actions">${preview}${edit}${statusAction}${removeAction}</div>`;
 }

@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="zh-CN"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{error/common :: page(${status != null ? status.toString() : 'ERR'}, '系统提示', '请求失败', '请返回首页或稍后重试。', 'generic')}">
+</html>

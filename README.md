@@ -9,6 +9,7 @@ e-print
 ├── e-print-client      # Electron 本地打印客户端
 ├── e-print-server      # Spring Boot 打印服务
 ├── e-print-admin       # 模板管理后台
+├── db                  # Oracle 初始化脚本
 └── minio               # 本地 MinIO 配置和初始化资源
 ```
 
@@ -80,6 +81,27 @@ npm start
 ```
 
 客户端启动后会连接 `ws://localhost:9090/ws/print`，默认 `clientId` 为 `CLIENT-001`。
+
+### 4. 启动 e-print-admin
+
+要求 Java 21。
+
+```bash
+cd e-print-admin
+mvn spring-boot:run
+```
+
+默认后台地址：
+
+```text
+http://localhost:9091
+```
+
+默认登录账号：
+
+```text
+eprint / eprint123
+```
 
 ## 接口安全
 
@@ -185,31 +207,32 @@ sequenceDiagram
 打印模板不再内置在 `e-print-server` 中。当前方案：
 
 1. HTML 模板上传到 MinIO。
-2. Oracle 表 `E_PRINT_TEMPLATE` 存储模板元数据。
-3. `(templateType, templateCode)` 对应数据库记录，再由记录中的 `BUCKET_NAME` 和 `OBJECT_NAME` 读取 MinIO 文件。
-4. 每种模板类型的默认模板编码约定为 `01`，找不到指定编码时按同类型 `01` 回退。
+2. Oracle 表 `E_PRINT_TEMPLATE_TYPE` 存储模板类型字典，可在 `e-print-admin` 中维护。
+3. Oracle 表 `E_PRINT_TEMPLATE` 存储模板元数据，并通过 `TEMPLATE_TYPE_ID` 关联模板类型。
+4. 外部 API 仍使用模板类型编码 `templateType`，服务端按 `E_PRINT_TEMPLATE_TYPE.CODE` 和 `templateCode` 查找启用模板。
+5. 每种模板类型的默认模板编码约定为 `01`，找不到指定编码时按同类型 `01` 回退。
 
 核心表脚本：
 
 ```text
-e-print-server/src/main/resources/db/oracle/print_template.sql
+db/oracle/print_template.sql
 ```
 
-初始化脚本会创建模板表、序列、索引，并初始化 8 个模板类型的默认 `01` 模板元数据。
+初始化脚本会创建模板类型表、模板表、序列、索引，并初始化 8 个模板类型及默认 `01` 模板元数据。执行前请先清理旧的模板相关表、序列和数据。
 
 示例模板记录：
 
 ```sql
 INSERT INTO E_PRINT_TEMPLATE (
     ID,
-    TEMPLATE_TYPE,
-    TEMPLATE_CODE,
+    TEMPLATE_TYPE_ID,
+    CODE,
     BUCKET_NAME,
     OBJECT_NAME,
     STATUS
 ) VALUES (
     SEQ_E_PRINT_TEMPLATE.NEXTVAL,
-    'sales_receipt',
+    (SELECT ID FROM E_PRINT_TEMPLATE_TYPE WHERE CODE = 'sales_receipt'),
     '01',
     'e-print',
     'templates/print/sales_receipt/01.html',
@@ -217,7 +240,7 @@ INSERT INTO E_PRINT_TEMPLATE (
 );
 ```
 
-当前固定模板类型：
+初始模板类型字典：
 
 | 编码 | 名称 |
 | --- | --- |
@@ -292,6 +315,32 @@ java -jar e-print-server.jar
 | `E_PRINT_GRAYLOG_PORT` | Graylog GELF UDP 端口 |
 
 测试和生产环境不建议在配置文件中写死密码，应通过环境变量、启动脚本或配置中心注入。
+
+### e-print-admin
+
+后台管理服务使用独立 Spring Profile：
+
+```powershell
+$env:E_PRINT_ADMIN_PROFILE="uat"
+java -jar e-print-admin.jar
+```
+
+后台关键环境变量：
+
+| 变量 | 用途 |
+| --- | --- |
+| `E_PRINT_ADMIN_PROFILE` | 激活环境，默认 `loc` |
+| `E_PRINT_ADMIN_PORT` | HTTP 端口，默认 `9091` |
+| `E_PRINT_ADMIN_USERNAME` | 管理员用户名 |
+| `E_PRINT_ADMIN_PASSWORD` | 管理员密码 |
+| `E_PRINT_DB_URL` | Oracle JDBC URL |
+| `E_PRINT_DB_USERNAME` | Oracle 用户名 |
+| `E_PRINT_DB_PASSWORD` | Oracle 密码 |
+| `E_PRINT_MINIO_ENDPOINT` | MinIO 地址 |
+| `E_PRINT_MINIO_ACCESS_KEY` | MinIO Access Key |
+| `E_PRINT_MINIO_SECRET_KEY` | MinIO Secret Key |
+| `E_PRINT_TEMPLATE_BUCKET` | 默认模板 bucket，默认 `e-print` |
+| `E_PRINT_TEMPLATE_OBJECT_PREFIX` | 默认模板对象前缀，默认 `templates/print` |
 
 ### e-print-client
 
@@ -389,7 +438,7 @@ npm test
 
 ### e-print-admin
 
-- 模板新增
-- 模板编辑
-- 模板预览
-- 模板发布
+- 类型管理：新增、编辑、删除、启用、禁用模板类型字典
+- 模板管理：新增、编辑、预览、删除、启用、禁用模板
+- 列表页分页、固定表头/列、多列排序和批量启用/禁用/删除
+- MinIO 模板文件上传和在线编辑

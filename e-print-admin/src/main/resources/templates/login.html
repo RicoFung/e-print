@@ -5,8 +5,8 @@
 <main class="login-box admin-login-box">
     <div class="login-logo">
         <a th:href="@{/login}">
-            <span class="brand-mark">EP</span>
-            <span>e-print-admin</span>
+            <img class="brand-mark" th:src="@{/img/e-print-logo.svg}" alt="" width="44" height="44">
+            <span>E-PRINT-ADMIN</span>
         </a>
     </div>
 
@@ -19,12 +19,12 @@
 
             <form th:action="@{/login}" method="post" class="login-form">
                 <div class="input-group mb-3">
-                    <input class="form-control" id="username" name="username" placeholder="用户名" autocomplete="username" autofocus>
+                    <input class="form-control" id="username" name="username" autocomplete="username" autofocus>
                     <label class="visually-hidden" for="username">用户名</label>
                     <span class="input-group-text">U</span>
                 </div>
                 <div class="input-group mb-4">
-                    <input class="form-control" id="password" name="password" placeholder="密码" type="password" autocomplete="current-password">
+                    <input class="form-control" id="password" name="password" type="password" autocomplete="current-password">
                     <label class="visually-hidden" for="password">密码</label>
                     <span class="input-group-text">P</span>
                 </div>

@@ -1,6 +1,5 @@
 package com.eprint.server.module.template.service;
 
-import com.eprint.server.module.template.model.TemplateType;
 import com.eprint.server.repository.dao.TemplateDao;
 import com.eprint.server.repository.model.param.TemplateGetByCodeParam;
 import com.eprint.server.repository.model.result.TemplateResult;
@@ -22,6 +21,7 @@ import java.util.Map;
 public class TemplateService {
 
     private static final Integer STATUS_ENABLED = 1;
+    private static final String DEFAULT_TEMPLATE_CODE = "01";
 
     @Autowired
     private TemplateDao dao;
@@ -55,17 +55,14 @@ public class TemplateService {
     }
 
     public TemplateResult resolveTemplate(String templateType, String templateCode) {
-        if (!TemplateType.isValid(templateType)) {
-            throw new IllegalArgumentException("Invalid template type");
-        }
         TemplateGetByCodeParam param = new TemplateGetByCodeParam();
         param.setTemplateType(templateType);
         param.setTemplateCode(templateCode);
         param.setStatus(STATUS_ENABLED);
 
         TemplateResult result = dao.getByTemplateCode(param);
-        if (result == null && !TemplateType.DEFAULT_CODE.equals(templateCode)) {
-            param.setTemplateCode(TemplateType.DEFAULT_CODE);
+        if (result == null && !DEFAULT_TEMPLATE_CODE.equals(templateCode)) {
+            param.setTemplateCode(DEFAULT_TEMPLATE_CODE);
             result = dao.getByTemplateCode(param);
         }
         if (result == null) {

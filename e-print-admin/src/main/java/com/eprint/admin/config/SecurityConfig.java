@@ -1,5 +1,6 @@
 package com.eprint.admin.config;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,12 +25,13 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/login", "/css/**", "/js/**", "/vendor/**", "/health", "/actuator/health").permitAll()
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/login", "/error", "/css/**", "/img/**", "/js/**", "/vendor/**", "/health", "/actuator/health").permitAll()
                         .requestMatchers("/admin/**").authenticated()
                         .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/admin/templates", true)
+                        .defaultSuccessUrl("/admin", true)
                         .permitAll())
                 .logout(logout -> logout
                         .logoutUrl("/logout")

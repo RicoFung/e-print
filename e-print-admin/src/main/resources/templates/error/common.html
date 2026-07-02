@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN"
+      xmlns:th="http://www.thymeleaf.org"
+      th:fragment="page(code, eyebrow, title, description, tone)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <script>
+        (() => {
+            'use strict';
+            let theme = 'auto';
+            try {
+                const storedTheme = localStorage.getItem('lte-theme');
+                if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'auto') {
+                    theme = storedTheme;
+                }
+            } catch (error) {
+                theme = 'auto';
+            }
+            const resolvedTheme = theme === 'dark' || theme === 'auto' && globalThis.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light';
+            document.documentElement.setAttribute('data-bs-theme', resolvedTheme);
+            document.documentElement.style.colorScheme = resolvedTheme;
+        })();
+    </script>
+    <title th:text="${code + ' · ' + title + ' - E-PRINT-ADMIN'}">错误 - E-PRINT-ADMIN</title>
+    <link rel="stylesheet" th:href="@{/css/error.css}">
+    <script defer th:src="@{/js/admin-theme.js}"></script>
+    <script defer th:src="@{/js/error-page.js}"></script>
+</head>
+<body class="error-page" th:classappend="${' error-page--' + tone}">
+<main class="error-shell">
+    <header class="error-header">
+        <a class="error-brand" th:href="@{/admin}" aria-label="返回 E-PRINT-ADMIN 首页">
+            <span class="error-brand__name">E—PRINT</span>
+            <span class="error-brand__meta">TEMPLATE OPERATIONS</span>
+        </a>
+        <div class="error-header__meta">
+            <span>ERROR</span>
+            <span th:text="${code}">404</span>
+        </div>
+    </header>
+
+    <section class="error-stage" aria-labelledby="error-title">
+        <div class="error-status" aria-hidden="true" th:text="${code}">404</div>
+        <div class="error-copy">
+            <p class="error-eyebrow" th:text="${eyebrow}">SYSTEM RESPONSE</p>
+            <h1 id="error-title" th:text="${title}">页面无法访问</h1>
+            <p class="error-description" th:text="${description}">请求暂时无法完成。</p>
+
+            <dl class="error-context" th:if="${path != null and !#strings.isEmpty(path)}">
+                <div>
+                    <dt>请求路径</dt>
+                    <dd th:text="${path}">/admin/example</dd>
+                </div>
+                <div th:if="${timestamp != null}">
+                    <dt>发生时间</dt>
+                    <dd th:text="${timestamp}">2026-07-01 16:00:00</dd>
+                </div>
+            </dl>
+
+            <div class="error-actions">
+                <a class="error-link error-link--primary" th:href="@{/admin}">返回首页 <span>↗</span></a>
+                <button class="error-link" type="button" data-error-back>返回上一页 <span>←</span></button>
+            </div>
+        </div>
+    </section>
+
+    <footer class="error-footer">
+        <span>PRINT TEMPLATE MANAGEMENT</span>
+        <span>© E—PRINT</span>
+    </footer>
+</main>
+</body>
+</html>

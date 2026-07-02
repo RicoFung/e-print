@@ -1,0 +1,13 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>E-Print</title>
+  <rect x="1" y="1" width="62" height="62" fill="#F3C64E" stroke="#102A3A" stroke-width="2"/>
+  <path d="M16 8H46V25H16V8Z" fill="#F8FAFC"/>
+  <path d="M21 13H41V16H21V13Z" fill="#166F8F"/>
+  <path d="M21 19H36V22H21V19Z" fill="#166F8F"/>
+  <path d="M8 20H56V48H8V20Z" fill="#102A3A"/>
+  <path d="M13 27H51V37H13V27Z" fill="#166F8F"/>
+  <path d="M17 34H47V57H17V34Z" fill="#F8FAFC"/>
+  <path d="M22 41H42V44H22V41Z" fill="#166F8F"/>
+  <path d="M22 48H37V51H22V48Z" fill="#166F8F"/>
+  <path d="M48 23H52V27H48V23Z" fill="#F3C64E"/>
+</svg>
