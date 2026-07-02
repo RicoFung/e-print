@@ -1,6 +1,6 @@
 spring:
   application:
-    name: e-print-admin
+    name: E-PRINT-ADMIN
   profiles:
     active: ${E_PRINT_ADMIN_PROFILE:loc}
   threads:

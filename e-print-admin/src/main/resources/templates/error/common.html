@@ -6,23 +6,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title th:text="${code + ' · ' + title + ' - e-print-admin'}">错误 - e-print-admin</title>
+    <script>
+        (() => {
+            'use strict';
+            let theme = 'auto';
+            try {
+                const storedTheme = localStorage.getItem('lte-theme');
+                if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'auto') {
+                    theme = storedTheme;
+                }
+            } catch (error) {
+                theme = 'auto';
+            }
+            const resolvedTheme = theme === 'dark' || theme === 'auto' && globalThis.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light';
+            document.documentElement.setAttribute('data-bs-theme', resolvedTheme);
+            document.documentElement.style.colorScheme = resolvedTheme;
+        })();
+    </script>
+    <title th:text="${code + ' · ' + title + ' - E-PRINT-ADMIN'}">错误 - E-PRINT-ADMIN</title>
     <link rel="stylesheet" th:href="@{/css/error.css}">
+    <script defer th:src="@{/js/admin-theme.js}"></script>
     <script defer th:src="@{/js/error-page.js}"></script>
 </head>
 <body class="error-page" th:classappend="${' error-page--' + tone}">
 <main class="error-shell">
-    <section class="error-panel" aria-labelledby="error-title">
-        <div class="error-brand" aria-label="e-print-admin">
-            <span class="error-brand__mark">EP</span>
-            <span class="error-brand__name">e-print-admin</span>
+    <header class="error-header">
+        <a class="error-brand" th:href="@{/admin}" aria-label="返回 E-PRINT-ADMIN 首页">
+            <span class="error-brand__name">E—PRINT</span>
+            <span class="error-brand__meta">TEMPLATE OPERATIONS</span>
+        </a>
+        <div class="error-header__meta">
+            <span>ERROR</span>
+            <span th:text="${code}">404</span>
         </div>
+    </header>
 
-        <div class="error-status" aria-hidden="true">
-            <span class="error-status__ghost" th:text="${code}">404</span>
-            <span class="error-status__code" th:text="${code}">404</span>
-        </div>
-
+    <section class="error-stage" aria-labelledby="error-title">
+        <div class="error-status" aria-hidden="true" th:text="${code}">404</div>
         <div class="error-copy">
             <p class="error-eyebrow" th:text="${eyebrow}">SYSTEM RESPONSE</p>
             <h1 id="error-title" th:text="${title}">页面无法访问</h1>
@@ -40,15 +62,15 @@
             </dl>
 
             <div class="error-actions">
-                <a class="error-button error-button--primary" th:href="@{/admin}">返回管理首页</a>
-                <button class="error-button error-button--secondary" type="button" data-error-back>返回上一页</button>
+                <a class="error-link error-link--primary" th:href="@{/admin}">返回首页 <span>↗</span></a>
+                <button class="error-link" type="button" data-error-back>返回上一页 <span>←</span></button>
             </div>
         </div>
     </section>
 
     <footer class="error-footer">
-        <span>PRINT OPERATIONS CONSOLE</span>
-        <span class="error-footer__signal"><i></i> SERVICE STATUS</span>
+        <span>PRINT TEMPLATE MANAGEMENT</span>
+        <span>© E—PRINT</span>
     </footer>
 </main>
 </body>

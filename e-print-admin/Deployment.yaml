@@ -1,0 +1,140 @@
+apiVersion: app.k8s.io/v1beta1
+kind: Application
+metadata:
+  name: ${APP_FULL_NAME}
+spec:
+  assemblyPhase: Succeeded
+  componentKinds:
+    - group: apps
+      kind: Deployment
+    - group: ""
+      kind: Service
+  selector:
+    matchLabels:
+      app.cpaas.io/name: ${APP_FULL_NAME}.${APP_NS_NAME}
+
+---
+apiVersion: apps/v1
+kind: Deployment # 指定创建资源的角色/类型
+metadata: # 资源的元数据/属性
+  name: ${APP_FULL_NAME} # 资源的名字，在同一个namespace中必须唯一
+  namespace: ${APP_NS_NAME} # 部署在哪个namespace中
+  labels: # 设定资源的标签
+    app: ${APP_FULL_NAME}
+    app.kubernetes.io/name: ${APP_FULL_NAME}
+    app.cpaas.io/name: ${APP_FULL_NAME}.${APP_NS_NAME}
+spec: # 资源规范字段
+  progressDeadlineSeconds: 600
+  replicas: ${REPLICAS} # 声明副本数目
+  selector:
+    matchLabels:
+      app: ${APP_FULL_NAME}
+      app.kubernetes.io/name: ${APP_FULL_NAME}
+  strategy: # 更新策略
+    rollingUpdate:
+      # 可以为固定值或百分比(默认25%), 更新过程中最多会有replicas + maxSurge个pod
+      # 用于指定在Deployment更新Pod的过程中Pod总数量超过Pod期望副本数量部分的最大值。向上取整
+      maxSurge: ${MAX_SURGE}
+      # 最大无效数, 指更新过程中,最多有几个pod处于无法服务状态,当maxSurge不为0时,此栏位也不可为0,
+      # 用于指定Deployment在更新过程中不可用状态的Pod数量的上限,向下取整
+      maxUnavailable: ${MAX_UNAVAILABLE}
+    type: RollingUpdate # 滚动更新
+  template: # 模版
+    metadata: # 资源的元数据/属性
+      labels: # 自定义注解列表
+        app: ${APP_FULL_NAME}
+        app.kubernetes.io/name: ${APP_FULL_NAME}
+        app.cpaas.io/name: ${APP_FULL_NAME}.${APP_NS_NAME}
+    spec: # 资源规范字段
+      containers:
+        - name: ${APP_FULL_NAME} # 容器的名字
+          image: ${REGISTRY}/${APP_NS_NAME}/${APP_NAME}:${BUILD_NUMBER} # 容器使用的镜像地址
+          imagePullPolicy: Always # 每次Pod启动拉取镜像策略,三个选择 Always、Never、IfNotPresent
+          ports:
+            - name: endpoint
+              containerPort: ${APP_PORT}
+              protocol: TCP
+            - name: jmx
+              containerPort: 8999
+              protocol: TCP
+          volumeMounts:
+            - name: public-storage
+              mountPath: /home/public
+#          lifecycle:
+#            preStop: #在容器被终止前的任务，用于优雅关闭应用程序、通知其他系统等等
+#              exec:
+#                command: [ "/bin/sh", "-c", "sleep 30" ]
+#           # 启动探针:容器启动检查，指示容器中的应用是否已经启动.(需要时，编写一个Controller来处理探针，及添加 actuator 依赖）
+#           startupProbe: # 启动探针:容器启动检查，指示容器中的应用是否已经启动.
+#             httpGet:
+#               path: ${CONTEXT_PATH}/actuator/health
+#               port: ${APP_PORT}
+#             initialDelaySeconds: 10 # 容器启动后要等待多少秒后就探针开始工作，单位秒，默认是0秒，最小值是0
+#             periodSeconds: 10 # 执行探测的时间间隔单位是秒，默认为 10s，单位秒，最小值是 1
+# #            timeoutSeconds: 10 # 探针执行检测请求后，等待响应的超时时间，默认为1s，单位秒，最小值是 1
+#             failureThreshold: 30 # 探测失败的重试次数，重试一定次数后将认为失败，在readiness探针中，Pod会被标记为未就绪，默认为 3s，最小值为 1s
+#           readinessProbe: # 就绪探针:就绪性检查，用于判断容器是否启动完成且准备接收请求.当检测失败后，将Pod的IP:Port从对应的EndPoint列表中删除
+#             httpGet:
+#               path: ${CONTEXT_PATH}/actuator/health
+#               port: ${APP_PORT}
+#             initialDelaySeconds: 20 # 容器启动60s后启动第一次探测
+#             periodSeconds: 10 # 每隔10s启动一次探测
+# #            timeoutSeconds: 10 # 每次等待超时时间10s
+#             failureThreshold: 30 # 连续30次失败，则判定容器不健康
+#           livenessProbe: # 存活探针:存活性检查，用于判断容器是否健康.当检测失败后，将杀死容器并根据Pod的重启策略来决定作出对应的措施。
+#             tcpSocket:
+#               port: ${APP_PORT}
+#             initialDelaySeconds: 60 # 容器启动60s后启动第一次探测
+#             periodSeconds: 10 # 每隔10s启动一次探测
+#             timeoutSeconds: 10 # 每次等待超时时间10s
+#             failureThreshold: 30 # 连续30次失败，则判定容器不健康
+          resources: # 资源管理
+            requests: # 最低资源需求,也就是说最少需要多少资源容器才能正常运行
+              cpu: 100m
+              memory: 1024Mi
+            limits: # 最大使用
+#              cpu: ${MAX_CPU} # 启动需要较大CPU,暂时不做限额
+              memory: ${MAX_MEMORY}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 120
+      affinity:
+        nodeAffinity: # 节点亲和性
+          requiredDuringSchedulingIgnoredDuringExecution: # 调度器只有在规则被满足的时候才能执行调度
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: moco.kubernetes.io/space # 节点必须包含一个键名为 moco.kubernetes.io/space 的标签
+                  operator: In
+                  values:
+                    - ${MOCO_SPACE}
+        podAntiAffinity: # 反亲和性
+          requiredDuringSchedulingIgnoredDuringExecution: # 硬性要求,必须满足条件
+            - labelSelector:
+                matchExpressions:
+                  - key: "app"
+                    operator: In
+                    values:
+                      - ${APP_FULL_NAME}
+              topologyKey: "kubernetes.io/hostname"
+      volumes:
+        - name: public-storage
+          persistentVolumeClaim:
+            claimName: ${APP_NS_NAME}-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APP_NAME}-service
+  namespace: ${APP_NS_NAME}
+  labels:
+    app.cpaas.io/name: ${APP_FULL_NAME}.${APP_NS_NAME}
+spec:
+  selector:
+    app: ${APP_FULL_NAME} # Service 关联所有版本的相同应用名的负载
+  ports:
+    - name: http
+      protocol: TCP
+      targetPort: ${APP_PORT}
+      port: ${APP_PORT}
+  type: ClusterIP

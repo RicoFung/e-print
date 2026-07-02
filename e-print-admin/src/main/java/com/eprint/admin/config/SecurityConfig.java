@@ -26,7 +26,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        .requestMatchers("/login", "/error", "/css/**", "/js/**", "/vendor/**", "/health", "/actuator/health").permitAll()
+                        .requestMatchers("/login", "/error", "/css/**", "/img/**", "/js/**", "/vendor/**", "/health", "/actuator/health").permitAll()
                         .requestMatchers("/admin/**").authenticated()
                         .anyRequest().authenticated())
                 .formLogin(form -> form
