@@ -1,9 +1,18 @@
 {
   "name": "e-print-client",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Local silent printing client for e-print.",
   "main": "src/main.js",
   "scripts": {
+    "clean:dist": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "dist:win": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable",
+    "dist:win:portable": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable",
+    "pack:win": "electron-builder --win dir",
+    "pack:win:unsigned": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win dir",
+    "predist:win": "npm run clean:dist",
+    "predist:win:portable": "npm run clean:dist",
+    "prepack:win": "npm run clean:dist",
+    "prepack:win:unsigned": "npm run clean:dist",
     "start": "electron .",
     "test": "node --test"
   },
@@ -13,12 +22,41 @@
     "label"
   ],
   "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "dependencies": {
     "bwip-js": "^4.5.1",
-    "electron": "^31.7.7",
     "handlebars": "^4.7.8",
     "qrcode": "^1.5.4",
     "ws": "^8.18.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.eprint.client",
+    "productName": "EPrintClient",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "config.json",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "assets/e-print-icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}.${ext}"
+    }
+  }
 }

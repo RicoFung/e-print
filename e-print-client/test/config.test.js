@@ -5,7 +5,13 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
-const { deriveTemplateBaseUrl, loadConfig, resolveConfigPath, saveConfig } = require('../src/lib/config');
+const {
+  configureUserConfigPath,
+  deriveTemplateBaseUrl,
+  loadConfig,
+  resolveConfigPath,
+  saveConfig
+} = require('../src/lib/config');
 
 test('migrates legacy default server URLs to current port', () => {
   const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-'));
@@ -131,6 +137,51 @@ test('derives template API URL when server URL is overridden by environment vari
 
 test('uses project config by default', () => {
   assert.match(resolveConfigPath(), /e-print-client[\\/]config\.json$/);
+});
+
+test('uses configured user data path for runtime config', () => {
+  const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-user-data-'));
+  const configPath = configureUserConfigPath(configDir);
+
+  try {
+    assert.equal(resolveConfigPath(), path.join(configDir, 'config.json'));
+    assert.equal(configPath, path.join(configDir, 'config.json'));
+  } finally {
+    configureUserConfigPath(path.resolve(__dirname, '..'));
+  }
+});
+
+test('environment config path overrides configured user data path', () => {
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-user-data-'));
+  const envConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-env-config-'));
+  const envConfigPath = path.join(envConfigDir, 'custom-config.json');
+  const previousConfigPath = process.env.E_PRINT_CONFIG_PATH;
+
+  configureUserConfigPath(userDataDir);
+  process.env.E_PRINT_CONFIG_PATH = envConfigPath;
+
+  try {
+    assert.equal(resolveConfigPath(), envConfigPath);
+  } finally {
+    restoreEnv('E_PRINT_CONFIG_PATH', previousConfigPath);
+    configureUserConfigPath(path.resolve(__dirname, '..'));
+  }
+});
+
+test('loads bundled project config as initial user config template', () => {
+  const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-user-data-'));
+  const configPath = configureUserConfigPath(configDir);
+
+  try {
+    const config = loadConfig();
+
+    assert.equal(configPath, path.join(configDir, 'config.json'));
+    assert.equal(config.clientId, 'CLIENT-001');
+    assert.equal(config.basicUsername, 'eprint');
+    assert.equal(config.basicPassword, 'eprint123');
+  } finally {
+    configureUserConfigPath(path.resolve(__dirname, '..'));
+  }
 });
 
 test('derives template API URL from websocket URL', () => {

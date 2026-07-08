@@ -2,7 +2,13 @@
 
 const path = require('node:path');
 const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron');
-const { deriveTemplateBaseUrl, loadConfig, saveConfig, resolveConfigPath } = require('./lib/config');
+const {
+  configureUserConfigPath,
+  deriveTemplateBaseUrl,
+  loadConfig,
+  saveConfig,
+  resolveConfigPath
+} = require('./lib/config');
 const { startPrintClient } = require('./lib/ws-client');
 const { createElectronPrinter } = require('./printer/electron-printer');
 
@@ -58,6 +64,7 @@ let currentLanguage = 'en';
 let isQuitting = false;
 
 app.whenReady().then(() => {
+  configureUserConfigPath(app.getPath('userData'));
   currentConfig = loadConfig();
   currentLanguage = detectLanguage();
   saveConfig(currentConfig);
