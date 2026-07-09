@@ -1,49 +1,53 @@
 # e-print-client
 
-`e-print-client` 是 Electron 本地打印桥接器，负责连接 `e-print-server`、接收 WebSocket 打印任务、下载 HTML 模板、渲染二维码和条码，并调用本地打印机完成打印。
+`e-print-client` 是 Electron 本地打印桥接器，负责连接 `e-print-server`，接收 WebSocket 打印任务，下载并渲染 HTML 模板，生成二维码和条码，并调用本地打印机完成打印。
 
-## 核心能力
+## 目录
 
-- 连接 `e-print-server`
-- 支持 Basic 认证
-- 接收 WebSocket 打印任务
-- 下载服务端 HTML 打印模板
-- Handlebars 渲染模板
-- 生成二维码和条码
-- 静默打印和非静默打印
-- 打印结果回传
-- 多语言和主题切换
+1. [核心能力](#1-核心能力)
+2. [运行与配置](#2-运行与配置)
+3. [任务协议](#3-任务协议)
 
-## 本地运行
+## 1. 核心能力
+
+- 连接 `e-print-server`，接收 WebSocket 打印任务
+- 支持 Basic 认证、客户端 ID、打印机、静默打印等配置
+- 下载服务端 HTML 模板，并使用 Handlebars 渲染打印内容
+- 生成二维码和条码，支持打印结果回传
+- 支持多语言和主题切换
+
+## 2. 运行与配置
+
+本地运行要求：
+
+- Node.js 18+
+- npm 9+
 
 ```bash
 npm install
 npm start
 ```
 
-启动后会打开配置窗口，可配置：
+常用命令：
 
-- WebSocket 地址
-- 客户端 ID
-- 打印机
-- 静默打印
-- 主题
-- 语言
+```bash
+npm test
+npm run dist:win
+npm run pack:win:unsigned
+```
 
-## 配置
-
-默认配置文件：
+配置文件：
 
 ```text
 e-print-client/config.json
+%APPDATA%/e-print-client/config.json
 ```
 
-客户端支持 `env + environments` 多环境配置。详细配置项见根目录 `README.md`。
-
-常用环境变量：
+也可以通过环境变量指定配置：
 
 | 变量 | 说明 |
 | --- | --- |
+| `E_PRINT_CONFIG_PATH` | 配置文件路径 |
 | `E_PRINT_ENV` | 当前环境 |
 | `E_PRINT_CLIENT_ID` | 客户端 ID |
 | `E_PRINT_SERVER_URL` | WebSocket 地址 |
@@ -51,36 +55,17 @@ e-print-client/config.json
 | `E_PRINT_BASIC_PASSWORD` | Basic 密码 |
 | `E_PRINT_PRINTER_NAME` | 默认打印机 |
 
-## 模板约定
+## 3. 任务协议
 
-客户端从 WebSocket 任务中读取 `templateType` 和 `templateCode`，并按以下地址下载模板：
+客户端从 WebSocket 任务中读取 `templateType`、`templateCode` 和 `taskId`。缺少任一关键字段时，客户端会拒绝任务并上报失败。
+
+模板下载接口：
 
 ```http
 GET /template/{templateCode}?templateType={templateType}
 ```
 
-示例：
-
-```http
-GET /template/01?templateType=sales_receipt
-```
-
-本地缓存路径会按模板类型分目录，例如：
-
-```text
-{templateCacheDir}/sales_receipt/01.html
-{templateCacheDir}/shipping_label/01.html
-```
-
-这样不同模板类型下相同的 `templateCode` 不会互相覆盖。
-
-模板接口支持返回 `text/html`，也支持返回包含 `html`、`content` 或 `templateHtml` 字段的 JSON。
-
-## WebSocket 任务报文
-
-客户端接收的打印任务必须包含 `templateType`。缺少 `templateType`、`templateCode` 或 `taskId` 时，客户端会拒绝任务并上报失败。
-
-任务消息示例：
+打印任务示例：
 
 ```json
 {
@@ -105,14 +90,12 @@ GET /template/01?templateType=sales_receipt
 }
 ```
 
-打印结果回传地址：
+打印结果回传：
 
 ```http
 POST /task/{taskId}/result
 Content-Type: application/json
 ```
-
-请求体示例：
 
 ```json
 {
@@ -121,21 +104,4 @@ Content-Type: application/json
   "templateCode": "01",
   "message": "打印完成"
 }
-```
-
-模板示例：
-
-```html
-<section class="label">
-  <h1>{{productName}}</h1>
-  <p>{{sku}}</p>
-  <img src="{{qr.qrText}}" alt="QR Code">
-  <img src="{{barcode.barcodeText}}" alt="Barcode">
-</section>
-```
-
-## 验证
-
-```bash
-npm test
 ```

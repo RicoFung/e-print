@@ -4,7 +4,9 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
+const CONFIG_FILE_NAME = 'config.json';
 const PROJECT_CONFIG_PATH = path.resolve(__dirname, '..', '..', 'config.json');
+let userConfigPath;
 
 const DEFAULT_CONFIG = {
   env: 'loc',
@@ -25,9 +27,7 @@ const LEGACY_DEFAULT_CONFIG = {
 
 function loadConfig(configPath) {
   const resolvedPath = resolveConfigPath(configPath);
-  const fileConfig = fs.existsSync(resolvedPath)
-    ? JSON.parse(fs.readFileSync(resolvedPath, 'utf8'))
-    : {};
+  const fileConfig = readConfig(resolvedPath) || readInitialConfig(resolvedPath);
 
   return applyEnvOverrides(applyEnvironmentConfig(migrateLegacyDefaults({
     ...DEFAULT_CONFIG,
@@ -44,7 +44,26 @@ function saveConfig(config, configPath) {
 }
 
 function resolveConfigPath(configPath) {
-  return configPath || PROJECT_CONFIG_PATH;
+  return configPath || process.env.E_PRINT_CONFIG_PATH || userConfigPath || PROJECT_CONFIG_PATH;
+}
+
+function configureUserConfigPath(userDataPath) {
+  userConfigPath = path.join(userDataPath, CONFIG_FILE_NAME);
+  return userConfigPath;
+}
+
+function readConfig(configPath) {
+  return fs.existsSync(configPath)
+    ? JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    : null;
+}
+
+function readInitialConfig(resolvedPath) {
+  if (resolvedPath === PROJECT_CONFIG_PATH) {
+    return {};
+  }
+
+  return readConfig(PROJECT_CONFIG_PATH) || {};
 }
 
 function applyEnvironmentConfig(config) {
@@ -141,6 +160,7 @@ function deriveTemplateBaseUrl(serverUrl) {
 
 module.exports = {
   DEFAULT_CONFIG,
+  configureUserConfigPath,
   deriveTemplateBaseUrl,
   loadConfig,
   saveConfig,
