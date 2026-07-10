@@ -25,6 +25,7 @@ public class TemplateCreateRequest {
     @Size(max = 100, message = "Bucket name must be at most 100 characters")
     private String bucketName;
 
+    @NotBlank(message = "Object name is required")
     @Size(max = 500, message = "Object name must be at most 500 characters")
     private String objectName;
 

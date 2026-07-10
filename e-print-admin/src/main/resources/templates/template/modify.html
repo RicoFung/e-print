@@ -27,7 +27,8 @@
             <form class="editor-layout"
                   th:object="${request}"
                   th:action="@{/admin/templates/modify}"
-                  method="post">
+                  method="post"
+                  data-ajax-save>
                 <input type="hidden" name="returnUrl" th:value="${returnUrl}">
                 <input type="hidden" th:field="*{id}">
                 <div class="card form-panel">
@@ -38,7 +39,7 @@
 
                         <div class="mb-3">
                             <label class="form-label" for="templateType">模板类型</label>
-                            <select class="form-select" id="templateType" th:field="*{templateTypeId}">
+                            <select class="form-select" id="templateType" th:field="*{templateTypeId}" required>
                                 <option th:each="type : ${templateTypes}"
                                         th:value="${type.id}"
                                         th:attr="data-template-type-code=${type.code}"
@@ -49,13 +50,13 @@
 
                         <div class="mb-3">
                             <label class="form-label" for="templateCode">模板编码</label>
-                            <input class="form-control" id="templateCode" th:field="*{templateCode}" data-object-prefix="templates/print">
+                            <input class="form-control" id="templateCode" th:field="*{templateCode}" data-object-prefix="templates/print" required>
                             <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('templateCode')}" th:errors="*{templateCode}"></div>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label" for="status">状态</label>
-                            <select class="form-select" id="status" th:field="*{status}">
+                            <select class="form-select" id="status" th:field="*{status}" required>
                                 <option value="1">启用</option>
                                 <option value="0">禁用</option>
                             </select>
@@ -64,13 +65,13 @@
 
                         <div class="mb-3">
                             <label class="form-label" for="bucketName">Bucket</label>
-                            <input class="form-control" id="bucketName" th:field="*{bucketName}">
+                            <input class="form-control" id="bucketName" th:field="*{bucketName}" required>
                             <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('bucketName')}" th:errors="*{bucketName}"></div>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label" for="objectName">Object Name</label>
-                            <input class="form-control" id="objectName" th:field="*{objectName}">
+                            <input class="form-control" id="objectName" th:field="*{objectName}" required>
                             <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('objectName')}" th:errors="*{objectName}"></div>
                         </div>
 
@@ -94,7 +95,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <textarea class="form-control code-editor" id="content" th:field="*{content}" spellcheck="false"></textarea>
+                        <textarea class="form-control code-editor" id="content" th:field="*{content}" spellcheck="false" required></textarea>
                         <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('content')}" th:errors="*{content}"></div>
                     </div>
                 </div>

@@ -23,6 +23,20 @@
   }
 
   function alertAction(message, options = {}) {
+    const popupClass = options.scrollMessage ? 'admin-swal admin-swal-scroll' : 'admin-swal';
+    if (options.hideMessage && window.Swal) {
+      return window.Swal.fire({
+        title: options.title || 'Success',
+        icon: options.icon || 'success',
+        confirmButtonText: options.okText || 'OK',
+        buttonsStyling: false,
+        customClass: {
+          popup: popupClass,
+          confirmButton: 'btn btn-primary'
+        }
+      });
+    }
+
     if (!window.Swal) {
       window.alert(message || '操作失败，请稍后重试');
       return Promise.resolve();
@@ -35,10 +49,81 @@
       confirmButtonText: options.okText || '确认',
       buttonsStyling: false,
       customClass: {
-        popup: 'admin-swal',
+        popup: popupClass,
         confirmButton: 'btn btn-primary'
       }
     });
+  }
+
+  function loadingAction(message) {
+    if (!window.Swal) {
+      return;
+    }
+    window.Swal.fire({
+      title: message || '保存中...',
+      html: '<div class="admin-save-loading" role="status" aria-hidden="true"><svg class="material-spinner" viewBox="0 0 50 50"><circle class="material-spinner-circle" cx="25" cy="25" r="20"></circle></svg></div>',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'admin-swal admin-swal-loading'
+      }
+    });
+  }
+
+  async function responseMessage(response, fallbackMessage) {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const payload = await response.json();
+      return payload.message || fallbackMessage;
+    }
+    return await response.text() || fallbackMessage;
+  }
+
+  function refreshFieldValidity(field) {
+    if (!field) {
+      return;
+    }
+    field.setCustomValidity('');
+    field.classList.remove('is-invalid');
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    field.checkValidity();
+  }
+
+  function syncFieldValidity(field) {
+    field.setCustomValidity('');
+    if (field.checkValidity()) {
+      field.classList.remove('is-invalid');
+      field.reportValidity();
+    }
+  }
+
+  function populateObjectNameIfEmpty(form) {
+    const templateCode = form.querySelector('#templateCode');
+    const templateType = form.querySelector('#templateType');
+    const objectName = form.querySelector('#objectName');
+    if (!templateCode || !objectName || objectName.value.trim()) {
+      return;
+    }
+    const code = templateCode.value.trim();
+    if (!code) {
+      return;
+    }
+    const prefix = templateCode.getAttribute('data-object-prefix') || 'templates/print';
+    const selectedType = templateType ? templateType.options[templateType.selectedIndex] : null;
+    const type = selectedType ? (selectedType.dataset.templateTypeCode || '').trim() : '';
+    objectName.value = type ? `${prefix}/${type}/${code}.html` : `${prefix}/${code}.html`;
+    refreshFieldValidity(objectName);
+  }
+
+  function ajaxRedirectUrl(form) {
+    if (!form.hasAttribute('data-ajax-redirect')) {
+      return '';
+    }
+    const returnUrl = form.querySelector('input[name="returnUrl"]');
+    return returnUrl && returnUrl.value ? returnUrl.value : form.getAttribute('data-ajax-redirect');
   }
 
   function syncSelectedTableRows($table, tableWrap, selectedIds) {
@@ -70,8 +155,74 @@
       okClass: form.getAttribute('data-confirm-class') || 'btn-primary'
     });
     if (confirmed) {
+      if (window.showPageLoading) {
+        window.showPageLoading();
+      }
       HTMLFormElement.prototype.submit.call(form);
     }
+  });
+
+  document.addEventListener('submit', async (event) => {
+    const form = event.target.closest('form[data-ajax-save]');
+    if (!form) {
+      return;
+    }
+    event.preventDefault();
+    populateObjectNameIfEmpty(form);
+
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    const submitButton = form.querySelector('[type="submit"]');
+    if (submitButton) {
+      submitButton.disabled = true;
+    }
+    loadingAction('保存中...');
+
+    try {
+      const response = await fetch(form.action, {
+        method: form.method || 'POST',
+        headers: {
+          Accept: 'application/json'
+        },
+        body: new FormData(form)
+      });
+      const message = await responseMessage(response, response.ok ? '保存成功' : '保存失败，请稍后重试');
+      if (!response.ok) {
+        throw new Error(message);
+      }
+      await alertAction(message, {
+        title: '保存成功',
+        icon: 'success',
+        hideMessage: true,
+        okText: '确认'
+      });
+      const redirectUrl = ajaxRedirectUrl(form);
+      if (redirectUrl) {
+        if (window.showPageLoading) {
+          window.showPageLoading();
+        }
+        window.location.assign(redirectUrl);
+      }
+    } catch (error) {
+      await alertAction(error.message || '保存失败，请稍后重试', {
+        title: '保存失败',
+        icon: 'error',
+        okText: '确认',
+        scrollMessage: true
+      });
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+      }
+    }
+  });
+
+  document.querySelectorAll('form[data-ajax-save] [required]').forEach((field) => {
+    field.addEventListener('input', () => syncFieldValidity(field));
+    field.addEventListener('change', () => syncFieldValidity(field));
   });
 
   document.querySelectorAll('.auto-dismiss-alert').forEach((alert) => {
@@ -86,17 +237,7 @@
   const objectName = document.getElementById('objectName');
   if (templateCode && objectName) {
     templateCode.addEventListener('blur', () => {
-      if (objectName.value.trim()) {
-        return;
-      }
-      const code = templateCode.value.trim();
-      if (!code) {
-        return;
-      }
-      const prefix = templateCode.getAttribute('data-object-prefix') || 'templates/print';
-      const selectedType = templateType ? templateType.options[templateType.selectedIndex] : null;
-      const type = selectedType ? (selectedType.dataset.templateTypeCode || '').trim() : '';
-      objectName.value = type ? `${prefix}/${type}/${code}.html` : `${prefix}/${code}.html`;
+      populateObjectNameIfEmpty(templateCode.form || document);
     });
   }
 

@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
 public class TemplateService {
 
     private static final Integer STATUS_ENABLED = 1;
+    private static final String SIMULATED_STACK_OBJECT_NAME = "__SIMULATE_STACK__";
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{\\{\\s*([A-Za-z0-9_.-]+)\\s*}}");
     private static final Pattern EACH_PATTERN = Pattern.compile("\\{\\{#each\\s+([A-Za-z0-9_.-]+)\\s*}}([\\s\\S]*?)\\{\\{/each}}");
     private static final String[] CODE128_PATTERNS = {
@@ -119,6 +120,9 @@ public class TemplateService {
     @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
     public void modify(TemplateModifyRequest request) {
         TemplateModifyParam param = ModelMapper.INSTANCE.map(request);
+        if (SIMULATED_STACK_OBJECT_NAME.equals(param.getObjectName())) {
+            simulateNullPointerException();
+        }
         Template existing = get(param.getId());
         prepare(param, STATUS_ENABLED.equals(param.getStatus()));
         Template sameCode = templateDao.getByTemplateTypeIdAndCode(param.getTemplateTypeId(), param.getTemplateCode());
@@ -127,6 +131,11 @@ public class TemplateService {
         }
         putObject(param.getBucketName(), param.getObjectName(), request.getContent());
         templateDao.modify(param);
+    }
+
+    private void simulateNullPointerException() {
+        Object value = null;
+        value.toString();
     }
 
     @Transactional(transactionManager = "transactionManagerMybatis", rollbackFor = Exception.class)
