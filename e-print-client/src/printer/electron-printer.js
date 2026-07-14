@@ -11,13 +11,21 @@ const LAST_PRINT_FILE = path.join(PRINT_TEMP_DIR, 'last-print.html');
 const APP_ICON_FILE = path.join(__dirname, '..', '..', 'assets', 'e-print-icon.png');
 const PREVIEW_SHELL_FILE = path.join(__dirname, '..', 'renderer', 'print-preview.html');
 const PREVIEW_PRELOAD_FILE = path.join(__dirname, 'print-preview-preload.js');
+const PRINT_CANCELLED_CODE = 'PRINT_CANCELLED';
+const PRINT_FAILED_CODE = 'PRINT_FAILED';
 
-function createElectronPrinter() {
+function createElectronPrinter(options) {
+  const printerOptions = options || {};
   return {
     print(html, options) {
       const opts = options || {};
       if (opts.silent === false) {
-        return previewAndPrintHtml(html, opts);
+        return previewAndPrintHtml(html, {
+          ...opts,
+          previewSettings: typeof printerOptions.getPreviewSettings === 'function'
+            ? printerOptions.getPreviewSettings()
+            : {}
+        });
       }
       return printHtml(html, opts);
     }
@@ -58,7 +66,7 @@ function printHtml(html, options) {
           if (success) {
             resolve();
           } else {
-            reject(new Error(failureReason || 'print failed'));
+            reject(createPrintFailureError(failureReason));
           }
         });
       })
@@ -72,6 +80,7 @@ function printHtml(html, options) {
 function previewAndPrintHtml(html, options) {
   return new Promise(async (resolve, reject) => {
     const opts = options || {};
+    const previewSettings = opts.previewSettings || {};
     const previewFile = createPreviewFilePath();
     let settled = false;
     let printing = false;
@@ -83,7 +92,7 @@ function previewAndPrintHtml(html, options) {
       minHeight: 520,
       title: 'E-PRINT Preview',
       icon: APP_ICON_FILE,
-      backgroundColor: '#f4f6f7',
+      backgroundColor: previewSettings.backgroundColor || '#f1f2f3',
       show: true,
       webPreferences: {
         preload: PREVIEW_PRELOAD_FILE,
@@ -134,6 +143,7 @@ function previewAndPrintHtml(html, options) {
         printing = false;
         sendState({
           state: 'failed',
+          code: error && error.code ? error.code : PRINT_FAILED_CODE,
           message: error && error.message ? error.message : String(error)
         });
       }
@@ -143,7 +153,7 @@ function previewAndPrintHtml(html, options) {
       if (event.sender.id !== win.webContents.id) {
         return;
       }
-      finish(() => reject(new Error('print cancelled')));
+      finish(() => reject(createPrintFailureError('print cancelled')));
     }
 
     ipcMain.on('print-preview:print', handlePrint);
@@ -163,7 +173,9 @@ function previewAndPrintHtml(html, options) {
         query: {
           src: pathToFileURL(previewFile).toString(),
           printerName: opts.printerName || '',
-          copies: String(opts.copies || 1)
+          copies: String(opts.copies || 1),
+          language: previewSettings.language || '',
+          theme: previewSettings.theme || ''
         }
       });
     } catch (error) {
@@ -207,9 +219,25 @@ function waitForPaint(win) {
   `);
 }
 
+function createPrintFailureError(failureReason) {
+  const isCancelled = isPrintCancelledReason(failureReason);
+  const error = new Error(isCancelled ? 'print cancelled' : (failureReason || 'print failed'));
+  error.code = isCancelled ? PRINT_CANCELLED_CODE : PRINT_FAILED_CODE;
+  error.failureReason = failureReason || '';
+  return error;
+}
+
+function isPrintCancelledReason(failureReason) {
+  return /\bcancell?ed\b|\bcancel\b|\u53d6\u6d88/i.test(String(failureReason || ''));
+}
+
 module.exports = {
+  createPrintFailureError,
   createElectronPrinter,
+  isPrintCancelledReason,
   LAST_PRINT_FILE,
+  PRINT_CANCELLED_CODE,
+  PRINT_FAILED_CODE,
   previewAndPrintHtml,
   printHtml,
   waitForImages,

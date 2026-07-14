@@ -124,22 +124,26 @@ const messages = {
 };
 
 const themeLabels = {
-  ocean: 'Ocean Depths',
-  sunset: 'Sunset Boulevard',
-  forest: 'Forest Canopy',
-  minimalist: 'Modern Minimalist',
-  golden: 'Golden Hour',
-  arctic: 'Arctic Frost',
-  desert: 'Desert Rose',
-  tech: 'Tech Innovation',
-  botanical: 'Botanical Garden',
-  midnight: 'Midnight Galaxy'
+  sky: 'Sky',
+  black: 'Black'
 };
 
 const legacyThemeMap = {
-  mint: 'botanical',
-  sky: 'arctic',
-  peach: 'sunset'
+  white: 'sky',
+  red: 'black',
+  blue: 'black',
+  ocean: 'black',
+  sunset: 'black',
+  forest: 'sky',
+  minimalist: 'sky',
+  golden: 'sky',
+  arctic: 'black',
+  desert: 'black',
+  tech: 'black',
+  botanical: 'sky',
+  midnight: 'black',
+  mint: 'sky',
+  peach: 'black'
 };
 
 init();
@@ -385,13 +389,13 @@ function detectLanguage() {
 }
 
 function loadTheme() {
-  return localStorage.getItem('ePrintTheme') || 'minimalist';
+  return localStorage.getItem('ePrintTheme') || 'black';
 }
 
 function applyTheme(theme) {
   const availableThemes = Object.keys(themeLabels);
   const normalizedTheme = legacyThemeMap[theme] || theme;
-  currentTheme = availableThemes.includes(normalizedTheme) ? normalizedTheme : 'minimalist';
+  currentTheme = availableThemes.includes(normalizedTheme) ? normalizedTheme : 'black';
   document.documentElement.dataset.theme = currentTheme;
   localStorage.setItem('ePrintTheme', currentTheme);
   if (typeof api.setTheme === 'function') {

@@ -61,6 +61,7 @@ let mainWindow;
 let tray;
 let currentConfig;
 let currentLanguage = 'en';
+let currentTheme = 'black';
 let isQuitting = false;
 
 app.whenReady().then(() => {
@@ -161,7 +162,9 @@ function registerIpcHandlers() {
       ? currentConfig.silent !== false
       : nextOptions.silent !== false;
 
-    await createElectronPrinter().print(TEST_PAGE_HTML, {
+    await createElectronPrinter({
+      getPreviewSettings
+    }).print(TEST_PAGE_HTML, {
       printerName,
       silent,
       copies: 1
@@ -182,7 +185,8 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('app:set-theme', (_event, theme) => {
-    const backgroundColor = themeWindowBackgrounds[theme] || DEFAULT_WINDOW_BACKGROUND;
+    currentTheme = normalizeTheme(theme);
+    const backgroundColor = themeWindowBackgrounds[currentTheme] || DEFAULT_WINDOW_BACKGROUND;
     if (mainWindow && typeof mainWindow.setBackgroundColor === 'function') {
       mainWindow.setBackgroundColor(backgroundColor);
     }
@@ -401,17 +405,22 @@ const menuLabels = {
 };
 
 const themeWindowBackgrounds = {
-  ocean: '#edf6f5',
-  sunset: '#fff5ea',
-  forest: '#f2f4ec',
-  minimalist: '#f4f6f7',
-  golden: '#fbf2e6',
-  arctic: '#eef5fd',
-  desert: '#f8eee9',
-  tech: '#f1f7ff',
-  botanical: '#f5f3ed',
-  midnight: '#f1eef7'
+  sky: '#eff9ff',
+  black: '#f1f2f3'
 };
+
+function normalizeTheme(theme) {
+  return Object.prototype.hasOwnProperty.call(themeWindowBackgrounds, theme) ? theme : 'black';
+}
+
+function getPreviewSettings() {
+  const theme = normalizeTheme(currentTheme);
+  return {
+    language: currentLanguage,
+    theme,
+    backgroundColor: themeWindowBackgrounds[theme] || DEFAULT_WINDOW_BACKGROUND
+  };
+}
 
 async function listPrinters() {
   if (!mainWindow || !mainWindow.webContents || typeof mainWindow.webContents.getPrintersAsync !== 'function') {
@@ -434,7 +443,9 @@ function restartClient(config) {
   }
 
   client = startPrintClient(config, {
-    printer: createElectronPrinter(),
+    printer: createElectronPrinter({
+      getPreviewSettings
+    }),
     onStatusChange: sendStatus
   });
   sendStatus(client.getStatus());

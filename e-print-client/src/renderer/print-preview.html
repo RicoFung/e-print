@@ -14,7 +14,6 @@
           <span id="previewMeta"></span>
         </div>
         <div class="previewActions">
-          <span id="previewStatus" class="previewStatus" data-i18n="ready">Ready</span>
           <button type="button" id="cancelButton" class="secondary" data-i18n="cancel">Cancel</button>
           <button type="button" id="printButton" data-i18n="print">Print</button>
         </div>
@@ -22,6 +21,12 @@
       <section class="paperStage">
         <iframe id="printFrame" title="Print content preview"></iframe>
       </section>
+      <footer class="previewStatusBar">
+        <div id="previewStatus" class="previewStatus ready">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="previewStatusText" data-i18n="ready">Ready</span>
+        </div>
+      </footer>
     </main>
     <script src="./print-preview.js"></script>
   </body>
