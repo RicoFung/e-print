@@ -194,7 +194,7 @@ select {
 
 .shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   width: min(100%, 1040px);
   height: 100vh;
   margin: 0 auto;
@@ -203,11 +203,13 @@ select {
 }
 
 .header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  justify-content: flex-end;
+  justify-items: end;
+  gap: 10px;
   min-height: var(--status-control-height);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .brand {
@@ -514,22 +516,10 @@ button {
   cursor: pointer;
   white-space: nowrap;
   font-weight: 720;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  transition: background 120ms ease, border-color 120ms ease;
 }
 
 .primaryAction {
-  width: 100%;
-  min-width: 0;
-}
-
-.cardActions {
-  margin-top: auto;
-  display: grid;
-  gap: 6px;
-  padding-top: 8px;
-}
-
-.cardActions button {
   width: 100%;
   min-width: 0;
 }
@@ -541,7 +531,6 @@ button {
 
 button:hover {
   background: var(--primary-hover);
-  transform: translateY(-1px);
 }
 
 button.secondary {
@@ -602,12 +591,26 @@ button.secondary:hover {
   grid-template-columns: minmax(0, 1fr);
   align-items: center;
   width: 100%;
-  margin-top: 10px;
+  min-width: 0;
+  margin-top: 6px;
 }
 
 .statusBar .status {
   width: 100%;
   box-shadow: none;
+}
+
+.actionBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.actionBar button {
+  width: 100%;
+  min-width: 0;
 }
 
 .dot {
@@ -666,6 +669,7 @@ button.secondary:hover {
   .header {
     grid-template-columns: 1fr;
     display: grid;
+    justify-items: stretch;
     gap: 8px;
   }
 
@@ -687,7 +691,7 @@ button.secondary:hover {
   }
 
   .statusBar {
-    margin-top: 8px;
+    width: 100%;
   }
 }
 
@@ -697,7 +701,7 @@ button.secondary:hover {
   }
 
   .header {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   .headerActions,
@@ -751,59 +755,4 @@ button.secondary:hover {
     width: var(--utility-button-width);
     min-width: var(--utility-button-width);
   }
-}
-
-@media (max-height: 560px) {
-  .shell {
-    padding: 6px;
-  }
-
-  .header {
-    min-height: var(--status-control-height);
-    margin-bottom: 4px;
-  }
-
-  h1 {
-    font-size: 20px;
-  }
-
-  .contentGrid {
-    gap: 5px;
-  }
-
-  .panel {
-    padding: 10px 8px 7px;
-  }
-
-  .panelHeader {
-    margin-bottom: 6px;
-  }
-
-  form,
-  .printerGrid {
-    gap: 5px;
-  }
-
-  input,
-  select,
-  button {
-    min-height: 30px;
-  }
-
-  input,
-  select {
-    height: 30px;
-    padding-top: 4px;
-    padding-bottom: 4px;
-  }
-
-  .cardActions {
-    padding-top: 5px;
-  }
-
-  .statusBar {
-    min-height: 32px;
-    margin-top: 8px;
-  }
-
 }

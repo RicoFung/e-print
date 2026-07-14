@@ -96,9 +96,9 @@ app.on('activate', () => {
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 680,
-    height: 410,
+    height: 460,
     minWidth: 680,
-    minHeight: 410,
+    minHeight: 460,
     title: 'E-PRINT-CLIENT',
     icon: path.join(__dirname, '..', 'assets', 'e-print-icon.png'),
     backgroundColor: DEFAULT_WINDOW_BACKGROUND,

@@ -59,11 +59,6 @@
             <input id="clientId" name="clientId" type="text" placeholder="CLIENT-001" required>
 
             <strong id="templateBaseUrl" hidden></strong>
-
-            <div class="cardActions">
-              <button type="submit" class="primaryAction" data-i18n="saveConnect">Save and connect</button>
-              <button type="button" id="reconnectButton" class="secondary" data-i18n="reconnect">Reconnect</button>
-            </div>
           </form>
         </section>
 
@@ -85,13 +80,13 @@
               <option value="true" data-i18n="silentEnabled">Enabled</option>
               <option value="false" data-i18n="silentDisabled">Disabled</option>
             </select>
-
-            <div class="cardActions">
-              <button type="button" id="testPrintButton" class="primaryAction" data-i18n="printTest">Print test page</button>
-              <button type="button" id="refreshPrintersButton" class="secondary" data-i18n="refresh">Refresh</button>
-            </div>
           </div>
         </section>
+      </section>
+
+      <section class="actionBar">
+        <button type="submit" form="configForm" class="primaryAction" data-i18n="saveConnect">Save and connect</button>
+        <button type="button" id="testPrintButton" class="secondary" data-i18n="printTest">Print test page</button>
       </section>
 
       <section class="statusBar">

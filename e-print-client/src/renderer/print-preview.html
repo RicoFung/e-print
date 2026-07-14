@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>E-PRINT Preview</title>
+    <link rel="stylesheet" href="./print-preview.css">
+  </head>
+  <body>
+    <main class="previewShell">
+      <header class="previewToolbar">
+        <div class="previewTitle">
+          <strong data-i18n="title">Print preview</strong>
+          <span id="previewMeta"></span>
+        </div>
+        <div class="previewActions">
+          <span id="previewStatus" class="previewStatus" data-i18n="ready">Ready</span>
+          <button type="button" id="cancelButton" class="secondary" data-i18n="cancel">Cancel</button>
+          <button type="button" id="printButton" data-i18n="print">Print</button>
+        </div>
+      </header>
+      <section class="paperStage">
+        <iframe id="printFrame" title="Print content preview"></iframe>
+      </section>
+    </main>
+    <script src="./print-preview.js"></script>
+  </body>
+</html>

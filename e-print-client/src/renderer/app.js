@@ -10,8 +10,6 @@ const silentSelect = document.getElementById('silent');
 const templateBaseUrl = document.getElementById('templateBaseUrl');
 const statusBadge = document.getElementById('statusBadge');
 const statusText = document.getElementById('statusText');
-const reconnectButton = document.getElementById('reconnectButton');
-const refreshPrintersButton = document.getElementById('refreshPrintersButton');
 const testPrintButton = document.getElementById('testPrintButton');
 const languageButton = document.getElementById('languageButton');
 const languageMenu = document.getElementById('languageMenu');
@@ -46,9 +44,9 @@ const messages = {
     printerHint: 'Choose output and test local printing.',
     refresh: 'Refresh',
     printTest: 'Print test page',
-    silentPrinting: 'Silent printing',
-    silentEnabled: 'Enabled',
-    silentDisabled: 'Disabled',
+    silentPrinting: 'Print mode',
+    silentEnabled: 'Silent',
+    silentDisabled: 'Preview',
     connectionStatus: 'Status',
     statusHint: 'Live connection diagnostics.',
     url: 'URL',
@@ -93,9 +91,9 @@ const messages = {
     printerHint: '\u9009\u62e9\u8f93\u51fa\u8bbe\u5907\u5e76\u6d4b\u8bd5\u672c\u5730\u6253\u5370\u3002',
     refresh: '\u5237\u65b0',
     printTest: '\u6253\u5370\u6d4b\u8bd5\u9875',
-    silentPrinting: '\u9759\u9ed8\u6253\u5370',
-    silentEnabled: '\u5f00\u542f',
-    silentDisabled: '\u5173\u95ed',
+    silentPrinting: '\u6253\u5370\u6a21\u5f0f',
+    silentEnabled: '\u9759\u9ed8',
+    silentDisabled: '\u9884\u89c8',
     connectionStatus: '\u72b6\u6001',
     statusHint: '\u5b9e\u65f6\u8fde\u63a5\u8bca\u65ad\u3002',
     url: '\u5730\u5740',
@@ -161,20 +159,6 @@ async function init() {
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   await saveConfig(t('savingConfig'), t('configSaved'));
-});
-
-reconnectButton.addEventListener('click', async () => {
-  setFeedback(t('reconnecting'));
-  try {
-    renderStatus(await api.reconnect());
-    setFeedback(t('reconnectRequested'));
-  } catch (error) {
-    setFeedback(error.message || t('reconnectFailed'), true);
-  }
-});
-
-refreshPrintersButton.addEventListener('click', async () => {
-  await loadPrinters();
 });
 
 testPrintButton.addEventListener('click', async () => {
