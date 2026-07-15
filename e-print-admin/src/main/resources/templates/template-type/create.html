@@ -22,7 +22,9 @@
             <form class="card form-panel type-form-panel"
                   th:object="${request}"
                   th:action="@{/admin/template-types/create}"
-                  method="post">
+                  method="post"
+                  data-ajax-save
+                  data-ajax-redirect="/admin/template-types">
                 <input type="hidden" name="returnUrl" th:value="${returnUrl}">
                 <div class="card-body">
                     <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger" role="alert">
@@ -31,25 +33,25 @@
 
                     <div class="mb-3">
                         <label class="form-label" for="code">编码</label>
-                        <input class="form-control" id="code" th:field="*{code}">
+                        <input class="form-control" id="code" th:field="*{code}" required>
                         <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('code')}" th:errors="*{code}"></div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label" for="name">名称</label>
-                        <input class="form-control" id="name" th:field="*{name}">
+                        <input class="form-control" id="name" th:field="*{name}" required>
                         <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label" for="sortNo">排序</label>
-                        <input class="form-control" id="sortNo" type="number" th:field="*{sortNo}">
+                        <input class="form-control" id="sortNo" type="number" th:field="*{sortNo}" required>
                         <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('sortNo')}" th:errors="*{sortNo}"></div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label" for="status">状态</label>
-                        <select class="form-select" id="status" th:field="*{status}">
+                        <select class="form-select" id="status" th:field="*{status}" required>
                             <option value="1">启用</option>
                             <option value="0">禁用</option>
                         </select>
@@ -69,5 +71,7 @@
 <script th:replace="~{layout :: scripts}"></script>
 <script th:replace="~{layout :: adminlteScripts}"></script>
 <script th:replace="~{layout :: themeScripts}"></script>
+<script th:replace="~{layout :: sweetalertScripts}"></script>
+<script th:src="@{/js/template-form.js}"></script>
 </body>
 </html>

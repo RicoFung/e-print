@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +60,7 @@ public class TemplateController extends BaseController {
         return templateForm(model, returnUrl, null, "template/create");
     }
 
-    @PostMapping("/create")
+    @PostMapping(value = "/create", produces = MediaType.TEXT_HTML_VALUE)
     public String create(@Valid @ModelAttribute("request") TemplateCreateRequest request,
                          BindingResult bindingResult,
                          @RequestParam(value = "returnUrl", required = false) String returnUrl,
@@ -75,6 +77,21 @@ public class TemplateController extends BaseController {
         }
         redirectAttributes.addFlashAttribute("message", "Template created");
         return redirect(returnUrl, RETURN_URL);
+    }
+
+    @PostMapping(value = "/create", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> create(@Valid @ModelAttribute("request") TemplateCreateRequest request,
+                                                      BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.badRequest().body(Map.of("message", bindingErrorMessage(bindingResult)));
+        }
+        try {
+            templateService.create(request);
+            return ResponseEntity.ok(Map.of("message", "保存成功"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", String.valueOf(e.getMessage())));
+        }
     }
 
     @PostMapping(value = "/remove", params = "id")
@@ -99,7 +116,7 @@ public class TemplateController extends BaseController {
         return templateForm(model, returnUrl, modifyRequest.getTemplateTypeId(), "template/modify");
     }
 
-    @PostMapping("/modify")
+    @PostMapping(value = "/modify", produces = MediaType.TEXT_HTML_VALUE)
     public String modify(@Valid @ModelAttribute("request") TemplateModifyRequest request,
                          BindingResult bindingResult,
                          @RequestParam(value = "returnUrl", required = false) String returnUrl,
@@ -116,6 +133,22 @@ public class TemplateController extends BaseController {
         }
         redirectAttributes.addFlashAttribute("message", "Template saved");
         return redirect(returnUrl, RETURN_URL);
+    }
+
+    @PostMapping(value = "/modify", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> modify(@Valid @ModelAttribute("request") TemplateModifyRequest request,
+                                                      BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.badRequest().body(Map.of("message", bindingErrorMessage(bindingResult)));
+        }
+        try {
+            templateService.modify(request);
+            return ResponseEntity.ok(Map.of("message", "保存成功"));
+        } catch (RuntimeException e) {
+            String message = "__SIMULATE_STACK__".equals(request.getObjectName()) ? stackTrace(e) : String.valueOf(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", message));
+        }
     }
 
     @PostMapping(value = "/disable", params = "id")
@@ -188,5 +221,19 @@ public class TemplateController extends BaseController {
             options.add(templateTypeService.get(currentTemplateTypeId));
         }
         return options;
+    }
+
+    private String bindingErrorMessage(BindingResult bindingResult) {
+        return bindingResult.getAllErrors().stream()
+                .map(error -> error.getDefaultMessage())
+                .filter(message -> message != null && !message.isBlank())
+                .findFirst()
+                .orElse("表单校验失败，请检查输入内容");
+    }
+
+    private String stackTrace(RuntimeException e) {
+        StringWriter writer = new StringWriter();
+        e.printStackTrace(new PrintWriter(writer));
+        return writer.toString();
     }
 }

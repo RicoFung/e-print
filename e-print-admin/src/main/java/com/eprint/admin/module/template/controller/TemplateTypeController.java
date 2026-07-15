@@ -11,6 +11,7 @@ import com.eprint.admin.module.template.model.request.TemplateTypeRemoveRequest;
 import com.eprint.admin.module.template.service.TemplateTypeService;
 import com.eprint.admin.repository.model.entity.TemplateType;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -43,7 +44,7 @@ public class TemplateTypeController extends BaseController {
         return form(model, returnUrl, RETURN_URL, "template-type/create");
     }
 
-    @PostMapping("/create")
+    @PostMapping(value = "/create", produces = MediaType.TEXT_HTML_VALUE)
     public String create(@Valid @ModelAttribute("request") TemplateTypeCreateRequest request,
                          BindingResult bindingResult,
                          @RequestParam(value = "returnUrl", required = false) String returnUrl,
@@ -60,6 +61,21 @@ public class TemplateTypeController extends BaseController {
         }
         redirectAttributes.addFlashAttribute("message", "Template type created");
         return redirect(returnUrl, RETURN_URL);
+    }
+
+    @PostMapping(value = "/create", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> create(@Valid @ModelAttribute("request") TemplateTypeCreateRequest request,
+                                                      BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.badRequest().body(Map.of("message", bindingErrorMessage(bindingResult)));
+        }
+        try {
+            templateTypeService.create(request);
+            return ResponseEntity.ok(Map.of("message", "保存成功"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", String.valueOf(e.getMessage())));
+        }
     }
 
     @PostMapping(value = "/remove", params = "id")
@@ -91,7 +107,7 @@ public class TemplateTypeController extends BaseController {
         return form(model, returnUrl, RETURN_URL, "template-type/modify");
     }
 
-    @PostMapping("/modify")
+    @PostMapping(value = "/modify", produces = MediaType.TEXT_HTML_VALUE)
     public String modify(@Valid @ModelAttribute("request") TemplateTypeModifyRequest request,
                          BindingResult bindingResult,
                          @RequestParam(value = "returnUrl", required = false) String returnUrl,
@@ -108,6 +124,21 @@ public class TemplateTypeController extends BaseController {
         }
         redirectAttributes.addFlashAttribute("message", "Template type saved");
         return redirect(returnUrl, RETURN_URL);
+    }
+
+    @PostMapping(value = "/modify", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> modify(@Valid @ModelAttribute("request") TemplateTypeModifyRequest request,
+                                                      BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.badRequest().body(Map.of("message", bindingErrorMessage(bindingResult)));
+        }
+        try {
+            templateTypeService.modify(request);
+            return ResponseEntity.ok(Map.of("message", "保存成功"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", String.valueOf(e.getMessage())));
+        }
     }
 
     @PostMapping(value = "/disable", params = "id")
@@ -148,6 +179,14 @@ public class TemplateTypeController extends BaseController {
     @ResponseBody
     public ResponseEntity<PageResult<TemplateType>> query(TemplateTypeQueryRequest request) {
         return ResponseEntity.ok(templateTypeService.query(request));
+    }
+
+    private String bindingErrorMessage(BindingResult bindingResult) {
+        return bindingResult.getAllErrors().stream()
+                .map(error -> error.getDefaultMessage())
+                .filter(message -> message != null && !message.isBlank())
+                .findFirst()
+                .orElse("表单校验失败，请检查输入内容");
     }
 
 }

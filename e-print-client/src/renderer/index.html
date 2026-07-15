@@ -27,16 +27,8 @@
                 <span id="themeSwatch" class="themeSwatch" aria-hidden="true"></span>
               </button>
               <div id="themeMenu" class="themeMenu" role="listbox" hidden>
-                <button type="button" class="themeOption themeOcean" data-theme-value="ocean" role="option" aria-label="Ocean Depths"></button>
-                <button type="button" class="themeOption themeSunset" data-theme-value="sunset" role="option" aria-label="Sunset Boulevard"></button>
-                <button type="button" class="themeOption themeForest" data-theme-value="forest" role="option" aria-label="Forest Canopy"></button>
-                <button type="button" class="themeOption themeMinimalist" data-theme-value="minimalist" role="option" aria-label="Modern Minimalist"></button>
-                <button type="button" class="themeOption themeGolden" data-theme-value="golden" role="option" aria-label="Golden Hour"></button>
-                <button type="button" class="themeOption themeArctic" data-theme-value="arctic" role="option" aria-label="Arctic Frost"></button>
-                <button type="button" class="themeOption themeDesert" data-theme-value="desert" role="option" aria-label="Desert Rose"></button>
-                <button type="button" class="themeOption themeTech" data-theme-value="tech" role="option" aria-label="Tech Innovation"></button>
-                <button type="button" class="themeOption themeBotanical" data-theme-value="botanical" role="option" aria-label="Botanical Garden"></button>
-                <button type="button" class="themeOption themeMidnight" data-theme-value="midnight" role="option" aria-label="Midnight Galaxy"></button>
+                <button type="button" class="themeOption themeBlack" data-theme-value="black" role="option" aria-label="Black"></button>
+                <button type="button" class="themeOption themeSky" data-theme-value="sky" role="option" aria-label="Sky"></button>
               </div>
             </div>
           </div>
@@ -59,11 +51,6 @@
             <input id="clientId" name="clientId" type="text" placeholder="CLIENT-001" required>
 
             <strong id="templateBaseUrl" hidden></strong>
-
-            <div class="cardActions">
-              <button type="submit" class="primaryAction" data-i18n="saveConnect">Save and connect</button>
-              <button type="button" id="reconnectButton" class="secondary" data-i18n="reconnect">Reconnect</button>
-            </div>
           </form>
         </section>
 
@@ -85,13 +72,13 @@
               <option value="true" data-i18n="silentEnabled">Enabled</option>
               <option value="false" data-i18n="silentDisabled">Disabled</option>
             </select>
-
-            <div class="cardActions">
-              <button type="button" id="testPrintButton" class="primaryAction" data-i18n="printTest">Print test page</button>
-              <button type="button" id="refreshPrintersButton" class="secondary" data-i18n="refresh">Refresh</button>
-            </div>
           </div>
         </section>
+      </section>
+
+      <section class="actionBar">
+        <button type="submit" form="configForm" class="primaryAction" data-i18n="saveConnect">Save and connect</button>
+        <button type="button" id="testPrintButton" class="secondary" data-i18n="printTest">Print test page</button>
       </section>
 
       <section class="statusBar">

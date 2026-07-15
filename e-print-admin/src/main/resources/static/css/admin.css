@@ -649,6 +649,21 @@ h1 {
   color: #cbd5e1;
 }
 
+.editor-layout label[for="templateType"]::after,
+.editor-layout label[for="templateCode"]::after,
+.editor-layout label[for="status"]::after,
+.editor-layout label[for="bucketName"]::after,
+.editor-layout label[for="objectName"]::after,
+.editor-layout label[for="content"]::after,
+.type-form-panel label[for="code"]::after,
+.type-form-panel label[for="name"]::after,
+.type-form-panel label[for="sortNo"]::after,
+.type-form-panel label[for="status"]::after {
+  content: " *";
+  color: #dc3545;
+  font-weight: 800;
+}
+
 .form-control,
 .form-select {
   min-height: 40px;
@@ -1297,8 +1312,99 @@ h1 {
   line-height: 1.6;
 }
 
+.admin-swal-scroll .swal2-html-container {
+  max-height: min(56vh, 420px);
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.admin-swal-loading .swal2-html-container {
+  overflow: visible;
+}
+
+.admin-save-loading {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 4px;
+}
+
+.material-spinner {
+  display: block;
+  width: 42px;
+  height: 42px;
+  animation: material-spin 1.4s linear infinite;
+}
+
+.material-spinner-circle {
+  fill: none;
+  stroke: var(--bs-primary);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 90, 150;
+  stroke-dashoffset: 0;
+  transform-origin: center;
+  animation: material-dash 1.4s ease-in-out infinite;
+}
+
+@keyframes material-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes material-dash {
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
+}
+
+.admin-page-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, .62);
+  backdrop-filter: blur(2px);
+}
+
+.admin-page-loading.is-active {
+  display: flex;
+}
+
+.admin-page-loading-box {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  color: var(--admin-ink);
+}
+
+.admin-page-loading-text {
+  font-size: 14px;
+  font-weight: 700;
+}
+
 [data-bs-theme="dark"] .admin-swal {
   background: #151f2e;
+}
+
+[data-bs-theme="dark"] .admin-page-loading {
+  background: rgba(5, 10, 18, .58);
 }
 
 [data-bs-theme="dark"] .admin-swal .swal2-html-container {

@@ -2,6 +2,7 @@
   'use strict';
 
   const storageKey = 'lte-theme';
+  const loadingDebugKey = 'admin.loading.debug';
   const mediaQuery = globalThis.matchMedia('(prefers-color-scheme: dark)');
 
   function getStoredTheme() {
@@ -81,6 +82,74 @@
     }
   }
 
+  function ensurePageLoadingOverlay() {
+    let overlay = document.getElementById('adminPageLoading');
+    if (overlay) {
+      return overlay;
+    }
+    overlay = document.createElement('div');
+    overlay.id = 'adminPageLoading';
+    overlay.className = 'admin-page-loading';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.innerHTML = '<div class="admin-page-loading-box"><svg class="material-spinner" viewBox="0 0 50 50" aria-hidden="true"><circle class="material-spinner-circle" cx="25" cy="25" r="20"></circle></svg><span class="admin-page-loading-text">加载中...</span></div>';
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function showPageLoading() {
+    ensurePageLoadingOverlay().classList.add('is-active');
+  }
+
+  function hidePageLoading() {
+    const overlay = document.getElementById('adminPageLoading');
+    if (overlay) {
+      overlay.classList.remove('is-active');
+    }
+  }
+
+  function isPageLoadingDebug() {
+    try {
+      return localStorage.getItem(loadingDebugKey) === '1';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function isPlainLeftClick(event) {
+    return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+  }
+
+  function isNavigableLink(link) {
+    if (!link || link.hasAttribute('download')) {
+      return false;
+    }
+    const target = (link.getAttribute('target') || '').toLowerCase();
+    if (target && target !== '_self') {
+      return false;
+    }
+    const rawHref = link.getAttribute('href') || '';
+    if (!rawHref || rawHref === '#' || rawHref.startsWith('#')) {
+      return false;
+    }
+    if (/^(javascript:|mailto:|tel:|data:|blob:)/i.test(rawHref)) {
+      return false;
+    }
+    const url = new URL(link.href, window.location.href);
+    return url.origin === window.location.origin;
+  }
+
+  function isStaticSubmit(form) {
+    if (!form || form.matches('[data-ajax-save], [data-confirm]')) {
+      return false;
+    }
+    const target = (form.getAttribute('target') || '').toLowerCase();
+    return !target || target === '_self';
+  }
+
+  globalThis.showPageLoading = showPageLoading;
+  globalThis.hidePageLoading = hidePageLoading;
+
   mediaQuery.addEventListener('change', () => {
     const theme = getPreferredTheme();
     if (theme === 'auto') {
@@ -101,5 +170,34 @@
         showActiveTheme(selectedTheme, true);
       });
     });
+
+    document.addEventListener('click', (event) => {
+      if (event.defaultPrevented || !isPlainLeftClick(event)) {
+        return;
+      }
+      const target = event.target instanceof Element ? event.target : event.target.parentElement;
+      const link = target ? target.closest('a[href]') : null;
+      if (isNavigableLink(link)) {
+        showPageLoading();
+        if (isPageLoadingDebug()) {
+          event.preventDefault();
+        }
+      }
+    });
+
+    document.addEventListener('submit', (event) => {
+      if (event.defaultPrevented || !isStaticSubmit(event.target)) {
+        return;
+      }
+      if (event.target.checkValidity && !event.target.checkValidity()) {
+        return;
+      }
+      showPageLoading();
+      if (isPageLoadingDebug()) {
+        event.preventDefault();
+      }
+    });
+
+    window.addEventListener('pageshow', hidePageLoading);
   });
 })();
