@@ -63,7 +63,7 @@ sequenceDiagram
     alt 指定模板不存在且 templateCode 不是 01
         Server->>DB: 查询同类型默认模板 01
     end
-    Server->>Server: 创建内存任务，状态为 CREATED
+    Server->>Server: 生成 UUID 并创建内存任务，状态为 CREATED
     Server->>Client: 尝试推送 print-task
     alt 推送成功
         Server->>Server: 状态更新为 DISPATCHED
@@ -80,8 +80,9 @@ sequenceDiagram
     Client->>Client: 渲染数据、二维码、条码
     Client->>Printer: Electron 打印
     Printer-->>Client: 打印成功或失败
-    Client->>Server: WebSocket print-result
-    Note over Client,Server: 当前服务端未处理该消息，任务状态不会自动更新
+    Client->>Server: POST /task/{taskId}/result + Basic Auth
+    Server->>Server: 状态更新为 SUCCESS 或 FAILED
+    Server-->>Client: 返回更新后的任务
 ```
 
 ## 4. 项目模块

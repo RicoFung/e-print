@@ -7,6 +7,7 @@
 1. [核心能力](#1-核心能力)
 2. [运行与配置](#2-运行与配置)
 3. [接口协议](#3-接口协议)
+4. [接口日志](#4-接口日志)
 
 ## 1. 核心能力
 
@@ -16,6 +17,7 @@
 - 从 MinIO 读取 HTML 打印模板
 - 支持 Basic 认证，`/health` 除外
 - 支持 Graylog 日志输出和 SpringDoc 接口文档
+- 统一记录 HTTP 接口的请求、响应、状态码和处理耗时
 
 ## 2. 运行与配置
 
@@ -111,9 +113,9 @@ Authorization: Basic ...
 
 ```json
 {
-  "type": "PRINT_TASK",
-  "data": {
-    "taskId": "9d4d0c5f7f4b4f44a1bb2f0d2d4f1a01",
+  "type": "print-task",
+  "payload": {
+    "taskId": "9d4d0c5f-7f4b-4f44-a1bb-2f0d2d4f1a01",
     "clientId": "CLIENT-001",
     "templateType": "sales_receipt",
     "templateCode": "01",
@@ -144,3 +146,14 @@ Authorization: Basic ...
 ```
 
 模板查询会按 `(templateType, templateCode)` 查找启用模板；找不到时回退到同类型默认模板 `(templateType, 01)`。
+
+## 4. 接口日志
+
+服务端默认通过一条日志同时记录一次 HTTP 请求及其最终响应，包括请求方法、路径、查询参数、客户端 IP、HTTP 状态码、处理耗时、请求体和响应体。WebSocket 升级请求不经过该日志记录。
+
+日志会对 `password`、`accessToken`、`refreshToken`、`token`、`secret`、`authorization` 等 JSON 字段和查询参数脱敏；非文本正文只记录字节数。服务端会生成或沿用 `X-Request-Id`，写入日志 MDC 并通过同名响应头返回。
+
+| 环境变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `E_PRINT_API_LOG_ENABLED` | `true` | 是否启用 HTTP 接口日志 |
+| `E_PRINT_API_LOG_MAX_BODY_LENGTH` | `8192` | 请求体和响应体的最大日志字符数，超过后截断 |

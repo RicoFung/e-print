@@ -2,6 +2,7 @@
 
 const { parseTaskMessage } = require('./task');
 const { runPrintTask } = require('./print-runner');
+const { reportPrintResult } = require('./result-reporter');
 
 function startPrintClient(config, dependencies) {
   const deps = dependencies || {};
@@ -69,10 +70,16 @@ function startPrintClient(config, dependencies) {
         return;
       }
 
-      await (deps.runPrintTask || runPrintTask)(task, config, {
-        ...deps,
-        reportResult: (result) => sendJson(socket, result)
-      });
+      try {
+        await (deps.runPrintTask || runPrintTask)(task, config, {
+          ...deps,
+          reportResult: (result) => (deps.reportPrintResult || reportPrintResult)(result, config, deps)
+        });
+      } catch (error) {
+        if (logger && typeof logger.warn === 'function') {
+          logger.warn(`print result report failed: ${error.message}`);
+        }
+      }
     });
 
     socket.on('error', (error) => {
