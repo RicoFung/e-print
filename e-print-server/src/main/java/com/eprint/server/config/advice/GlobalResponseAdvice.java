@@ -43,7 +43,7 @@ public class GlobalResponseAdvice implements ResponseBodyAdvice<Object> {
             Class<? extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request,
             ServerHttpResponse response) {
         NikoResult result = NikoResult.data(body);
-        result.set("message", result.getMsg());
+        // result.set("message", result.getMsg());
 
         if (String.class.equals(returnType.getGenericParameterType())) {
             try {
