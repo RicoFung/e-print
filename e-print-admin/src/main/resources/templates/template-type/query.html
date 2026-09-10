@@ -23,7 +23,7 @@
                 <div class="card-body">
                     <form class="row g-3 align-items-end" id="templateTypeFilterForm" th:action="@{/admin/template-types}" method="get">
                         <div class="col-md-5">
-                            <label class="form-label" for="keyword">编码 / 名称</label>
+                            <label class="form-label" for="keyword">类型编码 / 类型名称</label>
                             <input class="form-control" id="keyword" name="keyword" th:value="${request.keyword}">
                         </div>
                         <div class="col-md-3">
@@ -70,8 +70,8 @@
                     <thead>
                     <tr>
                         <th data-field="selected" data-checkbox="true" data-width="52"></th>
-                        <th data-field="code" data-formatter="templateTypeCodeFormatter" data-admin-sortable="true">编码</th>
-                        <th data-field="name" data-admin-sortable="true">名称</th>
+                        <th data-field="code" data-formatter="templateTypeCodeFormatter" data-admin-sortable="true">类型编码</th>
+                        <th data-field="name" data-admin-sortable="true">类型名称</th>
                         <th data-field="sortNo" data-admin-sortable="true">排序</th>
                         <th data-field="status" data-formatter="statusFormatter" data-admin-sortable="true">状态</th>
                         <th data-field="actions" data-align="right" data-formatter="templateTypeActionFormatter">操作</th>
