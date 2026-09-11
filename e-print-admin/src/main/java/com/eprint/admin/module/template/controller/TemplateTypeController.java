@@ -27,10 +27,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.Map;
 
 @Controller
-@RequestMapping("/admin/template-types")
+@RequestMapping("/template-types")
 public class TemplateTypeController extends BaseController {
 
-    private static final String RETURN_URL = "/admin/template-types";
+    private static final String RETURN_URL = "/template-types";
 
     private final TemplateTypeService templateTypeService;
 
@@ -86,7 +86,7 @@ public class TemplateTypeController extends BaseController {
         } catch (RuntimeException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/admin/template-types";
+        return "redirect:/template-types";
     }
 
     @PostMapping(value = "/remove", params = "ids")
@@ -145,7 +145,7 @@ public class TemplateTypeController extends BaseController {
     public String disable(TemplateTypeDisableRequest request, RedirectAttributes redirectAttributes) {
         templateTypeService.disable(request);
         redirectAttributes.addFlashAttribute("message", "Template type disabled");
-        return "redirect:/admin/template-types";
+        return "redirect:/template-types";
     }
 
     @PostMapping(value = "/disable", params = "ids")
@@ -158,7 +158,7 @@ public class TemplateTypeController extends BaseController {
     public String enable(TemplateTypeEnableRequest request, RedirectAttributes redirectAttributes) {
         templateTypeService.enable(request);
         redirectAttributes.addFlashAttribute("message", "Template type enabled");
-        return "redirect:/admin/template-types";
+        return "redirect:/template-types";
     }
 
     @PostMapping(value = "/enable", params = "ids")

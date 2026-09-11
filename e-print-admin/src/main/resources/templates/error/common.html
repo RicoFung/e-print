@@ -33,7 +33,7 @@
 <body class="error-page" th:classappend="${' error-page--' + tone}">
 <main class="error-shell">
     <header class="error-header">
-        <a class="error-brand" th:href="@{/admin}" aria-label="返回 E-PRINT-ADMIN 首页">
+        <a class="error-brand" th:href="@{/}" aria-label="返回 E-PRINT-ADMIN 首页">
             <span class="error-brand__name">E—PRINT</span>
             <span class="error-brand__meta">TEMPLATE OPERATIONS</span>
         </a>
@@ -53,7 +53,7 @@
             <dl class="error-context" th:if="${path != null and !#strings.isEmpty(path)}">
                 <div>
                     <dt>请求路径</dt>
-                    <dd th:text="${path}">/admin/example</dd>
+                    <dd th:text="${path}">/example</dd>
                 </div>
                 <div th:if="${timestamp != null}">
                     <dt>发生时间</dt>
@@ -62,7 +62,7 @@
             </dl>
 
             <div class="error-actions">
-                <a class="error-link error-link--primary" th:href="@{/admin}">返回首页 <span>↗</span></a>
+                <a class="error-link error-link--primary" th:href="@{/}">返回首页 <span>↗</span></a>
                 <button class="error-link" type="button" data-error-back>返回上一页 <span>←</span></button>
             </div>
         </div>

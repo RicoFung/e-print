@@ -58,12 +58,11 @@
                         <button class="btn btn-outline-warning btn-sm" id="disableSelectedTemplates" type="button" disabled>批量禁用</button>
                         <button class="btn btn-outline-success btn-sm" id="enableSelectedTemplates" type="button" disabled>批量启用</button>
                         <button class="btn btn-outline-danger btn-sm" id="removeSelectedTemplates" type="button" disabled>批量删除</button>
-                        <a class="btn btn-primary btn-sm" id="createTemplateLink" th:href="@{/admin/templates/create}">新增</a>
+                        <a class="btn btn-primary btn-sm" id="createTemplateLink" th:href="@{/templates/create}">新增</a>
                     </div>
                 </div>
                 <table id="templateTable"
-                       th:attr="data-initial-page=${page},data-initial-page-size=${pageSize}"
-                       data-url="/admin/templates/query"
+                       th:attr="data-url=@{/templates/query},data-initial-page=${page},data-initial-page-size=${pageSize}"
                        data-side-pagination="server"
                        data-pagination="true"
                        data-page-size="2"

@@ -1,3 +1,15 @@
+function adminContextUrl(path) {
+  const contextMeta = document.querySelector('meta[name="application-context-path"]');
+  const contextPath = (contextMeta ? contextMeta.content : '/')
+    .replace(/\/+$/, '');
+  const targetPath = path.startsWith('/') ? path : `/${path}`;
+
+  if (/^(?:[a-z]+:)?\/\//i.test(path) || (contextPath && (path === contextPath || path.startsWith(`${contextPath}/`)))) {
+    return path;
+  }
+  return `${contextPath}${targetPath}`;
+}
+
 (function () {
   function confirmAction(message, options = {}) {
     if (!window.Swal) {
@@ -123,7 +135,8 @@
       return '';
     }
     const returnUrl = form.querySelector('input[name="returnUrl"]');
-    return returnUrl && returnUrl.value ? returnUrl.value : form.getAttribute('data-ajax-redirect');
+    const targetUrl = returnUrl && returnUrl.value ? returnUrl.value : form.getAttribute('data-ajax-redirect');
+    return adminContextUrl(targetUrl);
   }
 
   function syncSelectedTableRows($table, tableWrap, selectedIds) {
@@ -347,7 +360,7 @@
     }
     const id = encodeURIComponent(button.getAttribute('data-template-preview-id'));
     openPreview({
-      url: '/admin/templates/preview/render',
+      url: adminContextUrl('/templates/preview/render'),
       id,
       subtitle: button.getAttribute('data-template-preview-name') || '已保存模板'
     });
@@ -356,7 +369,7 @@
   const previewCurrentTemplate = document.getElementById('previewCurrentTemplate');
   if (previewCurrentTemplate && content) {
     previewCurrentTemplate.addEventListener('click', () => openPreview({
-      url: '/admin/templates/preview/render',
+      url: adminContextUrl('/templates/preview/render'),
       subtitle: '当前编辑内容（无需保存）',
       contentProvider: () => content.value
     }));
@@ -500,20 +513,20 @@
       }
       params.set('page', String(pageNumber));
       params.set('pageSize', String(pageSize));
-      return `/admin/templates?${params.toString()}`;
+      return `/templates?${params.toString()}`;
     };
 
     const syncListUrl = () => {
       const options = $table.bootstrapTable('getOptions');
       const returnUrl = currentListUrl(options.pageNumber || 1, options.pageSize || initialPageSize);
       window.templateListReturnUrl = returnUrl;
-      window.history.replaceState(null, '', returnUrl);
+      window.history.replaceState(null, '', adminContextUrl(returnUrl));
       if (createTemplateLink) {
-        createTemplateLink.href = `/admin/templates/create?returnUrl=${encodeURIComponent(returnUrl)}`;
+        createTemplateLink.href = adminContextUrl(`/templates/create?returnUrl=${encodeURIComponent(returnUrl)}`);
       }
       document.querySelectorAll('[data-template-edit-id]').forEach((link) => {
         const id = encodeURIComponent(link.getAttribute('data-template-edit-id'));
-        link.href = `/admin/templates/modify?id=${id}&returnUrl=${encodeURIComponent(returnUrl)}`;
+        link.href = adminContextUrl(`/templates/modify?id=${id}&returnUrl=${encodeURIComponent(returnUrl)}`);
       });
     };
 
@@ -679,7 +692,7 @@
 
     if (bulkDisable) {
       bulkDisable.addEventListener('click', () => runBulkAction({
-        url: '/admin/templates/disable',
+        url: adminContextUrl('/templates/disable'),
         title: '批量禁用',
         okText: '禁用',
         okClass: 'btn-warning',
@@ -689,7 +702,7 @@
 
     if (bulkEnable) {
       bulkEnable.addEventListener('click', () => runBulkAction({
-        url: '/admin/templates/enable',
+        url: adminContextUrl('/templates/enable'),
         title: '批量启用',
         okText: '启用',
         okClass: 'btn-success',
@@ -699,7 +712,7 @@
 
     if (bulkRemove) {
       bulkRemove.addEventListener('click', () => runBulkAction({
-        url: '/admin/templates/remove',
+        url: adminContextUrl('/templates/remove'),
         title: '批量删除',
         okText: '删除',
         okClass: 'btn-danger',
@@ -852,20 +865,20 @@
       }
       params.set('page', String(pageNumber));
       params.set('pageSize', String(pageSize));
-      return `/admin/template-types?${params.toString()}`;
+      return `/template-types?${params.toString()}`;
     };
 
     const syncListUrl = () => {
       const options = $typeTable.bootstrapTable('getOptions');
       const returnUrl = currentListUrl(options.pageNumber || 1, options.pageSize || initialPageSize);
       window.templateTypeListReturnUrl = returnUrl;
-      window.history.replaceState(null, '', returnUrl);
+      window.history.replaceState(null, '', adminContextUrl(returnUrl));
       if (createTemplateTypeLink) {
-        createTemplateTypeLink.href = `/admin/template-types/create?returnUrl=${encodeURIComponent(returnUrl)}`;
+        createTemplateTypeLink.href = adminContextUrl(`/template-types/create?returnUrl=${encodeURIComponent(returnUrl)}`);
       }
       document.querySelectorAll('[data-template-type-edit-id]').forEach((link) => {
         const id = encodeURIComponent(link.getAttribute('data-template-type-edit-id'));
-        link.href = `/admin/template-types/modify?id=${id}&returnUrl=${encodeURIComponent(returnUrl)}`;
+        link.href = adminContextUrl(`/template-types/modify?id=${id}&returnUrl=${encodeURIComponent(returnUrl)}`);
       });
     };
 
@@ -1002,7 +1015,7 @@
             return;
           }
           try {
-            await postIds('/admin/template-types/remove', [id]);
+            await postIds(adminContextUrl('/template-types/remove'), [id]);
             $typeTable.bootstrapTable('refresh');
           } catch (error) {
             await alertAction(error.message, { title: '删除失败' });
@@ -1045,7 +1058,7 @@
 
     if (bulkDisable) {
       bulkDisable.addEventListener('click', () => runBulkAction({
-        url: '/admin/template-types/disable',
+        url: adminContextUrl('/template-types/disable'),
         title: '批量禁用',
         okText: '禁用',
         okClass: 'btn-warning',
@@ -1055,7 +1068,7 @@
 
     if (bulkEnable) {
       bulkEnable.addEventListener('click', () => runBulkAction({
-        url: '/admin/template-types/enable',
+        url: adminContextUrl('/template-types/enable'),
         title: '批量启用',
         okText: '启用',
         okClass: 'btn-success',
@@ -1107,10 +1120,10 @@ function templateTypeCodeFormatter(value) {
 function templateTypeActionFormatter(value, row) {
   const id = encodeURIComponent(row.id);
   const returnUrl = encodeURIComponent(window.templateTypeListReturnUrl || `${window.location.pathname}${window.location.search}`);
-  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-type-edit-id="${id}" href="/admin/template-types/modify?id=${id}&returnUrl=${returnUrl}">编辑</a>`;
+  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-type-edit-id="${id}" href="${adminContextUrl(`/template-types/modify?id=${id}&returnUrl=${returnUrl}`)}">编辑</a>`;
   const statusAction = Number(row.status) === 1
-    ? `<form action="/admin/template-types/disable" method="post" data-confirm="确认禁用该模板类型？" data-confirm-title="禁用模板类型" data-confirm-ok="禁用" data-confirm-class="btn-warning"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
-    : `<form action="/admin/template-types/enable" method="post" data-confirm="确认启用该模板类型？" data-confirm-title="启用模板类型" data-confirm-ok="启用" data-confirm-class="btn-success"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;
+    ? `<form action="${adminContextUrl('/template-types/disable')}" method="post" data-confirm="确认禁用该模板类型？" data-confirm-title="禁用模板类型" data-confirm-ok="禁用" data-confirm-class="btn-warning"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
+    : `<form action="${adminContextUrl('/template-types/enable')}" method="post" data-confirm="确认启用该模板类型？" data-confirm-title="启用模板类型" data-confirm-ok="启用" data-confirm-class="btn-success"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;
   const removeAction = `<button class="btn btn-outline-danger btn-sm" type="button" data-template-type-remove-id="${id}">删除</button>`;
   return `<div class="row-actions">${edit}${statusAction}${removeAction}</div>`;
 }
@@ -1120,10 +1133,10 @@ function actionFormatter(value, row) {
   const returnUrl = encodeURIComponent(window.templateListReturnUrl || `${window.location.pathname}${window.location.search}`);
   const previewName = escapeHtml(row.templateCode || '已保存模板');
   const preview = `<button class="btn btn-outline-secondary btn-sm" type="button" data-template-preview-id="${id}" data-template-preview-name="${previewName}">预览</button>`;
-  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-edit-id="${id}" href="/admin/templates/modify?id=${id}&returnUrl=${returnUrl}">编辑</a>`;
+  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-edit-id="${id}" href="${adminContextUrl(`/templates/modify?id=${id}&returnUrl=${returnUrl}`)}">编辑</a>`;
   const statusAction = Number(row.status) === 1
-    ? `<form action="/admin/templates/disable" method="post" data-confirm="确认禁用该模板？" data-confirm-title="禁用模板" data-confirm-ok="禁用" data-confirm-class="btn-warning"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
-    : `<form action="/admin/templates/enable" method="post" data-confirm="确认启用该模板？" data-confirm-title="启用模板" data-confirm-ok="启用" data-confirm-class="btn-success"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;
-  const removeAction = `<form action="/admin/templates/remove" method="post" data-confirm="确认删除该模板？" data-confirm-title="删除模板" data-confirm-ok="删除" data-confirm-class="btn-danger"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-danger btn-sm" type="submit">删除</button></form>`;
+    ? `<form action="${adminContextUrl('/templates/disable')}" method="post" data-confirm="确认禁用该模板？" data-confirm-title="禁用模板" data-confirm-ok="禁用" data-confirm-class="btn-warning"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
+    : `<form action="${adminContextUrl('/templates/enable')}" method="post" data-confirm="确认启用该模板？" data-confirm-title="启用模板" data-confirm-ok="启用" data-confirm-class="btn-success"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;
+  const removeAction = `<form action="${adminContextUrl('/templates/remove')}" method="post" data-confirm="确认删除该模板？" data-confirm-title="删除模板" data-confirm-ok="删除" data-confirm-class="btn-danger"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-danger btn-sm" type="submit">删除</button></form>`;
   return `<div class="row-actions">${preview}${edit}${statusAction}${removeAction}</div>`;
 }

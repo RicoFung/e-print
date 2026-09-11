@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
     <meta name="supported-color-schemes" content="light dark">
+    <meta name="application-context-path" th:content="@{/}">
     <script>
         (() => {
             'use strict';
@@ -149,7 +150,7 @@
 
     <aside class="app-sidebar admin-sidebar">
         <div class="sidebar-brand">
-            <a class="brand-link" th:href="@{/admin}">
+            <a class="brand-link" th:href="@{/}">
                 <img class="brand-mark" th:src="@{/img/e-print-logo.svg}" alt="" width="38" height="38">
                 <span class="brand-text fw-semibold">E-PRINT-ADMIN</span>
             </a>
@@ -160,10 +161,10 @@
                     <li class="nav-header"></li>
                     <li class="nav-item">
                         <a class="nav-link"
-                            th:classappend="${(currentRequestUri == '/admin' or currentRequestUri == '/admin/') ? ' active' : ''}"
+                            th:classappend="${currentRequestUri == '/' ? ' active' : ''}"
                             title="首页"
                             aria-label="首页"
-                            th:href="@{/admin}">
+                            th:href="@{/}">
                             <span class="nav-icon admin-nav-icon" aria-hidden="true">
                                 <svg><use href="#admin-icon-home"></use></svg>
                             </span>
@@ -172,10 +173,10 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link"
-                            th:classappend="${(currentRequestUri == '/admin/template-types' or #strings.startsWith(currentRequestUri, '/admin/template-types/')) ? ' active' : ''}"
+                            th:classappend="${(currentRequestUri == '/template-types' or #strings.startsWith(currentRequestUri, '/template-types/')) ? ' active' : ''}"
                             title="类型管理"
                             aria-label="类型管理"
-                            th:href="@{/admin/template-types}">
+                            th:href="@{/template-types}">
                             <span class="nav-icon admin-nav-icon" aria-hidden="true">
                                 <svg><use href="#admin-icon-template-type"></use></svg>
                             </span>
@@ -184,10 +185,10 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link"
-                            th:classappend="${(currentRequestUri == '/admin/templates' or #strings.startsWith(currentRequestUri, '/admin/templates/')) ? ' active' : ''}"
+                            th:classappend="${(currentRequestUri == '/templates' or #strings.startsWith(currentRequestUri, '/templates/')) ? ' active' : ''}"
                             title="模板管理"
                             aria-label="模板管理"
-                            th:href="@{/admin/templates}">
+                            th:href="@{/templates}">
                             <span class="nav-icon admin-nav-icon" aria-hidden="true">
                                 <svg><use href="#admin-icon-template"></use></svg>
                             </span>

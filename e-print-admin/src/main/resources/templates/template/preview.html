@@ -18,9 +18,9 @@
                 </div>
                 <div class="col-sm-4 mt-3 mt-sm-0">
                     <div class="header-actions">
-                        <a class="btn btn-outline-secondary" th:href="${returnUrl}">返回列表</a>
+                        <a class="btn btn-outline-secondary" th:href="@{${returnUrl}}">返回列表</a>
                         <a class="btn btn-primary"
-                           th:href="@{/admin/templates/modify(id=${template.id},returnUrl=${returnUrl})}">编辑</a>
+                           th:href="@{/templates/modify(id=${template.id},returnUrl=${returnUrl})}">编辑</a>
                     </div>
                 </div>
             </div>
@@ -30,7 +30,7 @@
     <div class="app-content">
         <div class="container-fluid">
             <section class="preview-workbench"
-                     th:attr="data-render-url=@{/admin/templates/preview/render(id=${template.id})}">
+                     th:attr="data-render-url=@{/templates/preview/render(id=${template.id})}">
                 <aside class="card sample-panel">
                     <div class="card-header sample-panel-header">
                         <div>

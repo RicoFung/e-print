@@ -43,6 +43,19 @@ e-print
 | `db/oracle`      | Oracle 表、序列、索引和初始化数据脚本      |
 | `minio`          | Docker Compose、bucket 初始化和示例模板   |
 
+根目录 `pom.xml` 聚合 `e-print-admin` 和 `e-print-server`。构建环境可通过 Maven Profile 指定为 `loc`、`uat` 或 `prod`，未指定时默认使用 `uat`：
+
+```bash
+mvn -Puat clean package -DskipTests
+```
+
+可执行包生成在：
+
+```text
+e-print-admin/target/e-print-admin-exec.jar
+e-print-server/target/e-print-server-exec.jar
+```
+
 ## 3. 时序图
 
 ```mermaid
@@ -54,11 +67,11 @@ sequenceDiagram
     participant MinIO as MinIO
     participant Printer as 本地打印机
 
-    Client->>Server: WS /ws/print?clientId=CLIENT-001 + Basic Auth
+    Client->>Server: WS /e-print-server/ws/print?clientId=CLIENT-001 + Basic Auth
     Server->>Server: 注册 clientId 与 WebSocket Session
     Server-->>Client: CONNECTED 消息
 
-    Biz->>Server: POST /task + Basic Auth
+    Biz->>Server: POST /e-print-server/task + Basic Auth
     Server->>DB: 查询启用的模板元数据
     alt 指定模板不存在且 templateCode 不是 01
         Server->>DB: 查询同类型默认模板 01
@@ -72,7 +85,7 @@ sequenceDiagram
     end
     Server-->>Biz: 返回 taskId 和当前状态
 
-    Client->>Server: GET /template/{templateCode}?templateType={templateType} + Basic Auth
+    Client->>Server: GET /e-print-server/template/{templateCode}?templateType={templateType} + Basic Auth
     Server->>DB: 查询模板元数据
     Server->>MinIO: 按 bucketName/objectName 读取 HTML
     MinIO-->>Server: HTML 内容
@@ -80,7 +93,7 @@ sequenceDiagram
     Client->>Client: 渲染数据、二维码、条码
     Client->>Printer: Electron 打印
     Printer-->>Client: 打印成功或失败
-    Client->>Server: POST /task/{taskId}/result + Basic Auth
+    Client->>Server: POST /e-print-server/task/{taskId}/result + Basic Auth
     Server->>Server: 状态更新为 SUCCESS 或 FAILED
     Server-->>Client: 返回更新后的任务
 ```
@@ -130,13 +143,13 @@ npm start
 
 ```bash
 cd e-print-server
-mvn spring-boot:run
+mvn -Ploc spring-boot:run
 ```
 
 默认地址：
 
 ```text
-http://localhost:9090
+http://localhost:8080/e-print-server
 ```
 
 ### 4.3 e-print-admin
@@ -160,14 +173,16 @@ http://localhost:9090
 
 ```bash
 cd e-print-admin
-mvn spring-boot:run
+mvn -Ploc spring-boot:run
 ```
 
 默认地址：
 
 ```text
-http://localhost:9091
+http://localhost:8080/e-print-admin/
 ```
+
+`/e-print-admin` 是管理后台的 context-path，页面和接口直接位于该路径下，例如模板列表为 `/e-print-admin/templates`，不再额外增加 `/admin` 前缀。
 
 默认账号：
 

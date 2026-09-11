@@ -43,6 +43,15 @@ e-print-client/config.json
 %APPDATA%/e-print-client/config.json
 ```
 
+默认本地服务地址已对齐 `e-print-server` 的 `8080` 端口和 `/e-print-server` Context Path：
+
+```text
+WebSocket: ws://localhost:8080/e-print-server/ws/print
+Template API: http://localhost:8080/e-print-server/template
+```
+
+配置文件中的环境名称统一使用 `loc`、`dev`、`uat`、`prod`。
+
 也可以通过环境变量指定配置：
 
 | 变量 | 说明 |
@@ -63,7 +72,7 @@ e-print-client/config.json
 模板下载接口：
 
 ```http
-GET /template/{templateCode}?templateType={templateType}
+GET /e-print-server/template/{templateCode}?templateType={templateType}
 Authorization: Basic ...
 ```
 
@@ -95,7 +104,7 @@ Authorization: Basic ...
 打印结果回传：
 
 ```http
-POST /task/{taskId}/result
+POST /e-print-server/task/{taskId}/result
 Content-Type: application/json
 Authorization: Basic ...
 ```

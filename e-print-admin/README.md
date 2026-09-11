@@ -28,14 +28,16 @@
 
 ```bash
 cd e-print-admin
-mvn spring-boot:run
+mvn -Ploc spring-boot:run
 ```
 
 默认访问地址：
 
 ```text
-http://localhost:9091
+http://localhost:8080/e-print-admin/
 ```
+
+`/e-print-admin` 是应用的 context-path，Controller 和前端页面使用的应用内路由不再包含额外的 `/admin` 前缀。
 
 默认登录账号：
 
@@ -46,22 +48,21 @@ eprint / eprint123
 常用命令：
 
 ```bash
-mvn -DskipTests compile
+mvn -Ploc -DskipTests compile
 ```
 
-应用使用 Spring Profile，默认 profile 为 `loc`：
+构建环境由 Maven Profile 决定，可选 `loc`、`uat`、`prod`；未指定时默认使用 `uat`。例如构建 UAT 可执行包：
 
-```powershell
-$env:E_PRINT_ADMIN_PROFILE="uat"
-java -jar e-print-admin.jar
+```bash
+mvn -Puat clean package -DskipTests
+java -jar target/e-print-admin-exec.jar
 ```
 
 主要环境变量：
 
 | 变量 | 说明 |
 | --- | --- |
-| `E_PRINT_ADMIN_PROFILE` | 当前启用的 profile，默认 `loc` |
-| `E_PRINT_ADMIN_PORT` | HTTP 端口，默认 `9091` |
+| `E_PRINT_ADMIN_PORT` | HTTP 端口，默认 `8080` |
 | `E_PRINT_ADMIN_USERNAME` | 管理员用户名 |
 | `E_PRINT_ADMIN_PASSWORD` | 管理员密码 |
 | `E_PRINT_DB_URL` | Oracle JDBC 地址 |
@@ -83,14 +84,15 @@ java -jar e-print-admin.jar
 
 | 页面 | 用途 |
 | --- | --- |
-| `/login` | 后台登录 |
-| `/admin/templates` | 模板列表 |
-| `/admin/templates/new` | 新增模板 |
-| `/admin/templates/{id}/edit` | 编辑模板 |
-| `/admin/templates/{id}/preview` | 预览模板 |
-| `/admin/template-types` | 类型管理列表 |
-| `/admin/template-types/new` | 新增类型 |
-| `/admin/template-types/{id}/edit` | 编辑类型 |
+| `/e-print-admin/` | 后台首页 |
+| `/e-print-admin/login` | 后台登录 |
+| `/e-print-admin/templates` | 模板列表 |
+| `/e-print-admin/templates/create` | 新增模板 |
+| `/e-print-admin/templates/modify?id={id}` | 编辑模板 |
+| `/e-print-admin/templates/preview?id={id}` | 预览模板 |
+| `/e-print-admin/template-types` | 类型管理列表 |
+| `/e-print-admin/template-types/create` | 新增类型 |
+| `/e-print-admin/template-types/modify?id={id}` | 编辑类型 |
 
 模板类型使用英文编码，后台页面展示中文名称。类型字典存储在 `E_PRINT_TEMPLATE_TYPE`，模板表 `E_PRINT_TEMPLATE` 通过 `TEMPLATE_TYPE_ID` 关联类型表。
 
@@ -112,22 +114,23 @@ java -jar e-print-admin.jar
 常用页面接口：
 
 ```http
-GET /admin/templates?templateTypeId=1&templateCode=01&status=1&pageSize=10
-GET /admin/templates/query?templateTypeId=1&templateCode=01&status=1&offset=0&limit=10
-POST /admin/templates
-POST /admin/templates/{id}
-POST /admin/templates/{id}/enable
-POST /admin/templates/{id}/disable
-POST /admin/templates/{id}/remove
-GET /admin/templates/{id}/preview
+GET /e-print-admin/templates?templateTypeId=1&templateCode=01&status=1&pageSize=10
+GET /e-print-admin/templates/query?templateTypeId=1&templateCode=01&status=1&offset=0&limit=10
+POST /e-print-admin/templates/create
+POST /e-print-admin/templates/modify
+POST /e-print-admin/templates/enable
+POST /e-print-admin/templates/disable
+POST /e-print-admin/templates/remove
+GET /e-print-admin/templates/preview?id={id}
+POST /e-print-admin/templates/preview/render
 ```
 
 ```http
-GET /admin/template-types?keyword=sales&status=1&pageSize=10
-GET /admin/template-types/query?keyword=sales&status=1&offset=0&limit=10
-POST /admin/template-types
-POST /admin/template-types/{id}
-POST /admin/template-types/{id}/enable
-POST /admin/template-types/{id}/disable
-POST /admin/template-types/{id}/remove
+GET /e-print-admin/template-types?keyword=sales&status=1&pageSize=10
+GET /e-print-admin/template-types/query?keyword=sales&status=1&offset=0&limit=10
+POST /e-print-admin/template-types/create
+POST /e-print-admin/template-types/modify
+POST /e-print-admin/template-types/enable
+POST /e-print-admin/template-types/disable
+POST /e-print-admin/template-types/remove
 ```

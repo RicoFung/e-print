@@ -20,8 +20,8 @@ function expectedBasicAuthorization() {
 
 test('builds print result URL from template base URL', () => {
   assert.equal(
-    buildResultUrl('http://localhost:9090/template', 'task/001'),
-    'http://localhost:9090/task/task%2F001/result'
+    buildResultUrl('http://localhost:8080/e-print-server/template', 'task/001'),
+    'http://localhost:8080/e-print-server/task/task%2F001/result'
   );
 });
 
@@ -41,7 +41,7 @@ test('reports successful print result through HTTP endpoint', async () => {
     templateCode: '01',
     status: 'success'
   }, {
-    templateBaseUrl: 'http://localhost:9090/template',
+    templateBaseUrl: 'http://localhost:8080/e-print-server/template',
     ...TEST_CREDENTIALS
   }, {
     fetch: async (url, options) => {
@@ -50,7 +50,7 @@ test('reports successful print result through HTTP endpoint', async () => {
     }
   });
 
-  assert.equal(request.url, 'http://localhost:9090/task/TASK-001/result');
+  assert.equal(request.url, 'http://localhost:8080/e-print-server/task/TASK-001/result');
   assert.equal(request.options.method, 'POST');
   assert.equal(request.options.headers.authorization, expectedBasicAuthorization());
   assert.deepEqual(JSON.parse(request.options.body), {
@@ -66,7 +66,7 @@ test('throws when result callback returns a non-success status', async () => {
       taskId: 'TASK-001',
       status: 'failed'
     }, {
-      templateBaseUrl: 'http://localhost:9090/template'
+      templateBaseUrl: 'http://localhost:8080/e-print-server/template'
     }, {
       fetch: async () => ({ ok: false, status: 503 })
     }),
