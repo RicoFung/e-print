@@ -1,8 +1,12 @@
+server:
+  servlet:
+    context-path: /${project.artifactId}
+
 app:
   security:
     admin:
-      username: ${E_PRINT_ADMIN_USERNAME}
-      password: ${E_PRINT_ADMIN_PASSWORD}
+      username: ${E_PRINT_ADMIN_USERNAME:eprint}
+      password: ${E_PRINT_ADMIN_PASSWORD:eprint123}
 
 datasource:
   mybatis:
@@ -19,7 +23,7 @@ datasource:
       mapper-location: classpath*:com/**/mapper/*.xml
 
 graylog:
-  host: ${E_PRINT_GRAYLOG_HOST}
+  host: ${E_PRINT_GRAYLOG_HOST:grayloguat.moco.com}
   port: ${E_PRINT_GRAYLOG_PORT:12201}
   environment: UAT
 

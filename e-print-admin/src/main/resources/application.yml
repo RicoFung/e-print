@@ -1,8 +1,8 @@
 spring:
   application:
-    name: E-PRINT-ADMIN
+    name: e-print-admin
   profiles:
-    active: ${E_PRINT_ADMIN_PROFILE:loc}
+    active: @profiles.active@
   threads:
     virtual:
       enabled: true
@@ -18,7 +18,7 @@ spring:
       max-request-size: ${E_PRINT_ADMIN_MAX_REQUEST_SIZE:4MB}
 
 server:
-  port: ${E_PRINT_ADMIN_PORT:9091}
+  port: ${E_PRINT_ADMIN_PORT:8080}
 
 app:
   template:
