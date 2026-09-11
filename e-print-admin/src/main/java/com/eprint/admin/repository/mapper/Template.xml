@@ -5,7 +5,7 @@
     <resultMap type="com.eprint.admin.repository.model.result.TemplateResult" id="templateResult">
         <result property="id" column="ID"/>
         <result property="templateTypeId" column="TEMPLATE_TYPE_ID"/>
-        <result property="templateType" column="TEMPLATE_TYPE"/>
+        <result property="templateTypeCode" column="TEMPLATE_TYPE_CODE"/>
         <result property="templateTypeName" column="TEMPLATE_TYPE_NAME"/>
         <result property="templateCode" column="CODE"/>
         <result property="bucketName" column="BUCKET_NAME"/>
@@ -38,8 +38,10 @@
                         <choose>
                             <when test="'id.asc'.equals(item)">T.ID ASC</when>
                             <when test="'id.desc'.equals(item)">T.ID DESC</when>
-                            <when test="'templateType.asc'.equals(item)">TT.CODE ASC</when>
-                            <when test="'templateType.desc'.equals(item)">TT.CODE DESC</when>
+                            <when test="'templateTypeCode.asc'.equals(item)">TT.CODE ASC</when>
+                            <when test="'templateTypeCode.desc'.equals(item)">TT.CODE DESC</when>
+                            <when test="'templateTypeName.asc'.equals(item)">TT.NAME ASC</when>
+                            <when test="'templateTypeName.desc'.equals(item)">TT.NAME DESC</when>
                             <when test="'templateCode.asc'.equals(item)">T.CODE ASC</when>
                             <when test="'templateCode.desc'.equals(item)">T.CODE DESC</when>
                             <when test="'bucketName.asc'.equals(item)">T.BUCKET_NAME ASC</when>
@@ -64,7 +66,7 @@
         SELECT
             ID,
             TEMPLATE_TYPE_ID,
-            TEMPLATE_TYPE,
+            TEMPLATE_TYPE_CODE,
             TEMPLATE_TYPE_NAME,
             CODE,
             BUCKET_NAME,
@@ -74,7 +76,7 @@
             SELECT
                 T.ID,
                 T.TEMPLATE_TYPE_ID,
-                TT.CODE AS TEMPLATE_TYPE,
+                TT.CODE AS TEMPLATE_TYPE_CODE,
                 TT.NAME AS TEMPLATE_TYPE_NAME,
                 T.CODE,
                 T.BUCKET_NAME,
@@ -104,7 +106,7 @@
         SELECT
             T.ID,
             T.TEMPLATE_TYPE_ID,
-            TT.CODE AS TEMPLATE_TYPE,
+            TT.CODE AS TEMPLATE_TYPE_CODE,
             TT.NAME AS TEMPLATE_TYPE_NAME,
             T.CODE,
             T.BUCKET_NAME,
@@ -119,7 +121,7 @@
         SELECT
             T.ID,
             T.TEMPLATE_TYPE_ID,
-            TT.CODE AS TEMPLATE_TYPE,
+            TT.CODE AS TEMPLATE_TYPE_CODE,
             TT.NAME AS TEMPLATE_TYPE_NAME,
             T.CODE,
             T.BUCKET_NAME,

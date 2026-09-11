@@ -9,7 +9,7 @@ import lombok.Setter;
 public class TemplateResult extends Template {
     private static final long serialVersionUID = 1L;
 
-    private String templateType;
+    private String templateTypeCode;
     private String templateTypeName;
 
 }

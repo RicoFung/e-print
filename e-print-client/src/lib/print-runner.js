@@ -7,6 +7,7 @@ const { renderTemplate } = require('./template-renderer');
 async function runPrintTask(rawTask, config, dependencies) {
   const deps = dependencies || {};
   const task = normalizeTask(rawTask);
+  let result;
 
   try {
     const templateHtml = await (deps.getTemplate || getTemplate)(task.templateType, task.templateCode, config, {
@@ -20,16 +21,15 @@ async function runPrintTask(rawTask, config, dependencies) {
       silent: config.silent !== false
     });
 
-    const result = createResult(task, 'success');
-    await reportResult(result, deps);
-    return result;
+    result = createResult(task, 'success');
   } catch (error) {
-    const result = createResult(task, 'failed', {
+    result = createResult(task, 'failed', {
       message: error && error.message ? error.message : String(error)
     });
-    await reportResult(result, deps);
-    return result;
   }
+
+  await reportResult(result, deps);
+  return result;
 }
 
 async function reportResult(result, dependencies) {

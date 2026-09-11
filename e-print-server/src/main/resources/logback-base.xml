@@ -4,14 +4,15 @@
     <property name="LOG_PREFIX" value="${APP_NAME}"/>
     <property name="LOG_SUFFIX" value="${APP_NAME}"/>
     <property name="LOG_CHARSET" value="UTF-8"/>
-    <property name="LOG_MSG" value="[%X{traceId:-}] [%X{spanId:-}] [%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%logger{36}|%M|%L] - %msg%n"/>
+    <property name="LOG_CONSOLE_CHARSET" value="${CONSOLE_LOG_CHARSET:-${native.encoding:-UTF-8}}"/>
+    <property name="LOG_MSG" value="[%X{traceId:-}] [%X{spanId:-}] [%X{requestId:-}] [%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%logger{36}|%M|%L] - %msg%n"/>
     <property name="MAX_FILE_SIZE" value="10MB"/>
     <property name="MAX_HISTORY" value="10"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>${LOG_MSG}</pattern>
-            <charset>${LOG_CHARSET}</charset>
+            <charset>${LOG_CONSOLE_CHARSET}</charset>
         </encoder>
     </appender>
 

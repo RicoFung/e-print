@@ -3,12 +3,19 @@
 ## 目录
 
 1. [概述](#1-概述)
+
 2. [项目结构](#2-项目结构)
+
 3. [时序图](#3-时序图)
+
 4. [项目模块](#4-项目模块)
+
    4.1 [e-print-client](#41-e-print-client)
+
    4.2 [e-print-server](#42-e-print-server)
+
    4.3 [e-print-admin](#43-e-print-admin)
+
    4.4 [本地依赖](#44-本地依赖)
 
 ## 1. 概述
@@ -28,13 +35,13 @@ e-print
 └── minio               # 本地 MinIO 配置和模板资源
 ```
 
-| 路径 | 说明 |
-| --- | --- |
-| `e-print-client` | 本地打印桥接器，连接服务端并执行打印 |
+| 路径             | 说明                                     |
+|------------------|------------------------------------------|
+| `e-print-client` | 本地打印桥接器，连接服务端并执行打印      |
 | `e-print-server` | 打印任务 API、WebSocket 推送、模板读取服务 |
-| `e-print-admin` | 模板类型和 HTML 模板管理后台 |
-| `db/oracle` | Oracle 表、序列、索引和初始化数据脚本 |
-| `minio` | Docker Compose、bucket 初始化和示例模板 |
+| `e-print-admin`  | 模板类型和 HTML 模板管理后台             |
+| `db/oracle`      | Oracle 表、序列、索引和初始化数据脚本      |
+| `minio`          | Docker Compose、bucket 初始化和示例模板   |
 
 ## 3. 时序图
 
@@ -42,28 +49,40 @@ e-print
 sequenceDiagram
     participant Biz as 业务系统
     participant Server as e-print-server
+    participant DB as Oracle
     participant Client as e-print-client
     participant MinIO as MinIO
     participant Printer as 本地打印机
 
     Client->>Server: WS /ws/print?clientId=CLIENT-001 + Basic Auth
-    Server-->>Client: CONNECTED
+    Server->>Server: 注册 clientId 与 WebSocket Session
+    Server-->>Client: CONNECTED 消息
 
     Biz->>Server: POST /task + Basic Auth
-    Server->>Server: 校验客户端连接
-    Server->>MinIO: 按 templateType/templateCode 读取模板
-    MinIO-->>Server: HTML 模板
-    Server->>Client: 推送 PRINT_TASK
-    Server-->>Biz: 返回 taskId/status
+    Server->>DB: 查询启用的模板元数据
+    alt 指定模板不存在且 templateCode 不是 01
+        Server->>DB: 查询同类型默认模板 01
+    end
+    Server->>Server: 生成 UUID 并创建内存任务，状态为 CREATED
+    Server->>Client: 尝试推送 print-task
+    alt 推送成功
+        Server->>Server: 状态更新为 DISPATCHED
+    else 客户端未连接或发送失败
+        Server->>Server: 状态保持 CREATED
+    end
+    Server-->>Biz: 返回 taskId 和当前状态
 
-    Client->>Server: GET /template/{templateCode}?templateType={templateType}
-    Server->>MinIO: 读取 HTML 模板
-    Server-->>Client: HTML 模板
+    Client->>Server: GET /template/{templateCode}?templateType={templateType} + Basic Auth
+    Server->>DB: 查询模板元数据
+    Server->>MinIO: 按 bucketName/objectName 读取 HTML
+    MinIO-->>Server: HTML 内容
+    Server-->>Client: JSON 响应（data.content 为 HTML）
     Client->>Client: 渲染数据、二维码、条码
     Client->>Printer: Electron 打印
-    Printer-->>Client: 打印结果
-    Client->>Server: POST /task/{taskId}/result
-    Server->>Server: 更新任务状态
+    Printer-->>Client: 打印成功或失败
+    Client->>Server: POST /task/{taskId}/result + Basic Auth
+    Server->>Server: 状态更新为 SUCCESS 或 FAILED
+    Server-->>Client: 返回更新后的任务
 ```
 
 ## 4. 项目模块
@@ -74,14 +93,14 @@ sequenceDiagram
 
 技术栈：
 
-| 分类 | 技术 |
-| --- | --- |
-| 运行时 | Node.js 18+、npm 9+ |
-| 桌面端 | Electron |
-| 通信 | WebSocket、Basic Auth |
-| 模板渲染 | Handlebars |
-| 条码二维码 | qrcode、bwip-js |
-| 打包 | electron-builder |
+| 分类       | 技术                 |
+|------------|----------------------|
+| 运行时     | Node.js 18+、npm 9+   |
+| 桌面端     | Electron             |
+| 通信       | WebSocket、Basic Auth |
+| 模板渲染   | Handlebars           |
+| 条码二维码 | qrcode、bwip-js       |
+| 打包       | electron-builder     |
 
 启动：
 
@@ -97,15 +116,15 @@ npm start
 
 技术栈：
 
-| 分类 | 技术 |
-| --- | --- |
-| 运行时 | Java 21 |
-| 后端框架 | Spring Boot、niko-boot |
-| 接口与推送 | Spring MVC、WebSocket、Spring Security |
-| 数据访问 | MyBatis、HikariCP、Oracle |
-| 模板存储 | MinIO |
-| 工程工具 | Maven、MapStruct、Lombok |
-| 可观测性 | Spring Boot Actuator、SpringDoc、Graylog |
+| 分类       | 技术                                   |
+|------------|----------------------------------------|
+| 运行时     | Java 21                                |
+| 后端框架   | Spring Boot、niko-boot                  |
+| 接口与推送 | Spring MVC、WebSocket、Spring Security   |
+| 数据访问   | MyBatis、HikariCP、Oracle                |
+| 模板存储   | MinIO                                  |
+| 工程工具   | Maven、MapStruct、Lombok                 |
+| 可观测性   | Spring Boot Actuator、SpringDoc、Graylog |
 
 启动：
 
@@ -126,16 +145,16 @@ http://localhost:9090
 
 技术栈：
 
-| 分类 | 技术 |
-| --- | --- |
-| 运行时 | Java 21 |
-| 后端框架 | Spring Boot、Spring MVC |
+| 分类     | 技术                      |
+|----------|---------------------------|
+| 运行时   | Java 21                   |
+| 后端框架 | Spring Boot、Spring MVC    |
 | 页面模板 | Thymeleaf、Bootstrap Table |
-| 安全 | Spring Security |
-| 数据访问 | MyBatis、HikariCP、Oracle |
-| 文件存储 | MinIO |
-| 工程工具 | Maven、MapStruct、Lombok |
-| 日志 | Graylog |
+| 安全     | Spring Security           |
+| 数据访问 | MyBatis、HikariCP、Oracle   |
+| 文件存储 | MinIO                     |
+| 工程工具 | Maven、MapStruct、Lombok    |
+| 日志     | Graylog                   |
 
 启动：
 
@@ -174,10 +193,10 @@ docker compose -f minio/docker-compose.minio.yml down
 
 MinIO 默认配置：
 
-| 项 | 值 |
-| --- | --- |
-| S3 API | `http://localhost:9000` |
-| 控制台 | `http://localhost:9001` |
-| Access Key | `eprint_minio` |
-| Secret Key | `eprint_minio_123` |
-| Bucket | `e-print` |
+| 项         | 值                      |
+|------------|-------------------------|
+| S3 API     | `http://localhost:9000` |
+| 控制台     | `http://localhost:9001` |
+| Access Key | `eprint_minio`          |
+| Secret Key | `eprint_minio_123`      |
+| Bucket     | `e-print`               |

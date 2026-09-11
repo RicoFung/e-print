@@ -175,3 +175,54 @@ test('ignores server connected control message', () => {
 
   assert.equal(runCount, 0);
 });
+
+test('reports completed task through the HTTP result reporter', async () => {
+  const sockets = [];
+  let reportedResult;
+  let completeReport;
+  const reported = new Promise((resolve) => {
+    completeReport = resolve;
+  });
+
+  class FakeWebSocket extends EventEmitter {
+    constructor() {
+      super();
+      sockets.push(this);
+    }
+
+    send() {}
+    close() {}
+  }
+
+  startPrintClient({
+    clientId: 'CLIENT-001',
+    serverUrl: 'ws://localhost:9090/ws/print',
+    templateBaseUrl: 'http://localhost:9090/template'
+  }, {
+    WebSocket: FakeWebSocket,
+    runPrintTask: async (task, config, dependencies) => dependencies.reportResult({
+      taskId: task.taskId,
+      status: 'success'
+    }),
+    reportPrintResult: async (result) => {
+      reportedResult = result;
+      completeReport();
+    }
+  });
+
+  sockets[0].emit('message', JSON.stringify({
+    type: 'print-task',
+    payload: {
+      taskId: 'TASK-001',
+      clientId: 'CLIENT-001',
+      templateType: 'sales_receipt',
+      templateCode: '01'
+    }
+  }));
+
+  await reported;
+  assert.deepEqual(reportedResult, {
+    taskId: 'TASK-001',
+    status: 'success'
+  });
+});

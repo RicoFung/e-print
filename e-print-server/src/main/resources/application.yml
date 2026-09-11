@@ -12,6 +12,9 @@ server:
 
 app:
   base-uri: ${E_PRINT_APP_BASE_URI:http://localhost:${server.port}}
+  api-log:
+    enabled: ${E_PRINT_API_LOG_ENABLED:true}
+    max-body-length: ${E_PRINT_API_LOG_MAX_BODY_LENGTH:8192}
 
 mybatis:
   config-location: classpath:mybatis.xml

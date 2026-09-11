@@ -8,16 +8,16 @@ import java.util.Map;
 
 public class TaskCreateRequest {
 
-    @NotBlank
+    @NotBlank(message = "客户端 ID 【clientId】不能为空")
     private String clientId;
 
-    @NotBlank
+    @NotBlank(message = "模板类型【templateType】不能为空")
     private String templateType;
 
-    @NotBlank
+    @NotBlank(message = "模板编码【templateCode】不能为空")
     private String templateCode;
 
-    @Min(1)
+    @Min(value = 1, message = "打印份数【copies】不能小于 1")
     private int copies = 1;
 
     private Map<String, Object> data = new LinkedHashMap<>();

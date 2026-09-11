@@ -379,7 +379,7 @@
     const initialPage = Math.max(1, Number(templateTable.dataset.initialPage) || 1);
     const initialPageSize = Math.max(1, Number(templateTable.dataset.initialPageSize) || 10);
     const tableWrap = templateTable.closest('.list-table-wrap');
-    const sortableFields = new Set(['templateType', 'templateCode', 'bucketName', 'objectName', 'status']);
+    const sortableFields = new Set(['templateTypeCode', 'templateTypeName', 'templateCode', 'bucketName', 'objectName', 'status']);
     const parseSortState = () => {
       const params = new URLSearchParams(window.location.search);
       const seenFields = new Set();
@@ -1089,16 +1089,15 @@ function objectNameFormatter(value) {
   return `<span class="object-name">${escapeHtml(value)}</span>`;
 }
 
-function templateTypeFormatter(value, row) {
-  const name = row && row.templateTypeName ? row.templateTypeName : value;
-  return escapeHtml(name || '');
-}
-
 function statusFormatter(value) {
   if (Number(value) === 1) {
     return '<span class="badge status-badge status-on">启用</span>';
   }
   return '<span class="badge status-badge status-off">禁用</span>';
+}
+
+function templateTypeNameFormatter(value) {
+  return escapeHtml(value || '');
 }
 
 function templateTypeCodeFormatter(value) {

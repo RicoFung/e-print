@@ -51,27 +51,29 @@ e-print-client/config.json
 | `E_PRINT_ENV` | 当前环境 |
 | `E_PRINT_CLIENT_ID` | 客户端 ID |
 | `E_PRINT_SERVER_URL` | WebSocket 地址 |
+| `E_PRINT_TEMPLATE_BASE_URL` | 模板 HTTP API 地址；设置 `E_PRINT_SERVER_URL` 时未显式配置则自动推导 |
 | `E_PRINT_BASIC_USERNAME` | Basic 用户名 |
 | `E_PRINT_BASIC_PASSWORD` | Basic 密码 |
 | `E_PRINT_PRINTER_NAME` | 默认打印机 |
 
 ## 3. 任务协议
 
-客户端从 WebSocket 任务中读取 `templateType`、`templateCode` 和 `taskId`。缺少任一关键字段时，客户端会拒绝任务并上报失败。
+客户端从 WebSocket 任务中读取 `clientId`、`templateType`、`templateCode` 和 `taskId`。其中 `clientId`、`templateType`、`templateCode` 缺失时客户端会拒绝任务；`taskId` 用于打印结果回传，应由服务端创建任务时提供。
 
 模板下载接口：
 
 ```http
 GET /template/{templateCode}?templateType={templateType}
+Authorization: Basic ...
 ```
 
 打印任务示例：
 
 ```json
 {
-  "type": "PRINT_TASK",
-  "data": {
-    "taskId": "9d4d0c5f7f4b4f44a1bb2f0d2d4f1a01",
+  "type": "print-task",
+  "payload": {
+    "taskId": "9d4d0c5f-7f4b-4f44-a1bb-2f0d2d4f1a01",
     "clientId": "CLIENT-001",
     "templateType": "sales_receipt",
     "templateCode": "01",
@@ -95,6 +97,7 @@ GET /template/{templateCode}?templateType={templateType}
 ```http
 POST /task/{taskId}/result
 Content-Type: application/json
+Authorization: Basic ...
 ```
 
 ```json

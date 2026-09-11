@@ -102,7 +102,7 @@ public class GlobalExceptionAdvice {
     private NikoResult error(String message) {
         String resultMessage = message == null || message.trim().isEmpty() ? "Server error" : message;
         NikoResult result = NikoResult.error(resultMessage);
-        result.set("message", result.getMsg());
+        // result.set("message", result.getMsg());
         return result;
     }
 }
