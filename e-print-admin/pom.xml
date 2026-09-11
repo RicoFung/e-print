@@ -4,9 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.eprint</groupId>
+    <parent>
+        <groupId>com.eprint</groupId>
+        <artifactId>e-print</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
     <artifactId>e-print-admin</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>e-print-admin</name>
@@ -112,16 +117,35 @@
                     <include>**/*.xml</include>
                 </includes>
             </resource>
+            <!--
+                配置类资源需要开启 Maven 过滤：
+                由 Maven 将 ${profiles.active}、${project.artifactId} 等构建期属性替换为实际值，
+                并且只将当前环境对应的 application、logback 配置打入构建产物。
+            -->
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
                     <include>application.yml</include>
-					<include>application-${profileActive}.yml</include>
+					<include>application-${profiles.active}.yml</include>
 					<include>logback-base.xml</include>
-					<include>logback-${profileActive}.xml</include>
+					<include>logback-${profiles.active}.xml</include>
                     <include>mybatis.xml</include>
                 </includes>
+            </resource>
+            <!--
+                页面模板和静态资源必须关闭 Maven 过滤：
+                原样打包 templates、static 等其余资源，避免 Thymeleaf、JavaScript、CSS 中的
+                ${...} 内容被 Maven 当作占位符替换；上方已处理的配置文件在这里排除，防止重复复制。
+            -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>application*.yml</exclude>
+                    <exclude>logback*.xml</exclude>
+                    <exclude>mybatis.xml</exclude>
+                </excludes>
             </resource>
         </resources>
         <plugins>

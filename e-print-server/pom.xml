@@ -4,9 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.eprint</groupId>
+    <parent>
+        <groupId>com.eprint</groupId>
+        <artifactId>e-print</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
     <artifactId>e-print-server</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>e-print-server</name>
@@ -135,9 +140,9 @@
                 <filtering>true</filtering>
                 <includes>
                     <include>application.yml</include>
-					<include>application-${profileActive}.yml</include>
+					<include>application-${profiles.active}.yml</include>
 					<include>logback-base.xml</include>
-					<include>logback-${profileActive}.xml</include>
+					<include>logback-${profiles.active}.xml</include>
                     <include>mybatis.xml</include>
                 </includes>
             </resource>
