@@ -8,6 +8,16 @@ const {
   reportPrintResult
 } = require('../src/lib/result-reporter');
 
+const TEST_CREDENTIALS = {
+  basicUsername: ['unit', 'test', 'user'].join('-'),
+  basicPassword: ['unit', 'test', 'credential'].join('-')
+};
+
+function expectedBasicAuthorization() {
+  const credentials = `${TEST_CREDENTIALS.basicUsername}:${TEST_CREDENTIALS.basicPassword}`;
+  return `Basic ${Buffer.from(credentials, 'utf8').toString('base64')}`;
+}
+
 test('builds print result URL from template base URL', () => {
   assert.equal(
     buildResultUrl('http://localhost:9090/template', 'task/001'),
@@ -16,13 +26,10 @@ test('builds print result URL from template base URL', () => {
 });
 
 test('builds basic authorization header for result callback', () => {
-  assert.deepEqual(buildResultHeaders({
-    basicUsername: 'eprint',
-    basicPassword: 'eprint123'
-  }), {
+  assert.deepEqual(buildResultHeaders(TEST_CREDENTIALS), {
     'content-type': 'application/json',
     accept: 'application/json',
-    authorization: 'Basic ZXByaW50OmVwcmludDEyMw=='
+    authorization: expectedBasicAuthorization()
   });
 });
 
@@ -35,8 +42,7 @@ test('reports successful print result through HTTP endpoint', async () => {
     status: 'success'
   }, {
     templateBaseUrl: 'http://localhost:9090/template',
-    basicUsername: 'eprint',
-    basicPassword: 'eprint123'
+    ...TEST_CREDENTIALS
   }, {
     fetch: async (url, options) => {
       request = { url, options };
@@ -46,7 +52,7 @@ test('reports successful print result through HTTP endpoint', async () => {
 
   assert.equal(request.url, 'http://localhost:9090/task/TASK-001/result');
   assert.equal(request.options.method, 'POST');
-  assert.equal(request.options.headers.authorization, 'Basic ZXByaW50OmVwcmludDEyMw==');
+  assert.equal(request.options.headers.authorization, expectedBasicAuthorization());
   assert.deepEqual(JSON.parse(request.options.body), {
     status: 'SUCCESS',
     templateType: 'sales_receipt',
