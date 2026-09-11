@@ -114,6 +114,17 @@
             </resource>
             <resource>
                 <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>application-*.yml</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>application-*.yml</exclude>
+                </excludes>
             </resource>
         </resources>
         <plugins>
@@ -135,30 +146,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- Maven Toolchains Plugin -->
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-toolchains-plugin</artifactId>-->
-<!--                <version>3.1.0</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <goals>-->
-<!--                            <goal>toolchain</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--                <configuration>-->
-<!--                    <toolchains>-->
-<!--                        <jdk>-->
-<!--                            <version>${java.version}</version>-->
-<!--                            <vendor>openlogic</vendor>-->
-<!--                        </jdk>-->
-<!--                        <jdk>-->
-<!--                            <version>${java.version}</version>-->
-<!--                        </jdk>-->
-<!--                    </toolchains>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -188,6 +175,40 @@
         </plugins>
         <finalName>${project.artifactId}</finalName>
     </build>
+
+    <profiles>
+        <profile>
+            <id>loc</id>
+            <build>
+                <plugins>
+                    <!-- Maven Toolchains Plugin：仅本地 loc 构建启用 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-toolchains-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>toolchain</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <toolchains>
+                                <jdk>
+                                    <version>${java.version}</version>
+                                    <vendor>openlogic</vendor>
+                                </jdk>
+                                <jdk>
+                                    <version>${java.version}</version>
+                                </jdk>
+                            </toolchains>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 	<!-- 查找发现依赖项和扩展项的远程仓库 -->
 	<repositories>

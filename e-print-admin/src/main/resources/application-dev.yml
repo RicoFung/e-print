@@ -1,3 +1,7 @@
+server:
+  servlet:
+    context-path: /${project.artifactId}
+
 app:
   security:
     admin:
