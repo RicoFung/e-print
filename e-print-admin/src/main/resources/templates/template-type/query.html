@@ -21,7 +21,7 @@
 
             <div class="card admin-filter-card">
                 <div class="card-body">
-                    <form class="row g-3 align-items-end" id="templateTypeFilterForm" th:action="@{/admin/template-types}" method="get">
+                    <form class="row g-3 align-items-end" id="templateTypeFilterForm" th:action="@{/template-types}" method="get">
                         <div class="col-md-5">
                             <label class="form-label" for="keyword">类型编码 / 类型名称</label>
                             <input class="form-control" id="keyword" name="keyword" th:value="${request.keyword}">
@@ -48,12 +48,11 @@
                     <div class="table-actionbar-buttons">
                         <button class="btn btn-outline-warning btn-sm" id="disableSelectedTemplateTypes" type="button" disabled>批量禁用</button>
                         <button class="btn btn-outline-success btn-sm" id="enableSelectedTemplateTypes" type="button" disabled>批量启用</button>
-                        <a class="btn btn-primary btn-sm" id="createTemplateTypeLink" th:href="@{/admin/template-types/create}">新增</a>
+                        <a class="btn btn-primary btn-sm" id="createTemplateTypeLink" th:href="@{/template-types/create}">新增</a>
                     </div>
                 </div>
                 <table id="templateTypeTable"
-                       th:attr="data-initial-page=${page},data-initial-page-size=${pageSize}"
-                       data-url="/admin/template-types/query"
+                       th:attr="data-url=@{/template-types/query},data-initial-page=${page},data-initial-page-size=${pageSize}"
                        data-side-pagination="server"
                        data-pagination="true"
                        data-page-size="2"

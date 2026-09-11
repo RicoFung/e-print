@@ -27,11 +27,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/login", "/error", "/css/**", "/img/**", "/js/**", "/vendor/**", "/health", "/actuator/health").permitAll()
-                        .requestMatchers("/admin/**").authenticated()
                         .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/admin", true)
+                        .defaultSuccessUrl("/", true)
                         .permitAll())
                 .logout(logout -> logout
                         .logoutUrl("/logout")

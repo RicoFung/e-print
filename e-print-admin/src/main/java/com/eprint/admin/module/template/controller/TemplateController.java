@@ -35,10 +35,10 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
-@RequestMapping("/admin/templates")
+@RequestMapping("/templates")
 public class TemplateController extends BaseController {
 
-    private static final String RETURN_URL = "/admin/templates";
+    private static final String RETURN_URL = "/templates";
 
     private final TemplateService templateService;
     private final TemplateTypeService templateTypeService;
@@ -98,7 +98,7 @@ public class TemplateController extends BaseController {
     public String remove(TemplateRemoveRequest request, RedirectAttributes redirectAttributes) {
         templateService.remove(request);
         redirectAttributes.addFlashAttribute("message", "Template deleted");
-        return "redirect:/admin/templates";
+        return "redirect:/templates";
     }
 
     @PostMapping(value = "/remove", params = "ids")
@@ -155,7 +155,7 @@ public class TemplateController extends BaseController {
     public String disable(TemplateDisableRequest request, RedirectAttributes redirectAttributes) {
         templateService.disable(request);
         redirectAttributes.addFlashAttribute("message", "Template disabled");
-        return "redirect:/admin/templates";
+        return "redirect:/templates";
     }
 
     @PostMapping(value = "/disable", params = "ids")
@@ -168,7 +168,7 @@ public class TemplateController extends BaseController {
     public String enable(TemplateEnableRequest request, RedirectAttributes redirectAttributes) {
         templateService.enable(request);
         redirectAttributes.addFlashAttribute("message", "Template enabled");
-        return "redirect:/admin/templates";
+        return "redirect:/templates";
     }
 
     @PostMapping(value = "/enable", params = "ids")

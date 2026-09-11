@@ -15,7 +15,7 @@
                 <div class="col-sm-4 mt-3 mt-sm-0">
                     <div class="header-actions">
                         <button class="btn btn-primary" type="button" id="previewCurrentTemplate">预览</button>
-                        <a class="btn btn-outline-secondary" th:href="${returnUrl}">返回列表</a>
+                        <a class="btn btn-outline-secondary" th:href="@{${returnUrl}}">返回列表</a>
                     </div>
                 </div>
             </div>
@@ -26,10 +26,10 @@
         <div class="container-fluid">
             <form class="editor-layout"
                   th:object="${request}"
-                  th:action="@{/admin/templates/create}"
+                  th:action="@{/templates/create}"
                   method="post"
                   data-ajax-save
-                  data-ajax-redirect="/admin/templates">
+                  th:attr="data-ajax-redirect=@{/templates}">
                 <input type="hidden" name="returnUrl" th:value="${returnUrl}">
                 <div class="card form-panel">
                     <div class="card-body">
@@ -82,7 +82,7 @@
 
                         <div class="form-actions">
                             <button class="btn btn-primary" type="submit">保存</button>
-                            <a class="btn btn-outline-secondary" th:href="${returnUrl}">取消</a>
+                            <a class="btn btn-outline-secondary" th:href="@{${returnUrl}}">取消</a>
                         </div>
                     </div>
                 </div>
