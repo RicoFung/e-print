@@ -137,13 +137,6 @@
                     <include>application-*.yml</include>
                 </includes>
             </resource>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>false</filtering>
-                <excludes>
-                    <exclude>application-*.yml</exclude>
-                </excludes>
-            </resource>
         </resources>
         <plugins>
             <plugin>
