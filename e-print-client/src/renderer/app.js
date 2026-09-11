@@ -348,7 +348,10 @@ function createStatusTitle(status) {
 function deriveTemplateBaseUrl(serverUrl) {
   const url = new URL(serverUrl);
   url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
-  url.pathname = '/template';
+  const contextPath = url.pathname
+    .replace(/\/ws\/print\/?$/, '')
+    .replace(/\/$/, '');
+  url.pathname = `${contextPath}/template`;
   url.search = '';
   url.hash = '';
   return url.toString().replace(/\/$/, '');

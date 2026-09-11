@@ -11,8 +11,8 @@ let userConfigPath;
 const DEFAULT_CONFIG = {
   env: 'loc',
   clientId: 'CLIENT-001',
-  serverUrl: 'ws://localhost:9090/ws/print',
-  templateBaseUrl: 'http://localhost:9090/template',
+  serverUrl: 'ws://localhost:8080/e-print-server/ws/print',
+  templateBaseUrl: 'http://localhost:8080/e-print-server/template',
   basicUsername: 'eprint',
   basicPassword: 'eprint123',
   printerName: '',
@@ -20,10 +20,16 @@ const DEFAULT_CONFIG = {
   templateCacheDir: path.join(os.homedir(), '.e-print-client', 'templates')
 };
 
-const LEGACY_DEFAULT_CONFIG = {
-  serverUrl: 'ws://localhost:8080/ws/print',
-  templateBaseUrl: 'http://localhost:8080/template'
-};
+const LEGACY_DEFAULT_CONFIGS = [
+  {
+    serverUrl: 'ws://localhost:9090/ws/print',
+    templateBaseUrl: 'http://localhost:9090/template'
+  },
+  {
+    serverUrl: 'ws://localhost:8080/ws/print',
+    templateBaseUrl: 'http://localhost:8080/template'
+  }
+];
 
 function loadConfig(configPath) {
   const resolvedPath = resolveConfigPath(configPath);
@@ -130,10 +136,10 @@ function applyEnvOverrides(config) {
 function migrateLegacyDefaults(config) {
   return {
     ...config,
-    serverUrl: config.serverUrl === LEGACY_DEFAULT_CONFIG.serverUrl
+    serverUrl: LEGACY_DEFAULT_CONFIGS.some(({ serverUrl }) => config.serverUrl === serverUrl)
       ? DEFAULT_CONFIG.serverUrl
       : config.serverUrl,
-    templateBaseUrl: config.templateBaseUrl === LEGACY_DEFAULT_CONFIG.templateBaseUrl
+    templateBaseUrl: LEGACY_DEFAULT_CONFIGS.some(({ templateBaseUrl }) => config.templateBaseUrl === templateBaseUrl)
       ? DEFAULT_CONFIG.templateBaseUrl
       : config.templateBaseUrl
   };
@@ -152,7 +158,10 @@ function normalizeConfig(config) {
 function deriveTemplateBaseUrl(serverUrl) {
   const url = new URL(serverUrl || DEFAULT_CONFIG.serverUrl);
   url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
-  url.pathname = '/template';
+  const contextPath = url.pathname
+    .replace(/\/ws\/print\/?$/, '')
+    .replace(/\/$/, '');
+  url.pathname = `${contextPath}/template`;
   url.search = '';
   url.hash = '';
   return url.toString().replace(/\/$/, '');
