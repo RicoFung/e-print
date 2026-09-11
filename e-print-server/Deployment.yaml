@@ -51,9 +51,9 @@ spec: # 资源规范字段
           image: ${REGISTRY}/${APP_NS_NAME}/${APP_NAME}:${BUILD_NUMBER} # 容器使用的镜像地址
           imagePullPolicy: Always # 每次Pod启动拉取镜像策略,三个选择 Always、Never、IfNotPresent
           env:
-            - name: E_PRINT_ADMIN_PROFILE
+            - name: E_PRINT_PROFILE
               value: "${APP_PROFILE}"
-            - name: E_PRINT_ADMIN_PORT
+            - name: E_PRINT_SERVER_PORT
               value: "${APP_PORT}"
           ports:
             - name: http
