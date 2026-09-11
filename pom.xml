@@ -16,4 +16,28 @@
         <module>e-print-admin</module>
         <module>e-print-server</module>
     </modules>
+
+    <profiles>
+        <profile>
+            <id>loc</id>
+            <properties>
+                <profiles.active>loc</profiles.active>
+            </properties>
+        </profile>
+        <profile>
+            <id>uat</id>
+            <properties>
+                <profiles.active>uat</profiles.active>
+            </properties>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <properties>
+                <profiles.active>prod</profiles.active>
+            </properties>
+        </profile>
+    </profiles>
 </project>

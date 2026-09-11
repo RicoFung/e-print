@@ -1,8 +1,8 @@
 spring:
   application:
-    name: E-PRINT-ADMIN
+    name: e-print-admin
   profiles:
-    active: ${E_PRINT_ADMIN_PROFILE:loc}
+    active: @profiles.active@
   threads:
     virtual:
       enabled: true

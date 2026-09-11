@@ -2,7 +2,7 @@ spring:
   application:
     name: e-print-server
   profiles:
-    active: ${E_PRINT_PROFILE:loc}
+    active: @profiles.active@
   threads:
     virtual:
       enabled: true
