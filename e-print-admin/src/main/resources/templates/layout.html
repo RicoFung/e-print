@@ -30,6 +30,7 @@
     <link rel="stylesheet" th:href="@{/vendor/bootstrap-table/bootstrap-table.min.css}">
     <link rel="stylesheet" th:href="@{/vendor/bootstrap-table/extensions/sticky-header/bootstrap-table-sticky-header.min.css}">
     <link rel="stylesheet" th:href="@{/vendor/bootstrap-table/extensions/fixed-columns/bootstrap-table-fixed-columns.min.css}">
+    <link rel="stylesheet" th:href="@{/vendor/jquery-resizable-columns/jquery.resizableColumns.css}">
     <link rel="stylesheet" th:href="@{/vendor/sweetalert2/sweetalert2.min.css}">
     <link rel="stylesheet" th:href="@{/css/admin.css}">
 </head>
@@ -171,29 +172,75 @@
                             <p>首页</p>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link"
-                            th:classappend="${(currentRequestUri == '/template-types' or #strings.startsWith(currentRequestUri, '/template-types/')) ? ' active' : ''}"
-                            title="类型管理"
-                            aria-label="类型管理"
-                            th:href="@{/template-types}">
-                            <span class="nav-icon admin-nav-icon" aria-hidden="true">
-                                <svg><use href="#admin-icon-template-type"></use></svg>
+                    <li class="nav-item provider-menu"
+                        th:classappend="${#strings.startsWith(currentRequestUri, '/qiniu/') ? ' menu-open' : ''}">
+                        <a class="nav-link" href="#"
+                           th:classappend="${#strings.startsWith(currentRequestUri, '/qiniu/') ? ' active' : ''}"
+                           title="Qiniu" aria-label="Qiniu">
+                            <span class="nav-icon admin-nav-icon provider-brand-icon" aria-hidden="true">
+                                <img th:src="@{/img/providers/qiniu.png}" src="/img/providers/qiniu.png" alt="">
                             </span>
-                            <p>类型管理</p>
+                            <p>Qiniu <span class="nav-arrow" aria-hidden="true">›</span></p>
                         </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   th:classappend="${#strings.startsWith(currentRequestUri, '/qiniu/template-types') ? ' active' : ''}"
+                                   title="Qiniu 类型管理" aria-label="Qiniu 类型管理"
+                                   th:href="@{/qiniu/template-types}">
+                                    <span class="nav-icon admin-nav-icon" aria-hidden="true">
+                                        <svg><use href="#admin-icon-template-type"></use></svg>
+                                    </span>
+                                    <p>类型管理</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   th:classappend="${#strings.startsWith(currentRequestUri, '/qiniu/templates') ? ' active' : ''}"
+                                   title="Qiniu 模板管理" aria-label="Qiniu 模板管理"
+                                   th:href="@{/qiniu/templates}">
+                                    <span class="nav-icon admin-nav-icon" aria-hidden="true">
+                                        <svg><use href="#admin-icon-template"></use></svg>
+                                    </span>
+                                    <p>模板管理</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link"
-                            th:classappend="${(currentRequestUri == '/templates' or #strings.startsWith(currentRequestUri, '/templates/')) ? ' active' : ''}"
-                            title="模板管理"
-                            aria-label="模板管理"
-                            th:href="@{/templates}">
-                            <span class="nav-icon admin-nav-icon" aria-hidden="true">
-                                <svg><use href="#admin-icon-template"></use></svg>
+                    <li class="nav-item provider-menu"
+                        th:classappend="${#strings.startsWith(currentRequestUri, '/minio/') ? ' menu-open' : ''}">
+                        <a class="nav-link" href="#"
+                           th:classappend="${#strings.startsWith(currentRequestUri, '/minio/') ? ' active' : ''}"
+                           title="MinIO" aria-label="MinIO">
+                            <span class="nav-icon admin-nav-icon provider-brand-icon" aria-hidden="true">
+                                <img th:src="@{/img/providers/minio.png}" src="/img/providers/minio.png" alt="">
                             </span>
-                            <p>模板管理</p>
+                            <p>MinIO <span class="nav-arrow" aria-hidden="true">›</span></p>
                         </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   th:classappend="${#strings.startsWith(currentRequestUri, '/minio/template-types') ? ' active' : ''}"
+                                   title="MinIO 类型管理" aria-label="MinIO 类型管理"
+                                   th:href="@{/minio/template-types}">
+                                    <span class="nav-icon admin-nav-icon" aria-hidden="true">
+                                        <svg><use href="#admin-icon-template-type"></use></svg>
+                                    </span>
+                                    <p>类型管理</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   th:classappend="${#strings.startsWith(currentRequestUri, '/minio/templates') ? ' active' : ''}"
+                                   title="MinIO 模板管理" aria-label="MinIO 模板管理"
+                                   th:href="@{/minio/templates}">
+                                    <span class="nav-icon admin-nav-icon" aria-hidden="true">
+                                        <svg><use href="#admin-icon-template"></use></svg>
+                                    </span>
+                                    <p>模板管理</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </nav>

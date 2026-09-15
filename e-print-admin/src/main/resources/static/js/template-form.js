@@ -10,6 +10,10 @@ function adminContextUrl(path) {
   return `${contextPath}${targetPath}`;
 }
 
+const providerBasePath = document.body.dataset.providerBasePath || '';
+const templateBasePath = `${providerBasePath}/templates`;
+const templateTypeBasePath = `${providerBasePath}/template-types`;
+
 (function () {
   function confirmAction(message, options = {}) {
     if (!window.Swal) {
@@ -116,11 +120,19 @@ function adminContextUrl(path) {
     const templateCode = form.querySelector('#templateCode');
     const templateType = form.querySelector('#templateType');
     const objectName = form.querySelector('#objectName');
-    if (!templateCode || !objectName || objectName.value.trim()) {
+    if (!templateCode || !objectName) {
+      return;
+    }
+    const autoManaged = objectName.hasAttribute('data-object-name-auto');
+    if (!autoManaged && objectName.value.trim()) {
       return;
     }
     const code = templateCode.value.trim();
     if (!code) {
+      if (autoManaged) {
+        objectName.value = '';
+        refreshFieldValidity(objectName);
+      }
       return;
     }
     const prefix = templateCode.getAttribute('data-object-prefix') || 'templates/print';
@@ -249,9 +261,16 @@ function adminContextUrl(path) {
   const templateType = document.getElementById('templateType');
   const objectName = document.getElementById('objectName');
   if (templateCode && objectName) {
-    templateCode.addEventListener('blur', () => {
-      populateObjectNameIfEmpty(templateCode.form || document);
-    });
+    const syncObjectName = () => populateObjectNameIfEmpty(templateCode.form || document);
+    if (objectName.hasAttribute('data-object-name-auto')) {
+      templateCode.addEventListener('input', syncObjectName);
+      if (templateType) {
+        templateType.addEventListener('change', syncObjectName);
+      }
+      syncObjectName();
+    } else {
+      templateCode.addEventListener('blur', syncObjectName);
+    }
   }
 
   const fileInput = document.getElementById('templateFile');
@@ -360,7 +379,7 @@ function adminContextUrl(path) {
     }
     const id = encodeURIComponent(button.getAttribute('data-template-preview-id'));
     openPreview({
-      url: adminContextUrl('/templates/preview/render'),
+      url: adminContextUrl(`${templateBasePath}/preview/render`),
       id,
       subtitle: button.getAttribute('data-template-preview-name') || '已保存模板'
     });
@@ -369,7 +388,7 @@ function adminContextUrl(path) {
   const previewCurrentTemplate = document.getElementById('previewCurrentTemplate');
   if (previewCurrentTemplate && content) {
     previewCurrentTemplate.addEventListener('click', () => openPreview({
-      url: adminContextUrl('/templates/preview/render'),
+      url: adminContextUrl(`${templateBasePath}/preview/render`),
       subtitle: '当前编辑内容（无需保存）',
       contentProvider: () => content.value
     }));
@@ -513,7 +532,7 @@ function adminContextUrl(path) {
       }
       params.set('page', String(pageNumber));
       params.set('pageSize', String(pageSize));
-      return `/templates?${params.toString()}`;
+      return `${templateBasePath}?${params.toString()}`;
     };
 
     const syncListUrl = () => {
@@ -522,11 +541,11 @@ function adminContextUrl(path) {
       window.templateListReturnUrl = returnUrl;
       window.history.replaceState(null, '', adminContextUrl(returnUrl));
       if (createTemplateLink) {
-        createTemplateLink.href = adminContextUrl(`/templates/create?returnUrl=${encodeURIComponent(returnUrl)}`);
+        createTemplateLink.href = adminContextUrl(`${templateBasePath}/create?returnUrl=${encodeURIComponent(returnUrl)}`);
       }
       document.querySelectorAll('[data-template-edit-id]').forEach((link) => {
         const id = encodeURIComponent(link.getAttribute('data-template-edit-id'));
-        link.href = adminContextUrl(`/templates/modify?id=${id}&returnUrl=${encodeURIComponent(returnUrl)}`);
+        link.href = adminContextUrl(`${templateBasePath}/modify?id=${id}&returnUrl=${encodeURIComponent(returnUrl)}`);
       });
     };
 
@@ -553,15 +572,6 @@ function adminContextUrl(path) {
       if (bulkRemove) {
         bulkRemove.textContent = '批量删除';
       }
-    };
-
-    const resizeTable = () => {
-      const tableWrap = templateTable.closest('.list-table-wrap');
-      const actionbar = tableWrap.querySelector('.table-actionbar');
-      const rect = tableWrap.getBoundingClientRect();
-      const actionbarHeight = actionbar ? actionbar.getBoundingClientRect().height : 0;
-      const height = Math.max(280, Math.floor(rect.height - actionbarHeight));
-      $table.bootstrapTable('resetView', { height });
     };
 
     async function postSelected(url, ids) {
@@ -607,7 +617,6 @@ function adminContextUrl(path) {
 
     $table.bootstrapTable({
       locale: 'zh-CN',
-      height: Math.max(280, Math.floor(templateTable.closest('.list-table-wrap').getBoundingClientRect().height - 52)),
       stickyHeader: true,
       fixedColumns: true,
       fixedNumber: 2,
@@ -692,7 +701,7 @@ function adminContextUrl(path) {
 
     if (bulkDisable) {
       bulkDisable.addEventListener('click', () => runBulkAction({
-        url: adminContextUrl('/templates/disable'),
+        url: adminContextUrl(`${templateBasePath}/disable`),
         title: '批量禁用',
         okText: '禁用',
         okClass: 'btn-warning',
@@ -702,7 +711,7 @@ function adminContextUrl(path) {
 
     if (bulkEnable) {
       bulkEnable.addEventListener('click', () => runBulkAction({
-        url: adminContextUrl('/templates/enable'),
+        url: adminContextUrl(`${templateBasePath}/enable`),
         title: '批量启用',
         okText: '启用',
         okClass: 'btn-success',
@@ -712,7 +721,7 @@ function adminContextUrl(path) {
 
     if (bulkRemove) {
       bulkRemove.addEventListener('click', () => runBulkAction({
-        url: adminContextUrl('/templates/remove'),
+        url: adminContextUrl(`${templateBasePath}/remove`),
         title: '批量删除',
         okText: '删除',
         okClass: 'btn-danger',
@@ -720,16 +729,7 @@ function adminContextUrl(path) {
       }));
     }
 
-    window.addEventListener('resize', resizeTable);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', resizeTable);
-    }
-    if (window.ResizeObserver) {
-      const tableWrapObserver = new ResizeObserver(resizeTable);
-      tableWrapObserver.observe(templateTable.closest('.list-table-wrap'));
-    }
     setTimeout(syncSortHeaders, 0);
-    setTimeout(resizeTable, 0);
   }
 
   const templateTypeTable = document.getElementById('templateTypeTable');
@@ -865,7 +865,7 @@ function adminContextUrl(path) {
       }
       params.set('page', String(pageNumber));
       params.set('pageSize', String(pageSize));
-      return `/template-types?${params.toString()}`;
+      return `${templateTypeBasePath}?${params.toString()}`;
     };
 
     const syncListUrl = () => {
@@ -874,11 +874,11 @@ function adminContextUrl(path) {
       window.templateTypeListReturnUrl = returnUrl;
       window.history.replaceState(null, '', adminContextUrl(returnUrl));
       if (createTemplateTypeLink) {
-        createTemplateTypeLink.href = adminContextUrl(`/template-types/create?returnUrl=${encodeURIComponent(returnUrl)}`);
+        createTemplateTypeLink.href = adminContextUrl(`${templateTypeBasePath}/create?returnUrl=${encodeURIComponent(returnUrl)}`);
       }
       document.querySelectorAll('[data-template-type-edit-id]').forEach((link) => {
         const id = encodeURIComponent(link.getAttribute('data-template-type-edit-id'));
-        link.href = adminContextUrl(`/template-types/modify?id=${id}&returnUrl=${encodeURIComponent(returnUrl)}`);
+        link.href = adminContextUrl(`${templateTypeBasePath}/modify?id=${id}&returnUrl=${encodeURIComponent(returnUrl)}`);
       });
     };
 
@@ -895,15 +895,6 @@ function adminContextUrl(path) {
       }
       bulkButtons.forEach((button) => {
         button.disabled = count === 0;
-      });
-    };
-
-    const resizeTable = () => {
-      const rect = tableWrap.getBoundingClientRect();
-      const actionbar = tableWrap.querySelector('.table-actionbar');
-      const actionbarHeight = actionbar ? actionbar.getBoundingClientRect().height : 0;
-      $typeTable.bootstrapTable('resetView', {
-        height: Math.max(280, Math.floor(rect.height - actionbarHeight))
       });
     };
 
@@ -957,7 +948,6 @@ function adminContextUrl(path) {
 
     $typeTable.bootstrapTable({
       locale: 'zh-CN',
-      height: Math.max(280, Math.floor(tableWrap.getBoundingClientRect().height - 52)),
       stickyHeader: true,
       fixedColumns: true,
       fixedNumber: 2,
@@ -1015,7 +1005,7 @@ function adminContextUrl(path) {
             return;
           }
           try {
-            await postIds(adminContextUrl('/template-types/remove'), [id]);
+            await postIds(adminContextUrl(`${templateTypeBasePath}/remove`), [id]);
             $typeTable.bootstrapTable('refresh');
           } catch (error) {
             await alertAction(error.message, { title: '删除失败' });
@@ -1058,7 +1048,7 @@ function adminContextUrl(path) {
 
     if (bulkDisable) {
       bulkDisable.addEventListener('click', () => runBulkAction({
-        url: adminContextUrl('/template-types/disable'),
+        url: adminContextUrl(`${templateTypeBasePath}/disable`),
         title: '批量禁用',
         okText: '禁用',
         okClass: 'btn-warning',
@@ -1068,7 +1058,7 @@ function adminContextUrl(path) {
 
     if (bulkEnable) {
       bulkEnable.addEventListener('click', () => runBulkAction({
-        url: adminContextUrl('/template-types/enable'),
+        url: adminContextUrl(`${templateTypeBasePath}/enable`),
         title: '批量启用',
         okText: '启用',
         okClass: 'btn-success',
@@ -1076,16 +1066,7 @@ function adminContextUrl(path) {
       }));
     }
 
-    window.addEventListener('resize', resizeTable);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', resizeTable);
-    }
-    if (window.ResizeObserver) {
-      const tableWrapObserver = new ResizeObserver(resizeTable);
-      tableWrapObserver.observe(tableWrap);
-    }
     setTimeout(syncSortHeaders, 0);
-    setTimeout(resizeTable, 0);
   }
 })();
 
@@ -1120,10 +1101,10 @@ function templateTypeCodeFormatter(value) {
 function templateTypeActionFormatter(value, row) {
   const id = encodeURIComponent(row.id);
   const returnUrl = encodeURIComponent(window.templateTypeListReturnUrl || `${window.location.pathname}${window.location.search}`);
-  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-type-edit-id="${id}" href="${adminContextUrl(`/template-types/modify?id=${id}&returnUrl=${returnUrl}`)}">编辑</a>`;
+  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-type-edit-id="${id}" href="${adminContextUrl(`${templateTypeBasePath}/modify?id=${id}&returnUrl=${returnUrl}`)}">编辑</a>`;
   const statusAction = Number(row.status) === 1
-    ? `<form action="${adminContextUrl('/template-types/disable')}" method="post" data-confirm="确认禁用该模板类型？" data-confirm-title="禁用模板类型" data-confirm-ok="禁用" data-confirm-class="btn-warning"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
-    : `<form action="${adminContextUrl('/template-types/enable')}" method="post" data-confirm="确认启用该模板类型？" data-confirm-title="启用模板类型" data-confirm-ok="启用" data-confirm-class="btn-success"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;
+    ? `<form action="${adminContextUrl(`${templateTypeBasePath}/disable`)}" method="post" data-confirm="确认禁用该模板类型？" data-confirm-title="禁用模板类型" data-confirm-ok="禁用" data-confirm-class="btn-warning"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
+    : `<form action="${adminContextUrl(`${templateTypeBasePath}/enable`)}" method="post" data-confirm="确认启用该模板类型？" data-confirm-title="启用模板类型" data-confirm-ok="启用" data-confirm-class="btn-success"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;
   const removeAction = `<button class="btn btn-outline-danger btn-sm" type="button" data-template-type-remove-id="${id}">删除</button>`;
   return `<div class="row-actions">${edit}${statusAction}${removeAction}</div>`;
 }
@@ -1133,10 +1114,10 @@ function actionFormatter(value, row) {
   const returnUrl = encodeURIComponent(window.templateListReturnUrl || `${window.location.pathname}${window.location.search}`);
   const previewName = escapeHtml(row.templateCode || '已保存模板');
   const preview = `<button class="btn btn-outline-secondary btn-sm" type="button" data-template-preview-id="${id}" data-template-preview-name="${previewName}">预览</button>`;
-  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-edit-id="${id}" href="${adminContextUrl(`/templates/modify?id=${id}&returnUrl=${returnUrl}`)}">编辑</a>`;
+  const edit = `<a class="btn btn-outline-primary btn-sm" data-template-edit-id="${id}" href="${adminContextUrl(`${templateBasePath}/modify?id=${id}&returnUrl=${returnUrl}`)}">编辑</a>`;
   const statusAction = Number(row.status) === 1
-    ? `<form action="${adminContextUrl('/templates/disable')}" method="post" data-confirm="确认禁用该模板？" data-confirm-title="禁用模板" data-confirm-ok="禁用" data-confirm-class="btn-warning"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
-    : `<form action="${adminContextUrl('/templates/enable')}" method="post" data-confirm="确认启用该模板？" data-confirm-title="启用模板" data-confirm-ok="启用" data-confirm-class="btn-success"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;
-  const removeAction = `<form action="${adminContextUrl('/templates/remove')}" method="post" data-confirm="确认删除该模板？" data-confirm-title="删除模板" data-confirm-ok="删除" data-confirm-class="btn-danger"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-danger btn-sm" type="submit">删除</button></form>`;
+    ? `<form action="${adminContextUrl(`${templateBasePath}/disable`)}" method="post" data-confirm="确认禁用该模板？" data-confirm-title="禁用模板" data-confirm-ok="禁用" data-confirm-class="btn-warning"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-warning btn-sm" type="submit">禁用</button></form>`
+    : `<form action="${adminContextUrl(`${templateBasePath}/enable`)}" method="post" data-confirm="确认启用该模板？" data-confirm-title="启用模板" data-confirm-ok="启用" data-confirm-class="btn-success"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-success btn-sm" type="submit">启用</button></form>`;
+  const removeAction = `<form action="${adminContextUrl(`${templateBasePath}/remove`)}" method="post" data-confirm="确认删除该模板？" data-confirm-title="删除模板" data-confirm-ok="删除" data-confirm-class="btn-danger"><input type="hidden" name="id" value="${id}"><button class="btn btn-outline-danger btn-sm" type="submit">删除</button></form>`;
   return `<div class="row-actions">${preview}${edit}${statusAction}${removeAction}</div>`;
 }

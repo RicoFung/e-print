@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eprint.admin.repository.minio.dao.MinioTemplateDao">
+
+    <resultMap type="com.eprint.admin.repository.minio.model.result.MinioTemplateResult" id="templateResult">
+        <result property="id" column="ID"/>
+        <result property="templateTypeId" column="TEMPLATE_TYPE_ID"/>
+        <result property="templateTypeCode" column="TEMPLATE_TYPE_CODE"/>
+        <result property="templateTypeName" column="TEMPLATE_TYPE_NAME"/>
+        <result property="templateCode" column="CODE"/>
+        <result property="bucketName" column="BUCKET_NAME"/>
+        <result property="objectName" column="OBJECT_NAME"/>
+        <result property="status" column="STATUS"/>
+    </resultMap>
+
+    <sql id="where">
+        <where>
+            <if test="templateTypeId != null and templateTypeId != ''">
+                AND T.TEMPLATE_TYPE_ID = #{templateTypeId}
+            </if>
+            <if test="templateCode != null and templateCode != ''">
+                AND LOWER(T.CODE) LIKE '%' || LOWER(#{templateCode}) || '%'
+            </if>
+            <if test="status != null">
+                AND T.STATUS = #{status}
+            </if>
+        </where>
+    </sql>
+
+    <sql id="order">
+        <choose>
+            <when test="sort != null and sort != ''">
+                <foreach collection="sort.split(&quot;,&quot;, -1)"
+                         item="item"
+                         index="index"
+                         separator=",">
+                    <if test="index &lt; 5">
+                        <choose>
+                            <when test="'id.asc'.equals(item)">T.ID ASC</when>
+                            <when test="'id.desc'.equals(item)">T.ID DESC</when>
+                            <when test="'templateTypeCode.asc'.equals(item)">TT.CODE ASC</when>
+                            <when test="'templateTypeCode.desc'.equals(item)">TT.CODE DESC</when>
+                            <when test="'templateTypeName.asc'.equals(item)">TT.NAME ASC</when>
+                            <when test="'templateTypeName.desc'.equals(item)">TT.NAME DESC</when>
+                            <when test="'templateCode.asc'.equals(item)">T.CODE ASC</when>
+                            <when test="'templateCode.desc'.equals(item)">T.CODE DESC</when>
+                            <when test="'bucketName.asc'.equals(item)">T.BUCKET_NAME ASC</when>
+                            <when test="'bucketName.desc'.equals(item)">T.BUCKET_NAME DESC</when>
+                            <when test="'objectName.asc'.equals(item)">T.OBJECT_NAME ASC</when>
+                            <when test="'objectName.desc'.equals(item)">T.OBJECT_NAME DESC</when>
+                            <when test="'status.asc'.equals(item)">T.STATUS ASC</when>
+                            <when test="'status.desc'.equals(item)">T.STATUS DESC</when>
+                            <otherwise>T.ID DESC</otherwise>
+                        </choose>
+                    </if>
+                </foreach>
+                , T.ID DESC
+            </when>
+            <otherwise>T.ID DESC</otherwise>
+        </choose>
+    </sql>
+
+    <select id="query"
+            parameterType="com.eprint.admin.repository.minio.model.param.MinioTemplateQueryParam"
+            resultMap="templateResult">
+        SELECT
+            ID,
+            TEMPLATE_TYPE_ID,
+            TEMPLATE_TYPE_CODE,
+            TEMPLATE_TYPE_NAME,
+            CODE,
+            BUCKET_NAME,
+            OBJECT_NAME,
+            STATUS
+        FROM (
+            SELECT
+                T.ID,
+                T.TEMPLATE_TYPE_ID,
+                TT.CODE AS TEMPLATE_TYPE_CODE,
+                TT.NAME AS TEMPLATE_TYPE_NAME,
+                T.CODE,
+                T.BUCKET_NAME,
+                T.OBJECT_NAME,
+                T.STATUS,
+                ROW_NUMBER() OVER (
+                    ORDER BY <include refid="order"/>
+                ) RN
+            FROM E_PRINT_MINIO_TEMPLATE T
+            LEFT JOIN E_PRINT_MINIO_TEMPLATE_TYPE TT ON TT.ID = T.TEMPLATE_TYPE_ID
+            <include refid="where"/>
+        )
+        WHERE RN &gt; (#{page} - 1) * #{pageSize}
+          AND RN &lt;= #{page} * #{pageSize}
+        ORDER BY RN
+    </select>
+
+    <select id="count"
+            parameterType="com.eprint.admin.repository.minio.model.param.MinioTemplateQueryParam"
+            resultType="int">
+        SELECT COUNT(1)
+        FROM E_PRINT_MINIO_TEMPLATE T
+        <include refid="where"/>
+    </select>
+
+    <select id="get" parameterType="string" resultMap="templateResult">
+        SELECT
+            T.ID,
+            T.TEMPLATE_TYPE_ID,
+            TT.CODE AS TEMPLATE_TYPE_CODE,
+            TT.NAME AS TEMPLATE_TYPE_NAME,
+            T.CODE,
+            T.BUCKET_NAME,
+            T.OBJECT_NAME,
+            T.STATUS
+        FROM E_PRINT_MINIO_TEMPLATE T
+        LEFT JOIN E_PRINT_MINIO_TEMPLATE_TYPE TT ON TT.ID = T.TEMPLATE_TYPE_ID
+        WHERE T.ID = #{id}
+    </select>
+
+    <select id="getByTemplateTypeIdAndCode" parameterType="map" resultMap="templateResult">
+        SELECT
+            T.ID,
+            T.TEMPLATE_TYPE_ID,
+            TT.CODE AS TEMPLATE_TYPE_CODE,
+            TT.NAME AS TEMPLATE_TYPE_NAME,
+            T.CODE,
+            T.BUCKET_NAME,
+            T.OBJECT_NAME,
+            T.STATUS
+        FROM E_PRINT_MINIO_TEMPLATE T
+        LEFT JOIN E_PRINT_MINIO_TEMPLATE_TYPE TT ON TT.ID = T.TEMPLATE_TYPE_ID
+        WHERE T.TEMPLATE_TYPE_ID = #{templateTypeId}
+          AND T.CODE = #{templateCode}
+    </select>
+
+    <insert id="create" parameterType="com.eprint.admin.repository.minio.model.param.MinioTemplateCreateParam">
+        INSERT INTO E_PRINT_MINIO_TEMPLATE (
+            ID,
+            TEMPLATE_TYPE_ID,
+            CODE,
+            BUCKET_NAME,
+            OBJECT_NAME,
+            STATUS
+        ) VALUES (
+            SEQ_EPRINT_MINIO_TEMPLATE.NEXTVAL,
+            #{templateTypeId},
+            #{templateCode},
+            #{bucketName},
+            #{objectName},
+            #{status}
+        )
+    </insert>
+
+    <update id="modify" parameterType="com.eprint.admin.repository.minio.model.param.MinioTemplateModifyParam">
+        UPDATE E_PRINT_MINIO_TEMPLATE
+        SET
+            TEMPLATE_TYPE_ID = #{templateTypeId},
+            CODE = #{templateCode},
+            BUCKET_NAME = #{bucketName},
+            OBJECT_NAME = #{objectName},
+            STATUS = #{status}
+        WHERE ID = #{id}
+    </update>
+
+    <update id="disable" parameterType="com.eprint.admin.repository.minio.model.param.MinioTemplateDisableParam">
+        UPDATE E_PRINT_MINIO_TEMPLATE
+        SET STATUS = 0
+        WHERE ID IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="enable" parameterType="com.eprint.admin.repository.minio.model.param.MinioTemplateEnableParam">
+        UPDATE E_PRINT_MINIO_TEMPLATE
+        SET STATUS = 1
+        WHERE ID IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <delete id="remove" parameterType="com.eprint.admin.repository.minio.model.param.MinioTemplateRemoveParam">
+        DELETE FROM E_PRINT_MINIO_TEMPLATE
+        WHERE ID IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
