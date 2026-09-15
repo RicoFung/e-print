@@ -147,6 +147,49 @@
     return !target || target === '_self';
   }
 
+  function syncProviderMenuState(menu) {
+    const toggle = menu.querySelector(':scope > [data-provider-toggle]');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', String(menu.classList.contains('menu-open')));
+    }
+  }
+
+  function initializeNavigation() {
+    const sidebarToggle = document.querySelector('[data-lte-toggle="sidebar"]');
+    const syncSidebarToggle = () => {
+      if (!sidebarToggle) {
+        return;
+      }
+      const expanded = !document.body.classList.contains('sidebar-collapse');
+      sidebarToggle.setAttribute('aria-expanded', String(expanded));
+      sidebarToggle.setAttribute('aria-label', expanded ? '收起导航菜单' : '展开导航菜单');
+    };
+
+    document.querySelectorAll('.provider-menu').forEach((menu) => {
+      const toggle = menu.querySelector(':scope > [data-provider-toggle]');
+      syncProviderMenuState(menu);
+      if (toggle) {
+        toggle.addEventListener('click', () => requestAnimationFrame(() => syncProviderMenuState(menu)));
+        toggle.addEventListener('keydown', (event) => {
+          if (event.key === ' ') {
+            event.preventDefault();
+            toggle.click();
+          }
+        });
+      }
+      new MutationObserver(() => syncProviderMenuState(menu)).observe(menu, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+    });
+
+    syncSidebarToggle();
+    new MutationObserver(syncSidebarToggle).observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  }
+
   globalThis.showPageLoading = showPageLoading;
   globalThis.hidePageLoading = hidePageLoading;
 
@@ -161,6 +204,7 @@
     const theme = getPreferredTheme();
     setTheme(theme);
     showActiveTheme(theme, false);
+    initializeNavigation();
 
     document.querySelectorAll('[data-bs-theme-value]').forEach((toggle) => {
       toggle.addEventListener('click', () => {

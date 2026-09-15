@@ -68,12 +68,21 @@
             <path d="M9 12h6"></path>
             <path d="M9 16h6"></path>
         </symbol>
+        <symbol id="admin-icon-storage" viewBox="0 0 24 24">
+            <ellipse cx="12" cy="5" rx="7" ry="3"></ellipse>
+            <path d="M5 5v7c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path>
+            <path d="M5 12v7c0 1.7 3.1 3 7 3s7-1.3 7-3v-7"></path>
+        </symbol>
+        <symbol id="admin-icon-chevron" viewBox="0 0 24 24">
+            <path d="m9 6 6 6-6 6"></path>
+        </symbol>
     </svg>
     <nav class="app-header navbar navbar-expand bg-body border-bottom">
         <div class="container-fluid">
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button" aria-label="切换侧边栏">
+                    <a class="nav-link admin-sidebar-toggle" data-lte-toggle="sidebar" href="#" role="button"
+                       aria-label="收起导航菜单" aria-expanded="true">
                         <span class="navbar-toggler-icon"></span>
                     </a>
                 </li>
@@ -153,16 +162,20 @@
         <div class="sidebar-brand">
             <a class="brand-link" th:href="@{/}">
                 <img class="brand-mark" th:src="@{/img/e-print-logo.svg}" alt="" width="38" height="38">
-                <span class="brand-text fw-semibold">E-PRINT-ADMIN</span>
+                <span class="brand-text">
+                    <strong>E-PRINT</strong>
+                    <small>CONTROL DESK</small>
+                </span>
             </a>
         </div>
         <div class="sidebar-wrapper">
             <nav class="mt-2">
-                <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" data-accordion="false">
-                    <li class="nav-header"></li>
+                <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" data-accordion="true">
+                    <li class="nav-header"><span>工作区</span></li>
                     <li class="nav-item">
                         <a class="nav-link"
                             th:classappend="${currentRequestUri == '/' ? ' active' : ''}"
+                            th:attr="aria-current=${currentRequestUri == '/' ? 'page' : null}"
                             title="首页"
                             aria-label="首页"
                             th:href="@{/}">
@@ -174,18 +187,22 @@
                     </li>
                     <li class="nav-item provider-menu"
                         th:classappend="${#strings.startsWith(currentRequestUri, '/qiniu/') ? ' menu-open' : ''}">
-                        <a class="nav-link" href="#"
+                        <a class="nav-link provider-toggle" href="#" role="button" data-provider-toggle
                            th:classappend="${#strings.startsWith(currentRequestUri, '/qiniu/') ? ' active' : ''}"
-                           title="Qiniu" aria-label="Qiniu">
-                            <span class="nav-icon admin-nav-icon provider-brand-icon" aria-hidden="true">
-                                <img th:src="@{/img/providers/qiniu.png}" src="/img/providers/qiniu.png" alt="">
+                           th:attr="aria-expanded=${#strings.startsWith(currentRequestUri, '/qiniu/')},aria-controls='qiniu-navigation'"
+                            title="Qiniu" aria-label="Qiniu">
+                                <span class="nav-icon admin-nav-icon provider-brand-icon" aria-hidden="true">
+                                <svg><use href="#admin-icon-storage"></use></svg>
                             </span>
-                            <p>Qiniu <span class="nav-arrow" aria-hidden="true">›</span></p>
+                            <p>Qiniu <span class="provider-caption">对象存储</span>
+                                <span class="nav-arrow" aria-hidden="true"><svg><use href="#admin-icon-chevron"></use></svg></span>
+                            </p>
                         </a>
-                        <ul class="nav nav-treeview">
+                        <ul class="nav nav-treeview" id="qiniu-navigation">
                             <li class="nav-item">
                                 <a class="nav-link"
                                    th:classappend="${#strings.startsWith(currentRequestUri, '/qiniu/template-types') ? ' active' : ''}"
+                                   th:attr="aria-current=${#strings.startsWith(currentRequestUri, '/qiniu/template-types') ? 'page' : null}"
                                    title="Qiniu 类型管理" aria-label="Qiniu 类型管理"
                                    th:href="@{/qiniu/template-types}">
                                     <span class="nav-icon admin-nav-icon" aria-hidden="true">
@@ -197,6 +214,7 @@
                             <li class="nav-item">
                                 <a class="nav-link"
                                    th:classappend="${#strings.startsWith(currentRequestUri, '/qiniu/templates') ? ' active' : ''}"
+                                   th:attr="aria-current=${#strings.startsWith(currentRequestUri, '/qiniu/templates') ? 'page' : null}"
                                    title="Qiniu 模板管理" aria-label="Qiniu 模板管理"
                                    th:href="@{/qiniu/templates}">
                                     <span class="nav-icon admin-nav-icon" aria-hidden="true">
@@ -209,18 +227,22 @@
                     </li>
                     <li class="nav-item provider-menu"
                         th:classappend="${#strings.startsWith(currentRequestUri, '/minio/') ? ' menu-open' : ''}">
-                        <a class="nav-link" href="#"
+                        <a class="nav-link provider-toggle" href="#" role="button" data-provider-toggle
                            th:classappend="${#strings.startsWith(currentRequestUri, '/minio/') ? ' active' : ''}"
+                           th:attr="aria-expanded=${#strings.startsWith(currentRequestUri, '/minio/')},aria-controls='minio-navigation'"
                            title="MinIO" aria-label="MinIO">
                             <span class="nav-icon admin-nav-icon provider-brand-icon" aria-hidden="true">
-                                <img th:src="@{/img/providers/minio.png}" src="/img/providers/minio.png" alt="">
+                                <svg><use href="#admin-icon-storage"></use></svg>
                             </span>
-                            <p>MinIO <span class="nav-arrow" aria-hidden="true">›</span></p>
+                            <p>MinIO <span class="provider-caption">对象存储</span>
+                                <span class="nav-arrow" aria-hidden="true"><svg><use href="#admin-icon-chevron"></use></svg></span>
+                            </p>
                         </a>
-                        <ul class="nav nav-treeview">
+                        <ul class="nav nav-treeview" id="minio-navigation">
                             <li class="nav-item">
                                 <a class="nav-link"
                                    th:classappend="${#strings.startsWith(currentRequestUri, '/minio/template-types') ? ' active' : ''}"
+                                   th:attr="aria-current=${#strings.startsWith(currentRequestUri, '/minio/template-types') ? 'page' : null}"
                                    title="MinIO 类型管理" aria-label="MinIO 类型管理"
                                    th:href="@{/minio/template-types}">
                                     <span class="nav-icon admin-nav-icon" aria-hidden="true">
@@ -232,6 +254,7 @@
                             <li class="nav-item">
                                 <a class="nav-link"
                                    th:classappend="${#strings.startsWith(currentRequestUri, '/minio/templates') ? ' active' : ''}"
+                                   th:attr="aria-current=${#strings.startsWith(currentRequestUri, '/minio/templates') ? 'page' : null}"
                                    title="MinIO 模板管理" aria-label="MinIO 模板管理"
                                    th:href="@{/minio/templates}">
                                     <span class="nav-icon admin-nav-icon" aria-hidden="true">

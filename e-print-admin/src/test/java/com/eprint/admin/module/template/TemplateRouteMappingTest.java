@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -42,13 +43,27 @@ class TemplateRouteMappingTest {
     }
 
     @Test
-    void navigationUsesLocalProviderBrandIcons() throws IOException {
+    void navigationUsesUnifiedStorageIcons() throws IOException {
         String layout = resource("templates/layout.html");
 
-        assertTrue(layout.contains("@{/img/providers/qiniu.png}"));
-        assertTrue(layout.contains("@{/img/providers/minio.png}"));
-        assertResourceExists("static/img/providers/qiniu.png");
-        assertResourceExists("static/img/providers/minio.png");
+        assertTrue(layout.contains("id=\"admin-icon-storage\""));
+        assertTrue(layout.contains("<svg><use href=\"#admin-icon-storage\"></use></svg>"));
+        assertFalse(layout.contains("@{/img/providers/qiniu.png}"));
+        assertFalse(layout.contains("@{/img/providers/minio.png}"));
+    }
+
+    @Test
+    void navigationProvidesAccessibleInteractiveProviderGroups() throws IOException {
+        String layout = resource("templates/layout.html");
+        String navigationScript = resource("static/js/admin-theme.js");
+
+        assertTrue(layout.contains("data-accordion=\"true\""));
+        assertTrue(layout.contains("data-provider-toggle"));
+        assertTrue(layout.contains("aria-controls='qiniu-navigation'"));
+        assertTrue(layout.contains("aria-controls='minio-navigation'"));
+        assertTrue(layout.contains("aria-current=${"));
+        assertTrue(navigationScript.contains("initializeNavigation()"));
+        assertTrue(navigationScript.contains("toggle.setAttribute('aria-expanded'"));
     }
 
     @Test
@@ -120,9 +135,4 @@ class TemplateRouteMappingTest {
         }
     }
 
-    private void assertResourceExists(String path) throws IOException {
-        try (InputStream input = getClass().getClassLoader().getResourceAsStream(path)) {
-            assertNotNull(input, path);
-        }
-    }
 }

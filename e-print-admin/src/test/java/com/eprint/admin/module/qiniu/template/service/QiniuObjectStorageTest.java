@@ -58,7 +58,7 @@ class QiniuObjectStorageTest {
     void rejectsInvalidS3Endpoint() {
         assertThrows(IllegalArgumentException.class, () -> new QiniuObjectStorage(
                 "access-key", "secret-key", "z2", "pos-uat", "e-print",
-                "https://example.com/not-an-endpoint", "cn-south-1", "pos-uat"));
+                "https://example.com/not-an-endpoint", "cn-south-1"));
     }
 
     @Test
@@ -93,7 +93,6 @@ class QiniuObjectStorageTest {
                 Auth.create("access-key", "secret-key"),
                 s3Client,
                 "pos-uat",
-                "e-print",
-                "pos-uat");
+                "e-print");
     }
 }

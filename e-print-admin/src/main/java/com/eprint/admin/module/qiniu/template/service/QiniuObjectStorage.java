@@ -33,7 +33,6 @@ public class QiniuObjectStorage {
     private final S3Client s3Client;
     private final String bucket;
     private final String objectPrefix;
-    private final String s3Bucket;
 
     @Autowired
     public QiniuObjectStorage(@Value("${qiniu.access-key:disabled}") String accessKey,
@@ -42,8 +41,7 @@ public class QiniuObjectStorage {
                               @Value("${qiniu.bucket:pos-uat}") String bucket,
                               @Value("${qiniu.object-prefix:e-print}") String objectPrefix,
                               @Value("${qiniu.s3-endpoint:https://s3.cn-south-1.qiniucs.com}") String s3Endpoint,
-                              @Value("${qiniu.s3-region:cn-south-1}") String s3Region,
-                              @Value("${qiniu.s3-bucket:${qiniu.bucket:pos-uat}}") String s3Bucket) {
+                              @Value("${qiniu.s3-region:cn-south-1}") String s3Region) {
         this.auth = Auth.create(accessKey, secretKey);
         Configuration configuration = Configuration.create(resolveRegion(region));
         this.uploadManager = new UploadManager(configuration);
@@ -51,7 +49,6 @@ public class QiniuObjectStorage {
         this.s3Client = createS3Client(accessKey, secretKey, s3Endpoint, s3Region);
         this.bucket = bucket;
         this.objectPrefix = normalizeObjectPrefix(objectPrefix);
-        this.s3Bucket = s3Bucket.trim();
     }
 
     QiniuObjectStorage(UploadManager uploadManager,
@@ -59,15 +56,13 @@ public class QiniuObjectStorage {
                        Auth auth,
                        S3Client s3Client,
                        String bucket,
-                       String objectPrefix,
-                       String s3Bucket) {
+                       String objectPrefix) {
         this.uploadManager = uploadManager;
         this.bucketManager = bucketManager;
         this.auth = auth;
         this.s3Client = s3Client;
         this.bucket = bucket;
         this.objectPrefix = normalizeObjectPrefix(objectPrefix);
-        this.s3Bucket = s3Bucket;
     }
 
     public void put(String bucketName, String objectName, String content) throws Exception {
@@ -100,7 +95,7 @@ public class QiniuObjectStorage {
     public String read(String bucketName, String objectName) throws Exception {
         validateBucket(bucketName);
         GetObjectRequest request = GetObjectRequest.builder()
-                .bucket(s3Bucket)
+                .bucket(bucket)
                 .key(normalizeObjectName(objectName))
                 .build();
         ResponseBytes<GetObjectResponse> response = s3Client.getObjectAsBytes(request);

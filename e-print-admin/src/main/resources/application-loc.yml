@@ -40,4 +40,3 @@ qiniu:
   region: ${E_PRINT_QINIU_REGION:z2}
   s3-endpoint: ${E_PRINT_QINIU_S3_ENDPOINT:https://s3.cn-south-1.qiniucs.com}
   s3-region: ${E_PRINT_QINIU_S3_REGION:cn-south-1}
-  s3-bucket: ${E_PRINT_QINIU_S3_BUCKET:${E_PRINT_QINIU_BUCKET:pos-uat}}
