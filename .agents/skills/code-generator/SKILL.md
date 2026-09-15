@@ -31,6 +31,7 @@ description: 按 e-print-admin 当前项目风格生成或重构代码。用于�
 - 业务校验、关联检查和唯一性检查放在 Service；Dao 与 Mapper XML 只负责持久化。
 - 不新增 Manager 层，不在 Service 中保留排序 SQL 转换逻辑。
 - 页面文案使用中文；Java 类型名、方法名、字段名保持英文。
+- 列表页表格的表头、数据单元格及其中非按钮内容统一使用相同字号和正常字重；按钮保留自身字体样式。
 - 除非用户明确要求维护本技能，否则不要修改 `.agents/skills/code-generator`。
 
 ## 验证要求
