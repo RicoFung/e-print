@@ -1,6 +1,7 @@
 server:
   servlet:
     context-path: /${project.artifactId}
+  port: ${E_PRINT_SERVER_PORT:8081}
 
 app:
   security:
