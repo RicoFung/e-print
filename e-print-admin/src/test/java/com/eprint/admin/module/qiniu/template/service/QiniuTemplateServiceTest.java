@@ -19,6 +19,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -190,6 +192,30 @@ class QiniuTemplateServiceTest {
         verify(objectStorage, never()).overwrite(any(), any(), any());
         verify(objectStorage, never()).delete(any(), any());
         verify(templateDao, never()).modify(any());
+    }
+
+    @Test
+    void previewRendersHandlebarsIfBlocksAndBusinessNamedCodeAssets() {
+        String template = """
+                {{#if codes.receiptBarcode}}<img class="barcode" src="{{codes.receiptBarcode.dataUrl}}">{{/if}}
+                {{#if codes.memberQr}}<img class="qr" src="{{codes.memberQr.dataUrl}}">{{/if}}
+                {{#if codes.missing}}missing{{/if}}
+                """;
+        String sampleData = """
+                {
+                  "codes": {
+                    "receiptBarcode": {"codeType": "barcode", "value": "RC202609160001"},
+                    "memberQr": {"codeType": "qr", "value": "https://example.com/member/001"}
+                  }
+                }
+                """;
+
+        String html = service.renderTemplateContent(template, sampleData);
+
+        assertTrue(html.contains("class=\"barcode\" src=\"data:image/svg+xml;base64,"));
+        assertTrue(html.contains("class=\"qr\" src=\"data:image/svg+xml;base64,"));
+        assertFalse(html.contains("{{#if"));
+        assertFalse(html.contains("missing"));
     }
 
     private QiniuTemplateCreateRequest createRequest() {

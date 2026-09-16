@@ -17,8 +17,10 @@ import com.eprint.admin.repository.minio.model.param.MinioTemplateCreateParam;
 import com.eprint.admin.repository.minio.model.param.MinioTemplateModifyParam;
 import com.eprint.admin.repository.minio.model.param.MinioTemplateQueryParam;
 import com.eprint.admin.repository.minio.model.result.MinioTemplateResult;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
@@ -49,6 +51,7 @@ public class MinioTemplateService {
     private static final String SIMULATED_STACK_OBJECT_NAME = "__SIMULATE_STACK__";
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{\\{\\s*([A-Za-z0-9_.-]+)\\s*}}");
     private static final Pattern EACH_PATTERN = Pattern.compile("\\{\\{#each\\s+([A-Za-z0-9_.-]+)\\s*}}([\\s\\S]*?)\\{\\{/each}}");
+    private static final Pattern IF_PATTERN = Pattern.compile("\\{\\{#if\\s+([A-Za-z0-9_.-]+)\\s*}}([\\s\\S]*?)\\{\\{/if}}");
     private static final String[] CODE128_PATTERNS = {
             "212222", "222122", "222221", "121223", "121322", "131222", "122213", "122312", "132212", "221213",
             "221312", "231212", "112232", "122132", "122231", "113222", "123122", "123221", "223211", "221132",
@@ -175,8 +178,9 @@ public class MinioTemplateService {
     public String renderTemplateContent(String templateContent, String sampleData) {
         try {
             JsonNode root = objectMapper.readTree(StringUtils.hasText(sampleData) ? sampleData : "{}");
+            resolveCodeAssets(root, "data");
             return renderPlaceholders(templateContent == null ? "" : templateContent, root);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             log.warn("Render template preview failed", e);
             throw new IllegalArgumentException("Sample data must be valid JSON");
         }
@@ -216,6 +220,8 @@ public class MinioTemplateService {
                   "discount": "-100.00",
                   "total": "13017.00",
                   "paymentMethod": "微信支付",
+                  "memberName": "张三",
+                  "points": 1280,
                   "footerText": "谢谢惠顾，欢迎再次光临",
                   "productName": "MacBook Pro 14",
                   "sku": "MBP-14-001",
@@ -223,11 +229,19 @@ public class MinioTemplateService {
                   "quantity": 1,
                   "shopName": "E-Print Store",
                   "orderNo": "SO202606050001",
-                  "qr": {
-                    "qrText": "https://example.com/order/RC202606080001"
-                  },
-                  "barcode": {
-                    "barcodeText": "RC202606080001"
+                  "codes": {
+                    "receiptBarcode": {
+                      "codeType": "barcode",
+                      "value": "RC202606080001"
+                    },
+                    "memberQr": {
+                      "codeType": "qr",
+                      "value": "https://example.com/member/001"
+                    },
+                    "electronicReceiptQr": {
+                      "codeType": "qr",
+                      "value": "https://example.com/order/RC202606080001"
+                    }
                   }
                 }
                 """;
@@ -321,6 +335,7 @@ public class MinioTemplateService {
 
     private String renderPlaceholders(String templateContent, JsonNode root) {
         String content = renderEachBlocks(templateContent, root);
+        content = renderIfBlocks(content, root);
         Matcher matcher = PLACEHOLDER_PATTERN.matcher(content);
         StringBuffer rendered = new StringBuffer();
         while (matcher.find()) {
@@ -329,6 +344,62 @@ public class MinioTemplateService {
         }
         matcher.appendTail(rendered);
         return rendered.toString();
+    }
+
+    private String renderIfBlocks(String templateContent, JsonNode root) {
+        Matcher matcher = IF_PATTERN.matcher(templateContent);
+        StringBuffer rendered = new StringBuffer();
+        while (matcher.find()) {
+            JsonNode condition = resolveNode(root, matcher.group(1));
+            String replacement = isTruthy(condition) ? renderPlaceholders(matcher.group(2), root) : "";
+            matcher.appendReplacement(rendered, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(rendered);
+        return rendered.toString();
+    }
+
+    private boolean isTruthy(JsonNode value) {
+        if (value == null || value.isMissingNode() || value.isNull()) {
+            return false;
+        }
+        if (value.isBoolean()) {
+            return value.booleanValue();
+        }
+        if (value.isNumber()) {
+            return value.doubleValue() != 0;
+        }
+        if (value.isTextual()) {
+            return StringUtils.hasText(value.textValue());
+        }
+        return !value.isArray() || !value.isEmpty();
+    }
+
+    private void resolveCodeAssets(JsonNode node, String path) {
+        if (node == null || node.isNull() || node.isValueNode()) {
+            return;
+        }
+        if (node.isArray()) {
+            for (int i = 0; i < node.size(); i++) {
+                resolveCodeAssets(node.get(i), path + "[" + i + "]");
+            }
+            return;
+        }
+        node.fields().forEachRemaining(entry -> resolveCodeAssets(entry.getValue(), path + "." + entry.getKey()));
+        JsonNode codeTypeNode = node.get("codeType");
+        if (codeTypeNode == null) {
+            return;
+        }
+        String codeType = codeTypeNode.asText();
+        if (!"barcode".equals(codeType) && !"qr".equals(codeType)) {
+            throw new IllegalArgumentException("Unsupported codeType at " + path + ": " + codeType);
+        }
+        JsonNode valueNode = node.get("value");
+        String value = valueNode == null ? null : valueNode.asText();
+        if (!StringUtils.hasText(value)) {
+            throw new IllegalArgumentException("Code value must be a non-empty string at " + path);
+        }
+        String dataUrl = "barcode".equals(codeType) ? barcodeDataUrl(value) : qrDataUrl(value);
+        ((ObjectNode) node).put("dataUrl", dataUrl);
     }
 
     private String renderEachBlocks(String templateContent, JsonNode root) {
