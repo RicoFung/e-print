@@ -35,9 +35,13 @@ test('builds basic authorization header for template requests', () => {
   });
 });
 
-test('builds cache path with template type namespace', () => {
+test('builds cache path with template source and type namespaces', () => {
   assert.match(
     getTemplatePath('/tmp/cache', 'sales_receipt', '01'),
-    /sales_receipt[\\/]01\.html$/
+    /qiniu[\\/]sales_receipt[\\/]01\.html$/
+  );
+  assert.match(
+    getTemplatePath('/tmp/cache', 'sales_receipt', '01', 'minio'),
+    /minio[\\/]sales_receipt[\\/]01\.html$/
   );
 });

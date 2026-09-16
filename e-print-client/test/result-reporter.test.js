@@ -20,8 +20,12 @@ function expectedBasicAuthorization() {
 
 test('builds print result URL from template base URL', () => {
   assert.equal(
-    buildResultUrl('http://localhost:8080/e-print-server/template', 'task/001'),
+    buildResultUrl('http://localhost:8080/e-print-server/minio/template', 'task/001'),
     'http://localhost:8080/e-print-server/task/task%2F001/result'
+  );
+  assert.equal(
+    buildResultUrl('http://localhost:8080/e-print-server/qiniu/template', 'task/002'),
+    'http://localhost:8080/e-print-server/task/task%2F002/result'
   );
 });
 
@@ -41,7 +45,7 @@ test('reports successful print result through HTTP endpoint', async () => {
     templateCode: '01',
     status: 'success'
   }, {
-    templateBaseUrl: 'http://localhost:8080/e-print-server/template',
+    templateBaseUrl: 'http://localhost:8080/e-print-server/minio/template',
     ...TEST_CREDENTIALS
   }, {
     fetch: async (url, options) => {
@@ -66,7 +70,7 @@ test('throws when result callback returns a non-success status', async () => {
       taskId: 'TASK-001',
       status: 'failed'
     }, {
-      templateBaseUrl: 'http://localhost:8080/e-print-server/template'
+      templateBaseUrl: 'http://localhost:8080/e-print-server/minio/template'
     }, {
       fetch: async () => ({ ok: false, status: 503 })
     }),

@@ -50,6 +50,12 @@
             <label for="clientId" data-i18n="clientId">Client ID</label>
             <input id="clientId" name="clientId" type="text" placeholder="CLIENT-001" required>
 
+            <label for="templateSource" data-i18n="templateSource">Template source</label>
+            <select id="templateSource" name="templateSource">
+              <option value="qiniu">qiniu</option>
+              <option value="minio">minio</option>
+            </select>
+
             <strong id="templateBaseUrl" hidden></strong>
           </form>
         </section>

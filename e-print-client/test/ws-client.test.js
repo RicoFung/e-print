@@ -197,7 +197,7 @@ test('reports completed task through the HTTP result reporter', async () => {
   startPrintClient({
     clientId: 'CLIENT-001',
     serverUrl: 'ws://localhost:8080/e-print-server/ws/print',
-    templateBaseUrl: 'http://localhost:8080/e-print-server/template'
+    templateBaseUrl: 'http://localhost:8080/e-print-server/minio/template'
   }, {
     WebSocket: FakeWebSocket,
     runPrintTask: async (task, config, dependencies) => dependencies.reportResult({

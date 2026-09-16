@@ -6,13 +6,16 @@ const path = require('node:path');
 
 const CONFIG_FILE_NAME = 'config.json';
 const PROJECT_CONFIG_PATH = path.resolve(__dirname, '..', '..', 'config.json');
+const DEFAULT_TEMPLATE_SOURCE = 'qiniu';
+const TEMPLATE_SOURCES = new Set(['qiniu', 'minio']);
 let userConfigPath;
 
 const DEFAULT_CONFIG = {
   env: 'loc',
   clientId: 'CLIENT-001',
   serverUrl: 'ws://localhost:8080/e-print-server/ws/print',
-  templateBaseUrl: 'http://localhost:8080/e-print-server/template',
+  templateSource: DEFAULT_TEMPLATE_SOURCE,
+  templateBaseUrl: 'http://localhost:8080/e-print-server/qiniu/template',
   basicUsername: 'eprint',
   basicPassword: 'eprint123',
   printerName: '',
@@ -35,10 +38,10 @@ function loadConfig(configPath) {
   const resolvedPath = resolveConfigPath(configPath);
   const fileConfig = readConfig(resolvedPath) || readInitialConfig(resolvedPath);
 
-  return applyEnvOverrides(applyEnvironmentConfig(migrateLegacyDefaults({
+  return normalizeConfig(applyEnvOverrides(applyEnvironmentConfig(migrateLegacyDefaults({
     ...DEFAULT_CONFIG,
     ...fileConfig
-  })));
+  }))));
 }
 
 function saveConfig(config, configPath) {
@@ -75,14 +78,16 @@ function readInitialConfig(resolvedPath) {
 function applyEnvironmentConfig(config) {
   const env = resolveEnv(config);
   const envConfig = normalizeEnvironmentConfig(config.environments && config.environments[env]);
+  const templateSource = normalizeTemplateSource(envConfig.templateSource || config.templateSource);
   const nextConfig = {
     ...config,
     ...envConfig,
+    templateSource,
     env
   };
 
   if (envConfig.serverUrl && !envConfig.templateBaseUrl) {
-    nextConfig.templateBaseUrl = deriveTemplateBaseUrl(envConfig.serverUrl);
+    nextConfig.templateBaseUrl = deriveTemplateBaseUrl(envConfig.serverUrl, templateSource);
   }
 
   return nextConfig;
@@ -118,14 +123,18 @@ function normalizeEnvironmentConfig(envConfig) {
 
 function applyEnvOverrides(config) {
   const serverUrl = process.env.E_PRINT_SERVER_URL || config.serverUrl;
+  const templateSource = normalizeTemplateSource(process.env.E_PRINT_TEMPLATE_SOURCE || config.templateSource);
   const templateBaseUrl = process.env.E_PRINT_TEMPLATE_BASE_URL
-    || (process.env.E_PRINT_SERVER_URL ? deriveTemplateBaseUrl(serverUrl) : config.templateBaseUrl);
+    || (process.env.E_PRINT_SERVER_URL
+      ? deriveTemplateBaseUrl(serverUrl, templateSource)
+      : config.templateBaseUrl);
 
   return {
     ...config,
     env: process.env.E_PRINT_ENV || process.env.NODE_ENV || config.env,
     clientId: process.env.E_PRINT_CLIENT_ID || config.clientId,
     serverUrl,
+    templateSource,
     templateBaseUrl,
     basicUsername: process.env.E_PRINT_BASIC_USERNAME || config.basicUsername,
     basicPassword: process.env.E_PRINT_BASIC_PASSWORD || config.basicPassword,
@@ -147,24 +156,48 @@ function migrateLegacyDefaults(config) {
 
 function normalizeConfig(config) {
   const serverUrl = config.serverUrl || DEFAULT_CONFIG.serverUrl;
+  const templateSource = normalizeTemplateSource(config.templateSource);
   return {
     ...DEFAULT_CONFIG,
     ...config,
     serverUrl,
-    templateBaseUrl: config.templateBaseUrl || deriveTemplateBaseUrl(serverUrl)
+    templateSource,
+    templateBaseUrl: normalizeTemplateBaseUrl(config.templateBaseUrl, serverUrl, templateSource)
   };
 }
 
-function deriveTemplateBaseUrl(serverUrl) {
+function deriveTemplateBaseUrl(serverUrl, templateSource = DEFAULT_TEMPLATE_SOURCE) {
   const url = new URL(serverUrl || DEFAULT_CONFIG.serverUrl);
   url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
   const contextPath = url.pathname
     .replace(/\/ws\/print\/?$/, '')
     .replace(/\/$/, '');
-  url.pathname = `${contextPath}/template`;
+  url.pathname = `${contextPath}/${normalizeTemplateSource(templateSource)}/template`;
   url.search = '';
   url.hash = '';
   return url.toString().replace(/\/$/, '');
+}
+
+function normalizeTemplateBaseUrl(templateBaseUrl, serverUrl, templateSource) {
+  if (!templateBaseUrl) {
+    return deriveTemplateBaseUrl(serverUrl, templateSource);
+  }
+
+  const url = new URL(templateBaseUrl);
+  const templatePathPattern = /\/(?:(?:qiniu|minio)\/)?template\/?$/;
+
+  if (!templatePathPattern.test(url.pathname)) {
+    return deriveTemplateBaseUrl(serverUrl, templateSource);
+  }
+
+  url.pathname = url.pathname.replace(templatePathPattern, `/${templateSource}/template`);
+  url.search = '';
+  url.hash = '';
+  return url.toString().replace(/\/$/, '');
+}
+
+function normalizeTemplateSource(templateSource) {
+  return TEMPLATE_SOURCES.has(templateSource) ? templateSource : DEFAULT_TEMPLATE_SOURCE;
 }
 
 module.exports = {

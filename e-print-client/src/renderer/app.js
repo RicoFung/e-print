@@ -5,6 +5,7 @@ const api = window.ePrintClient;
 const form = document.getElementById('configForm');
 const serverUrlInput = document.getElementById('serverUrl');
 const clientIdInput = document.getElementById('clientId');
+const templateSourceSelect = document.getElementById('templateSource');
 const printerNameSelect = document.getElementById('printerName');
 const silentSelect = document.getElementById('silent');
 const templateBaseUrl = document.getElementById('templateBaseUrl');
@@ -37,6 +38,7 @@ const messages = {
     websocketUrl: 'WebSocket URL',
     saveConnect: 'Save and connect',
     clientId: 'Client ID',
+    templateSource: 'Template source',
     templateApi: 'Template API',
     printer: 'Printer',
     device: 'Device',
@@ -84,6 +86,7 @@ const messages = {
     websocketUrl: 'WebSocket \u5730\u5740',
     saveConnect: '\u4fdd\u5b58\u5e76\u8fde\u63a5',
     clientId: '\u5ba2\u6237\u7aef ID',
+    templateSource: '\u6a21\u677f\u6e90',
     templateApi: '\u6a21\u677f\u63a5\u53e3',
     printer: '\u6253\u5370\u673a',
     device: '\u8bbe\u5907',
@@ -216,12 +219,27 @@ document.addEventListener('click', (event) => {
 });
 
 serverUrlInput.addEventListener('input', () => {
+  renderTemplateBaseUrl();
+});
+
+templateSourceSelect.addEventListener('change', () => {
+  currentConfig = {
+    ...currentConfig,
+    templateSource: templateSourceSelect.value
+  };
+  renderTemplateBaseUrl();
+});
+
+function renderTemplateBaseUrl() {
   try {
-    templateBaseUrl.textContent = deriveTemplateBaseUrl(serverUrlInput.value.trim());
+    templateBaseUrl.textContent = deriveTemplateBaseUrl(
+      serverUrlInput.value.trim(),
+      templateSourceSelect.value
+    );
   } catch {
     templateBaseUrl.textContent = '-';
   }
-});
+}
 
 printerNameSelect.addEventListener('change', () => {
   currentConfig = {
@@ -246,6 +264,7 @@ async function saveConfig(startMessage, successMessage) {
     ...currentConfig,
     serverUrl: serverUrlInput.value.trim(),
     clientId: clientIdInput.value.trim(),
+    templateSource: templateSourceSelect.value,
     printerName: printerNameSelect.value,
     silent: isSilentSelected()
   });
@@ -275,6 +294,7 @@ async function loadPrinters() {
 function renderConfig(result) {
   serverUrlInput.value = result.config.serverUrl || '';
   clientIdInput.value = result.config.clientId || '';
+  templateSourceSelect.value = result.config.templateSource === 'minio' ? 'minio' : 'qiniu';
   silentSelect.value = result.config.silent === false ? 'false' : 'true';
   templateBaseUrl.textContent = result.config.templateBaseUrl || '';
   renderPrinters();
@@ -345,13 +365,14 @@ function createStatusTitle(status) {
   return details.join('\n');
 }
 
-function deriveTemplateBaseUrl(serverUrl) {
+function deriveTemplateBaseUrl(serverUrl, templateSource) {
   const url = new URL(serverUrl);
   url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
   const contextPath = url.pathname
     .replace(/\/ws\/print\/?$/, '')
     .replace(/\/$/, '');
-  url.pathname = `${contextPath}/template`;
+  const source = templateSource === 'minio' ? 'minio' : 'qiniu';
+  url.pathname = `${contextPath}/${source}/template`;
   url.search = '';
   url.hash = '';
   return url.toString().replace(/\/$/, '');

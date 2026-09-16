@@ -97,9 +97,9 @@ app.on('activate', () => {
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 680,
-    height: 460,
+    height: 510,
     minWidth: 680,
-    minHeight: 460,
+    minHeight: 510,
     title: 'E-PRINT-CLIENT',
     icon: path.join(__dirname, '..', 'assets', 'e-print-icon.png'),
     backgroundColor: DEFAULT_WINDOW_BACKGROUND,
@@ -474,7 +474,8 @@ function normalizeUserConfig(input) {
     ...input
   };
   validateWebSocketUrl(nextConfig.serverUrl);
-  nextConfig.templateBaseUrl = deriveTemplateBaseUrl(nextConfig.serverUrl);
+  nextConfig.templateSource = nextConfig.templateSource === 'minio' ? 'minio' : 'qiniu';
+  nextConfig.templateBaseUrl = deriveTemplateBaseUrl(nextConfig.serverUrl, nextConfig.templateSource);
   nextConfig.printerName = typeof nextConfig.printerName === 'string'
     ? nextConfig.printerName
     : '';
