@@ -13,9 +13,9 @@
 - 管理员登录
 - 模板类型新增、编辑、启用、禁用和删除
 - 模板列表查询，支持按类型、编码、状态筛选
-- 模板元数据维护，数据存储在 `E_PRINT_TEMPLATE`
+- MinIO 与七牛模板独立维护，分别存储在 `E_PRINT_MINIO_*`、`E_PRINT_QINIU_*`
 - HTML 模板上传、在线编辑和页面预览
-- 模板文件存储到 MinIO
+- 模板文件可分别存储到 MinIO 和七牛对象存储
 - 支持模板和类型的批量启用、禁用、删除
 
 ## 2. 运行与配置
@@ -23,8 +23,8 @@
 本地运行要求：
 
 - Java 21
-- Oracle 数据库，包含 `E_PRINT_TEMPLATE_TYPE`、`E_PRINT_TEMPLATE` 及对应序列
-- 可访问的 MinIO bucket
+- Oracle 数据库，包含 `E_PRINT_MINIO_*`、`E_PRINT_QINIU_*` 及对应序列
+- 可访问的 MinIO bucket 和七牛 bucket
 
 ```bash
 cd e-print-admin
@@ -73,6 +73,13 @@ java -jar target/e-print-admin-exec.jar
 | `E_PRINT_MINIO_SECRET_KEY` | MinIO secret key |
 | `E_PRINT_TEMPLATE_BUCKET` | 模板 bucket，默认 `e-print` |
 | `E_PRINT_TEMPLATE_OBJECT_PREFIX` | 模板对象前缀，默认 `templates/print` |
+| `E_PRINT_QINIU_ACCESS_KEY` | 七牛 Access Key，仅通过部署 Secret 注入 |
+| `E_PRINT_QINIU_SECRET_KEY` | 七牛 Secret Key，仅通过部署 Secret 注入 |
+| `E_PRINT_QINIU_BUCKET` | 七牛 bucket，默认 `pos-uat` |
+| `E_PRINT_QINIU_OBJECT_PREFIX` | 七牛对象根路径，默认 `e-print`；数据库 `OBJECT_NAME` 保存包含该前缀的完整对象 Key |
+| `E_PRINT_QINIU_REGION` | 七牛区域，默认 `z2`（华南） |
+| `E_PRINT_QINIU_S3_ENDPOINT` | 七牛 S3 Endpoint，华南默认 `https://s3.cn-south-1.qiniucs.com` |
+| `E_PRINT_QINIU_S3_REGION` | 七牛 S3 Region，华南默认 `cn-south-1` |
 
 数据库初始化脚本：
 
@@ -80,21 +87,20 @@ java -jar target/e-print-admin-exec.jar
 ../db/oracle/print_template.sql
 ```
 
+该脚本一次性创建 MinIO、七牛的模板类型表、模板表、序列和索引，并初始化两套默认模板类型。`E_PRINT_MINIO_TEMPLATE`、`E_PRINT_QINIU_TEMPLATE` 不写入初始数据，模板需在管理后台创建。
+
 ## 3. 页面与数据
 
 | 页面 | 用途 |
 | --- | --- |
 | `/e-print-admin/` | 后台首页 |
 | `/e-print-admin/login` | 后台登录 |
-| `/e-print-admin/templates` | 模板列表 |
-| `/e-print-admin/templates/create` | 新增模板 |
-| `/e-print-admin/templates/modify?id={id}` | 编辑模板 |
-| `/e-print-admin/templates/preview?id={id}` | 预览模板 |
-| `/e-print-admin/template-types` | 类型管理列表 |
-| `/e-print-admin/template-types/create` | 新增类型 |
-| `/e-print-admin/template-types/modify?id={id}` | 编辑类型 |
+| `/e-print-admin/minio/templates` | MinIO 模板管理 |
+| `/e-print-admin/minio/template-types` | MinIO 类型管理 |
+| `/e-print-admin/qiniu/templates` | 七牛模板管理 |
+| `/e-print-admin/qiniu/template-types` | 七牛类型管理 |
 
-模板类型使用英文编码，后台页面展示中文名称。类型字典存储在 `E_PRINT_TEMPLATE_TYPE`，模板表 `E_PRINT_TEMPLATE` 通过 `TEMPLATE_TYPE_ID` 关联类型表。
+两套模板类型均使用英文编码并独立维护，通过各自的 `TEMPLATE_TYPE_ID` 关联模板表。初始化脚本只预置下列类型，不预置模板元数据或模板文件。
 
 默认模板类型：
 
@@ -114,23 +120,25 @@ java -jar target/e-print-admin-exec.jar
 常用页面接口：
 
 ```http
-GET /e-print-admin/templates?templateTypeId=1&templateCode=01&status=1&pageSize=10
-GET /e-print-admin/templates/query?templateTypeId=1&templateCode=01&status=1&offset=0&limit=10
-POST /e-print-admin/templates/create
-POST /e-print-admin/templates/modify
-POST /e-print-admin/templates/enable
-POST /e-print-admin/templates/disable
-POST /e-print-admin/templates/remove
-GET /e-print-admin/templates/preview?id={id}
-POST /e-print-admin/templates/preview/render
+GET /e-print-admin/{provider}/templates?templateTypeId=1&templateCode=01&status=1&pageSize=10
+GET /e-print-admin/{provider}/templates/query?templateTypeId=1&templateCode=01&status=1&offset=0&limit=10
+POST /e-print-admin/{provider}/templates/create
+POST /e-print-admin/{provider}/templates/modify
+POST /e-print-admin/{provider}/templates/enable
+POST /e-print-admin/{provider}/templates/disable
+POST /e-print-admin/{provider}/templates/remove
+GET /e-print-admin/{provider}/templates/preview?id={id}
+POST /e-print-admin/{provider}/templates/preview/render
 ```
 
 ```http
-GET /e-print-admin/template-types?keyword=sales&status=1&pageSize=10
-GET /e-print-admin/template-types/query?keyword=sales&status=1&offset=0&limit=10
-POST /e-print-admin/template-types/create
-POST /e-print-admin/template-types/modify
-POST /e-print-admin/template-types/enable
-POST /e-print-admin/template-types/disable
-POST /e-print-admin/template-types/remove
+GET /e-print-admin/{provider}/template-types?keyword=sales&status=1&pageSize=10
+GET /e-print-admin/{provider}/template-types/query?keyword=sales&status=1&offset=0&limit=10
+POST /e-print-admin/{provider}/template-types/create
+POST /e-print-admin/{provider}/template-types/modify
+POST /e-print-admin/{provider}/template-types/enable
+POST /e-print-admin/{provider}/template-types/disable
+POST /e-print-admin/{provider}/template-types/remove
 ```
+
+`{provider}` 取值为 `minio` 或 `qiniu`。
