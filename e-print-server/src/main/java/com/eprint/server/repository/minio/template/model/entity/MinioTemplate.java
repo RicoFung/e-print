@@ -1,18 +1,18 @@
-package com.eprint.server.repository.model.entity;
+package com.eprint.server.repository.minio.template.model.entity;
 
 import java.io.Serializable;
 
 /**
- * Template entity.
- * db_table: E_PRINT_TEMPLATE
+ * MinioTemplate entity.
+ * db_table: E_PRINT_MINIO_TEMPLATE
  */
-public class Template implements Serializable {
+public class MinioTemplate implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String id; // db_column: ID
     private String templateTypeId; // db_column: TEMPLATE_TYPE_ID
-    private String templateType; // db_column: E_PRINT_TEMPLATE_TYPE.CODE
-    private String templateTypeName; // db_column: E_PRINT_TEMPLATE_TYPE.NAME
+    private String templateType; // db_column: E_PRINT_MINIO_TEMPLATE_TYPE.CODE
+    private String templateTypeName; // db_column: E_PRINT_MINIO_TEMPLATE_TYPE.NAME
     private String templateCode; // db_column: CODE
     private String bucketName; // db_column: BUCKET_NAME
     private String objectName; // db_column: OBJECT_NAME

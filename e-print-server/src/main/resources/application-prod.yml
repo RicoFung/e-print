@@ -31,3 +31,10 @@ minio:
   endpoint: ${E_PRINT_MINIO_ENDPOINT}
   access-key: ${E_PRINT_MINIO_ACCESS_KEY}
   secret-key: ${E_PRINT_MINIO_SECRET_KEY}
+
+qiniu:
+  access-key: ${E_PRINT_QINIU_ACCESS_KEY:wVAkycnojkN9XdEWdTp32o-sHdN5naE6c_nvOl8l}
+  secret-key: ${E_PRINT_QINIU_SECRET_KEY:3gUzIuuQDxdZ_YvV-B25_O5YgM0rWPK-YKGfjM-y}
+  bucket: ${E_PRINT_QINIU_BUCKET:pos-prod}
+  s3-endpoint: ${E_PRINT_QINIU_S3_ENDPOINT:https://s3.cn-south-1.qiniucs.com}
+  s3-region: ${E_PRINT_QINIU_S3_REGION:cn-south-1}

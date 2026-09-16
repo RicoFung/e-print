@@ -1,14 +1,14 @@
-package com.eprint.server.repository.dao;
+package com.eprint.server.repository.minio.template.dao;
 
-import com.eprint.server.repository.model.param.TemplateGetByCodeParam;
-import com.eprint.server.repository.model.result.TemplateResult;
+import com.eprint.server.repository.minio.template.model.param.MinioTemplateGetByCodeParam;
+import com.eprint.server.repository.minio.template.model.result.MinioTemplateResult;
 import com.niko.boot.dao.BaseDao;
 import jakarta.annotation.Resource;
 import org.apache.ibatis.session.SqlSession;
 import org.springframework.stereotype.Repository;
 
-@Repository(value = "TemplateDao")
-public class TemplateDao extends BaseDao {
+@Repository(value = "MinioTemplateDao")
+public class MinioTemplateDao extends BaseDao {
 
     @Resource
     private SqlSession sqlSession;
@@ -23,7 +23,7 @@ public class TemplateDao extends BaseDao {
         return getClass().getName();
     }
 
-    public TemplateResult getByTemplateCode(TemplateGetByCodeParam param) {
+    public MinioTemplateResult getByTemplateCode(MinioTemplateGetByCodeParam param) {
         return get("getByTemplateCode", param);
     }
 }

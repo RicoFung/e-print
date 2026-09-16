@@ -4,8 +4,6 @@ import com.eprint.server.module.task.model.Task;
 import com.eprint.server.module.task.model.TaskStatus;
 import com.eprint.server.module.task.model.request.TaskCreateRequest;
 import com.eprint.server.module.task.model.request.TaskResultRequest;
-import com.eprint.server.module.template.service.TemplateService;
-import com.eprint.server.repository.model.result.TemplateResult;
 import com.eprint.server.websocket.PrintClientSessionRegistry;
 import org.springframework.stereotype.Service;
 
@@ -23,23 +21,19 @@ public class TaskService {
 
     private final ConcurrentMap<String, Task> tasks = new ConcurrentHashMap<>();
     private final PrintClientSessionRegistry sessionRegistry;
-    private final TemplateService templateService;
 
-    public TaskService(PrintClientSessionRegistry sessionRegistry, TemplateService templateService) {
+    public TaskService(PrintClientSessionRegistry sessionRegistry) {
         this.sessionRegistry = sessionRegistry;
-        this.templateService = templateService;
     }
 
     public Task create(TaskCreateRequest request) {
-        TemplateResult template = templateService.resolveTemplate(request.getTemplateType(), request.getTemplateCode());
-
         Instant now = Instant.now();
 
         Task task = new Task();
         task.setTaskId(UUID.randomUUID().toString());
         task.setClientId(request.getClientId());
-        task.setTemplateType(template.getTemplateType());
-        task.setTemplateCode(template.getTemplateCode());
+        task.setTemplateType(request.getTemplateType());
+        task.setTemplateCode(request.getTemplateCode());
         task.setCopies(request.getCopies());
         task.setData(request.getData());
         task.setStatus(TaskStatus.CREATED);

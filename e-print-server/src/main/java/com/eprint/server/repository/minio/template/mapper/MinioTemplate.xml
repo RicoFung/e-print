@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.eprint.server.repository.dao.TemplateDao">
+<mapper namespace="com.eprint.server.repository.minio.template.dao.MinioTemplateDao">
 
-    <resultMap type="com.eprint.server.repository.model.result.TemplateResult" id="templateResult">
+    <resultMap type="com.eprint.server.repository.minio.template.model.result.MinioTemplateResult" id="templateResult">
         <result property="id" column="ID"/>
         <result property="templateTypeId" column="TEMPLATE_TYPE_ID"/>
         <result property="templateType" column="TEMPLATE_TYPE"/>
@@ -14,7 +14,7 @@
     </resultMap>
 
     <select id="getByTemplateCode"
-            parameterType="com.eprint.server.repository.model.param.TemplateGetByCodeParam"
+            parameterType="com.eprint.server.repository.minio.template.model.param.MinioTemplateGetByCodeParam"
             resultMap="templateResult">
         SELECT
             T.ID,
@@ -25,8 +25,8 @@
             T.BUCKET_NAME,
             T.OBJECT_NAME,
             T.STATUS
-        FROM E_PRINT_TEMPLATE T
-        JOIN E_PRINT_TEMPLATE_TYPE TT ON TT.ID = T.TEMPLATE_TYPE_ID
+        FROM E_PRINT_MINIO_TEMPLATE T
+        JOIN E_PRINT_MINIO_TEMPLATE_TYPE TT ON TT.ID = T.TEMPLATE_TYPE_ID
         WHERE TT.CODE = #{templateType}
           AND T.CODE = #{templateCode}
           AND T.STATUS = #{status}

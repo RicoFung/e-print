@@ -1,8 +1,8 @@
-package com.eprint.server.module.template.service;
+package com.eprint.server.module.minio.template.service;
 
-import com.eprint.server.repository.dao.TemplateDao;
-import com.eprint.server.repository.model.param.TemplateGetByCodeParam;
-import com.eprint.server.repository.model.result.TemplateResult;
+import com.eprint.server.repository.minio.template.dao.MinioTemplateDao;
+import com.eprint.server.repository.minio.template.model.param.MinioTemplateGetByCodeParam;
+import com.eprint.server.repository.minio.template.model.result.MinioTemplateResult;
 import com.niko.boot.model.result.NikoResult;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
@@ -17,21 +17,21 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Slf4j
-@Service(value = "TemplateService")
-public class TemplateService {
+@Service
+public class MinioTemplateService {
 
     private static final Integer STATUS_ENABLED = 1;
     private static final String DEFAULT_TEMPLATE_CODE = "01";
 
     @Autowired
-    private TemplateDao dao;
+    private MinioTemplateDao dao;
 
     @Autowired
     private MinioClient minioClient;
 
     public NikoResult getByTemplateCode(String templateType, String templateCode) {
         String templateContent;
-        TemplateResult template;
+        MinioTemplateResult template;
         try {
             template = resolveTemplate(templateType, templateCode);
             templateContent = readTemplateContent(template);
@@ -54,13 +54,13 @@ public class TemplateService {
         return readTemplateContent(resolveTemplate(templateType, templateCode));
     }
 
-    public TemplateResult resolveTemplate(String templateType, String templateCode) {
-        TemplateGetByCodeParam param = new TemplateGetByCodeParam();
+    public MinioTemplateResult resolveTemplate(String templateType, String templateCode) {
+        MinioTemplateGetByCodeParam param = new MinioTemplateGetByCodeParam();
         param.setTemplateType(templateType);
         param.setTemplateCode(templateCode);
         param.setStatus(STATUS_ENABLED);
 
-        TemplateResult result = dao.getByTemplateCode(param);
+        MinioTemplateResult result = dao.getByTemplateCode(param);
         if (result == null && !DEFAULT_TEMPLATE_CODE.equals(templateCode)) {
             param.setTemplateCode(DEFAULT_TEMPLATE_CODE);
             result = dao.getByTemplateCode(param);
@@ -71,7 +71,7 @@ public class TemplateService {
         return result;
     }
 
-    private String readTemplateContent(TemplateResult result) {
+    private String readTemplateContent(MinioTemplateResult result) {
         try {
             return getObjectContent(result.getBucketName(), result.getObjectName());
         } catch (Exception e) {

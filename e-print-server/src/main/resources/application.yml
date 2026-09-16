@@ -6,6 +6,12 @@ spring:
   threads:
     virtual:
       enabled: true
+  web:
+    error:
+      whitelabel:
+        enabled: false
+      include-message: never
+      include-stacktrace: never
 
 server:
   port: ${E_PRINT_SERVER_PORT:8080}
