@@ -27,6 +27,7 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,19 +69,19 @@ public class MinioTemplateService {
 
     private final MinioTemplateDao templateDao;
     private final MinioTemplateTypeDao templateTypeDao;
-    private final MinioClient minioClient;
+    private final ObjectProvider<MinioClient> minioClientProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String defaultBucketName;
     private final String defaultObjectPrefix;
 
     public MinioTemplateService(MinioTemplateDao templateDao,
                            MinioTemplateTypeDao templateTypeDao,
-                           MinioClient minioClient,
+                           ObjectProvider<MinioClient> minioClientProvider,
                            @Value("${app.template.default-bucket:e-print}") String defaultBucketName,
                            @Value("${app.template.default-object-prefix:templates/print}") String defaultObjectPrefix) {
         this.templateDao = templateDao;
         this.templateTypeDao = templateTypeDao;
-        this.minioClient = minioClient;
+        this.minioClientProvider = minioClientProvider;
         this.defaultBucketName = defaultBucketName;
         this.defaultObjectPrefix = trimSlashes(defaultObjectPrefix);
     }
@@ -276,7 +277,7 @@ public class MinioTemplateService {
             ensureBucket(bucketName);
             byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
             try (ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes)) {
-                minioClient.putObject(PutObjectArgs.builder()
+                minioClient().putObject(PutObjectArgs.builder()
                         .bucket(bucketName)
                         .object(objectName)
                         .stream(inputStream, bytes.length, -1)
@@ -290,7 +291,7 @@ public class MinioTemplateService {
     }
 
     private String readObject(String bucketName, String objectName) {
-        try (InputStream inputStream = minioClient.getObject(GetObjectArgs.builder()
+        try (InputStream inputStream = minioClient().getObject(GetObjectArgs.builder()
                 .bucket(bucketName)
                 .object(objectName)
                 .build())) {
@@ -302,6 +303,7 @@ public class MinioTemplateService {
     }
 
     private void ensureBucket(String bucketName) throws Exception {
+        MinioClient minioClient = minioClient();
         boolean exists = minioClient.bucketExists(BucketExistsArgs.builder()
                 .bucket(bucketName)
                 .build());
@@ -310,6 +312,10 @@ public class MinioTemplateService {
                     .bucket(bucketName)
                     .build());
         }
+    }
+
+    private MinioClient minioClient() {
+        return minioClientProvider.getObject();
     }
 
     private String defaultTemplateContent() {
