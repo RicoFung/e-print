@@ -1,48 +1,53 @@
 spring:
   application:
-    name: e-print-server
+    name: @project.artifactId@
   profiles:
     active: @profiles.active@
-  threads:
-    virtual:
-      enabled: true
-  web:
-    error:
-      whitelabel:
-        enabled: false
-      include-message: never
-      include-stacktrace: never
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR}
+      username: ${NACOS_USERNAME}
+      password: ${NACOS_PASSWORD}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR}
+        namespace: e-print-@profiles.active@
+        file-extension: yaml
+  config:
+    import:
+      - nacos:@project.artifactId@?group=DEFAULT_GROUP
 
-server:
-  port: ${E_PRINT_SERVER_PORT:8080}
+---
+spring:
+  config:
+    activate:
+      on-profile: loc
+  cloud:
+    nacos:
+      config:
+        namespace: e-print-loc
+      discovery:
+        namespace: e-print-loc
+---
+spring:
+  config:
+    activate:
+      on-profile: uat
+  cloud:
+    nacos:
+      config:
+        namespace: e-print-uat
+      discovery:
+        namespace: e-print-uat
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  cloud:
+    nacos:
+      config:
+        namespace: e-print-prod
+      discovery:
+        namespace: e-print-prod
 
-app:
-  base-uri: ${E_PRINT_APP_BASE_URI:http://localhost:${server.port}}
-  api-log:
-    enabled: ${E_PRINT_API_LOG_ENABLED:true}
-    max-body-length: ${E_PRINT_API_LOG_MAX_BODY_LENGTH:8192}
-
-mybatis:
-  config-location: classpath:mybatis.xml
-
-springdoc:
-  api-docs:
-    enabled: ${E_PRINT_SPRINGDOC_API_DOCS_ENABLED:false}
-  swagger-ui:
-    enabled: ${E_PRINT_SPRINGDOC_SWAGGER_UI_ENABLED:false}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  tracing:
-    sampling:
-      probability: ${E_PRINT_TRACING_SAMPLING_PROBABILITY:1.0}
-
-logging:
-  config: classpath:logback-${spring.profiles.active}.xml
-  file:
-    path: ${E_PRINT_LOG_PATH:logs}
-  level:
-    root: ${E_PRINT_LOG_ROOT_LEVEL:INFO}
+---

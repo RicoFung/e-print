@@ -3,6 +3,7 @@ package com.eprint.admin.module.minio.template.service;
 import com.eprint.admin.repository.minio.dao.MinioTemplateDao;
 import com.eprint.admin.repository.minio.dao.MinioTemplateTypeDao;
 import io.minio.MinioClient;
+import org.springframework.beans.factory.ObjectProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,12 +22,14 @@ class MinioTemplateServiceTest {
     private MinioTemplateTypeDao templateTypeDao;
     @Mock
     private MinioClient minioClient;
+    @Mock
+    private ObjectProvider<MinioClient> minioClientProvider;
 
     private MinioTemplateService service;
 
     @BeforeEach
     void setUp() {
-        service = new MinioTemplateService(templateDao, templateTypeDao, minioClient,
+        service = new MinioTemplateService(templateDao, templateTypeDao, minioClientProvider,
                 "template-bucket", "templates/print");
     }
 

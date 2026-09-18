@@ -14,7 +14,7 @@
     <artifactId>e-print-server</artifactId>
     <packaging>jar</packaging>
 
-    <name>e-print-server</name>
+    <name>${project.artifactId}</name>
     <description>Minimal e-print server built on niko-boot</description>
 
     <properties>
@@ -41,6 +41,10 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>

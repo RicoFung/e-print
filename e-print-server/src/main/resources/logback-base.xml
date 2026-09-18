@@ -4,7 +4,6 @@
     <property name="LOG_PREFIX" value="${APP_NAME}"/>
     <property name="LOG_SUFFIX" value="${APP_NAME}"/>
     <property name="LOG_CHARSET" value="UTF-8"/>
-    <property name="LOG_CONSOLE_CHARSET" value="${CONSOLE_LOG_CHARSET:-${native.encoding:-UTF-8}}"/>
     <property name="LOG_MSG" value="[%X{traceId:-}] [%X{spanId:-}] [%X{requestId:-}] [%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%logger{36}|%M|%L] - %msg%n"/>
     <property name="MAX_FILE_SIZE" value="10MB"/>
     <property name="MAX_HISTORY" value="10"/>
@@ -12,7 +11,7 @@
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>${LOG_MSG}</pattern>
-            <charset>${LOG_CONSOLE_CHARSET}</charset>
+            <charset>${CONSOLE_LOG_CHARSET:-${native.encoding:-UTF-8}}</charset>
         </encoder>
     </appender>
 
@@ -71,49 +70,14 @@
         </encoder>
     </appender>
 
-    <logger name="org.springframework.web.servlet.DispatcherServlet" level="DEBUG" additivity="false">
-        <appender-ref ref="STDOUT"/>
-        <appender-ref ref="FILE_ALL"/>
-        <appender-ref ref="FILE_ERROR"/>
-    </logger>
-
-    <logger name="org.springframework.cache" level="TRACE" additivity="false">
-        <appender-ref ref="STDOUT"/>
-        <appender-ref ref="FILE_ALL"/>
-        <appender-ref ref="FILE_ERROR"/>
-    </logger>
-
-    <logger name="com.niko.boot.lock" level="DEBUG" additivity="false">
-        <appender-ref ref="GELF"/>
-        <appender-ref ref="STDOUT"/>
-        <appender-ref ref="FILE_ALL"/>
-        <appender-ref ref="FILE_ERROR"/>
-    </logger>
-
-    <logger name="com.config" level="DEBUG" additivity="false">
-        <appender-ref ref="GELF"/>
-        <appender-ref ref="STDOUT"/>
-        <appender-ref ref="FILE_ALL"/>
-        <appender-ref ref="FILE_ERROR"/>
-    </logger>
-
-    <logger name="com.epo" level="DEBUG" additivity="false">
-        <appender-ref ref="GELF"/>
-        <appender-ref ref="STDOUT"/>
-        <appender-ref ref="FILE_ALL"/>
-        <appender-ref ref="FILE_ERROR"/>
-    </logger>
-
     <logger name="com.eprint.server" level="DEBUG" additivity="false">
         <appender-ref ref="GELF"/>
-        <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE_ALL"/>
         <appender-ref ref="FILE_ERROR"/>
     </logger>
 
     <root level="${LOG_ROOT_LEVEL}">
         <appender-ref ref="GELF"/>
-        <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE_ALL"/>
         <appender-ref ref="FILE_ERROR"/>
     </root>
