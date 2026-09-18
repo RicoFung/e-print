@@ -7,6 +7,7 @@ import com.niko.boot.model.result.NikoResult;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
@@ -27,7 +28,7 @@ public class MinioTemplateService {
     private MinioTemplateDao dao;
 
     @Autowired
-    private MinioClient minioClient;
+    private ObjectProvider<MinioClient> minioClientProvider;
 
     public NikoResult getByTemplateCode(String templateType, String templateCode) {
         String templateContent;
@@ -86,7 +87,7 @@ public class MinioTemplateService {
                 .bucket(bucketName)
                 .object(objectName)
                 .build();
-        try (InputStream inputStream = minioClient.getObject(args)) {
+        try (InputStream inputStream = minioClientProvider.getObject().getObject(args)) {
             return StreamUtils.copyToString(inputStream, StandardCharsets.UTF_8);
         }
     }

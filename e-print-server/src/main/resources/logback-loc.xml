@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<configuration scan="true" scanPeriod="60 seconds">
-    <property name="APP_NAME" value="e-print-server"/>
+<configuration>
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="e-print-server"/>
     <property name="LOG_ROOT_LEVEL" value="${E_PRINT_LOG_ROOT_LEVEL:-INFO}"/>
     <property name="LOG_HOME" value="${E_PRINT_LOG_PATH:-logs}"/>
     <property name="GRAYLOG_HOST" value="${E_PRINT_GRAYLOG_HOST:-grayloguat.moco.com}"/>
@@ -8,4 +8,34 @@
     <property name="GRAYLOG_ENV" value="LOC"/>
 
     <include resource="logback-base.xml"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_MSG}</pattern>
+            <charset>${CONSOLE_LOG_CHARSET:-${native.encoding:-UTF-8}}</charset>
+        </encoder>
+    </appender>
+
+    <logger name="org.springframework.web.servlet.DispatcherServlet">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.springframework.cache">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="com.niko.boot.lock">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="com.config">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="com.epo">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="com.eprint.server">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <root>
+        <appender-ref ref="STDOUT"/>
+    </root>
 </configuration>

@@ -5,6 +5,7 @@
         <setting name="jdbcTypeForNull" value="NULL"/>
         <setting name="cacheEnabled" value="true"/>
         <setting name="callSettersOnNulls" value="true"/>
+        <setting name="logImpl" value="SLF4J"/>
     </settings>
     <typeHandlers>
         <typeHandler javaType="String" jdbcType="NUMERIC"
