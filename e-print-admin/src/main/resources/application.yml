@@ -1,42 +1,53 @@
 spring:
   application:
-    name: E-PRINT-ADMIN
+    name: @project.artifactId@
   profiles:
-    active: ${E_PRINT_ADMIN_PROFILE:loc}
-  threads:
-    virtual:
-      enabled: true
-  web:
-    error:
-      whitelabel:
-        enabled: false
-      include-message: never
-      include-stacktrace: never
-  servlet:
-    multipart:
-      max-file-size: ${E_PRINT_ADMIN_MAX_FILE_SIZE:2MB}
-      max-request-size: ${E_PRINT_ADMIN_MAX_REQUEST_SIZE:4MB}
+    active: @profiles.active@
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR}
+      username: ${NACOS_USERNAME}
+      password: ${NACOS_PASSWORD}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR}
+        namespace: e-print-@profiles.active@
+        file-extension: yaml
+  config:
+    import:
+      - nacos:@project.artifactId@?group=DEFAULT_GROUP
 
-server:
-  port: ${E_PRINT_ADMIN_PORT:9091}
+---
+spring:
+  config:
+    activate:
+      on-profile: loc
+  cloud:
+    nacos:
+      config:
+        namespace: e-print-loc
+      discovery:
+        namespace: e-print-loc
+---
+spring:
+  config:
+    activate:
+      on-profile: uat
+  cloud:
+    nacos:
+      config:
+        namespace: e-print-uat
+      discovery:
+        namespace: e-print-uat
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  cloud:
+    nacos:
+      config:
+        namespace: e-print-prod
+      discovery:
+        namespace: e-print-prod
 
-app:
-  template:
-    default-bucket: ${E_PRINT_TEMPLATE_BUCKET:e-print}
-    default-object-prefix: ${E_PRINT_TEMPLATE_OBJECT_PREFIX:templates/print}
-
-mybatis:
-  config-location: classpath:mybatis.xml
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-
-logging:
-  config: classpath:logback-${spring.profiles.active}.xml
-  file:
-    path: ${E_PRINT_ADMIN_LOG_PATH:logs}
-  level:
-    root: ${E_PRINT_ADMIN_LOG_ROOT_LEVEL:INFO}
+---

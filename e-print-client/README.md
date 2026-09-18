@@ -43,6 +43,15 @@ e-print-client/config.json
 %APPDATA%/e-print-client/config.json
 ```
 
+默认本地服务地址已对齐 `e-print-server` 的 `8080` 端口和 `/e-print-server` Context Path：
+
+```text
+WebSocket: ws://localhost:8080/e-print-server/ws/print
+Template API: http://localhost:8080/e-print-server/qiniu/template
+```
+
+配置文件中的环境名称统一使用 `loc`、`dev`、`uat`、`prod`。
+
 也可以通过环境变量指定配置：
 
 | 变量 | 说明 |
@@ -51,10 +60,14 @@ e-print-client/config.json
 | `E_PRINT_ENV` | 当前环境 |
 | `E_PRINT_CLIENT_ID` | 客户端 ID |
 | `E_PRINT_SERVER_URL` | WebSocket 地址 |
+| `E_PRINT_TEMPLATE_SOURCE` | 模板源，可选 `qiniu`、`minio`，默认 `qiniu` |
 | `E_PRINT_TEMPLATE_BASE_URL` | 模板 HTTP API 地址；设置 `E_PRINT_SERVER_URL` 时未显式配置则自动推导 |
 | `E_PRINT_BASIC_USERNAME` | Basic 用户名 |
 | `E_PRINT_BASIC_PASSWORD` | Basic 密码 |
 | `E_PRINT_PRINTER_NAME` | 默认打印机 |
+
+客户端可在“模板源”下拉框中选择 `qiniu` 或 `minio`，默认使用 `qiniu`。模板下载地址会随选择自动切换为
+`/e-print-server/qiniu/template` 或 `/e-print-server/minio/template`。
 
 ## 3. 任务协议
 
@@ -63,7 +76,7 @@ e-print-client/config.json
 模板下载接口：
 
 ```http
-GET /template/{templateCode}?templateType={templateType}
+GET /e-print-server/{provider}/template/{templateCode}?templateType={templateType}
 Authorization: Basic ...
 ```
 
@@ -81,21 +94,28 @@ Authorization: Basic ...
     "data": {
       "productName": "示例商品",
       "sku": "SKU-001",
-      "qr": {
-        "qrText": "https://example.com/item/SKU-001"
-      },
-      "barcode": {
-        "barcodeText": "SKU-001"
+      "codes": {
+        "productBarcode": {
+          "codeType": "barcode",
+          "value": "SKU-001"
+        },
+        "productQr": {
+          "codeType": "qr",
+          "value": "https://example.com/item/SKU-001"
+        }
       }
     }
   }
 }
 ```
 
+条码和二维码对象使用业务名称，可以放在 `data` 的任意嵌套位置。`codeType` 只支持 `barcode` 和 `qr`，
+客户端会根据 `value` 生成 `dataUrl`，模板通过 `{{codes.productBarcode.dataUrl}}` 等路径引用。
+
 打印结果回传：
 
 ```http
-POST /task/{taskId}/result
+POST /e-print-server/task/{taskId}/result
 Content-Type: application/json
 Authorization: Basic ...
 ```

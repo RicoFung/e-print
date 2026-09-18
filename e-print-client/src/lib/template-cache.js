@@ -5,7 +5,12 @@ const path = require('node:path');
 
 async function getTemplate(templateType, templateCode, config, options) {
   const opts = options || {};
-  const cachePath = getTemplatePath(config.templateCacheDir, templateType, templateCode);
+  const cachePath = getTemplatePath(
+    config.templateCacheDir,
+    templateType,
+    templateCode,
+    config.templateSource
+  );
 
   if (!opts.forceRefresh) {
     const cached = await readIfExists(cachePath);
@@ -77,8 +82,14 @@ function extractTemplateHtml(body) {
   ) || '';
 }
 
-function getTemplatePath(cacheDir, templateType, templateCode) {
-  return path.join(cacheDir, sanitizeTemplateCode(templateType), `${sanitizeTemplateCode(templateCode)}.html`);
+function getTemplatePath(cacheDir, templateType, templateCode, templateSource = 'qiniu') {
+  const source = templateSource === 'minio' ? 'minio' : 'qiniu';
+  return path.join(
+    cacheDir,
+    source,
+    sanitizeTemplateCode(templateType),
+    `${sanitizeTemplateCode(templateCode)}.html`
+  );
 }
 
 function sanitizeTemplateCode(templateCode) {

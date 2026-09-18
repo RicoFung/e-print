@@ -26,7 +26,7 @@ async function reportPrintResult(result, config, options) {
 
 function buildResultUrl(templateBaseUrl, taskId) {
   const url = new URL(templateBaseUrl);
-  url.pathname = `${url.pathname.replace(/\/?template\/?$/, '')}/task/${encodeURIComponent(taskId)}/result`;
+  url.pathname = `${url.pathname.replace(/\/(?:minio|qiniu)\/template\/?$/, '').replace(/\/?template\/?$/, '')}/task/${encodeURIComponent(taskId)}/result`;
   url.search = '';
   url.hash = '';
   return url.toString();

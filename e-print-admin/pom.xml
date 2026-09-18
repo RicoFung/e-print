@@ -4,18 +4,25 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.eprint</groupId>
+    <parent>
+        <groupId>com.eprint</groupId>
+        <artifactId>e-print</artifactId>
+        <version>0.0.2-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
     <artifactId>e-print-admin</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>e-print-admin</name>
+    <name>${project.artifactId}</name>
     <description>Template management admin for e-print</description>
 
     <properties>
         <java.version>21</java.version>
         <spring.boot.version>4.0.5</spring.boot.version>
         <minio.version>8.2.1</minio.version>
+        <qiniu.version>[7.19.0, 7.19.99]</qiniu.version>
+        <aws.sdk.version>2.31.54</aws.sdk.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <lombok.version>1.18.38</lombok.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
@@ -38,8 +45,20 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-brave</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -84,6 +103,16 @@
             <version>${minio.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.qiniu</groupId>
+            <artifactId>qiniu-java-sdk</artifactId>
+            <version>${qiniu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>${aws.sdk.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
             <version>${mapstruct.version}</version>
@@ -112,8 +141,35 @@
                     <include>**/*.xml</include>
                 </includes>
             </resource>
+            <!--
+                配置类资源需要开启 Maven 过滤：
+                由 Maven 将 ${profiles.active}、${project.artifactId} 等构建期属性替换为实际值，
+                并且只将当前环境对应的 application、logback 配置打入构建产物。
+            -->
             <resource>
                 <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>application.yml</include>
+					<include>application-${profiles.active}.yml</include>
+					<include>logback-base.xml</include>
+					<include>logback-${profiles.active}.xml</include>
+                    <include>mybatis.xml</include>
+                </includes>
+            </resource>
+            <!--
+                页面模板和静态资源必须关闭 Maven 过滤：
+                原样打包 templates、static 等其余资源，避免 Thymeleaf、JavaScript、CSS 中的
+                ${...} 内容被 Maven 当作占位符替换；上方已处理的配置文件在这里排除，防止重复复制。
+            -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>application*.yml</exclude>
+                    <exclude>logback*.xml</exclude>
+                    <exclude>mybatis.xml</exclude>
+                </excludes>
             </resource>
         </resources>
         <plugins>
@@ -129,32 +185,11 @@
                         <goals>
                             <goal>repackage</goal>
                         </goals>
+                        <configuration>
+                            <classifier>exec</classifier>
+                        </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <!-- Maven Toolchains Plugin -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-toolchains-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>toolchain</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <toolchains>
-                        <jdk>
-                            <version>${java.version}</version>
-                            <vendor>openlogic</vendor>
-                        </jdk>
-                        <jdk>
-                            <version>${java.version}</version>
-                        </jdk>
-                    </toolchains>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -185,6 +220,40 @@
         </plugins>
         <finalName>${project.artifactId}</finalName>
     </build>
+
+    <profiles>
+        <profile>
+            <id>loc</id>
+            <build>
+                <plugins>
+                    <!-- Maven Toolchains Plugin：仅本地 loc 构建启用 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-toolchains-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>toolchain</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <toolchains>
+                                <jdk>
+                                    <version>${java.version}</version>
+                                    <vendor>openlogic</vendor>
+                                </jdk>
+                                <jdk>
+                                    <version>${java.version}</version>
+                                </jdk>
+                            </toolchains>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 	<!-- 查找发现依赖项和扩展项的远程仓库 -->
 	<repositories>

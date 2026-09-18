@@ -4,14 +4,14 @@
     <property name="LOG_PREFIX" value="${APP_NAME}"/>
     <property name="LOG_SUFFIX" value="${APP_NAME}"/>
     <property name="LOG_CHARSET" value="UTF-8"/>
-    <property name="LOG_MSG" value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%logger{36}|%M|%L] - %msg%n"/>
+    <property name="LOG_MSG" value="[%X{traceId:-}] [%X{spanId:-}] [%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%logger{36}|%M|%L] - %msg%n"/>
     <property name="MAX_FILE_SIZE" value="10MB"/>
     <property name="MAX_HISTORY" value="10"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>${LOG_MSG}</pattern>
-            <charset>${LOG_CHARSET}</charset>
+            <charset>${CONSOLE_LOG_CHARSET:-${native.encoding:-UTF-8}}</charset>
         </encoder>
     </appender>
 
@@ -46,14 +46,38 @@
         </encoder>
     </appender>
 
+    <appender name="GELF" class="de.siegmar.logbackgelf.GelfUdpAppender">
+        <graylogHost>${GRAYLOG_HOST}</graylogHost>
+        <graylogPort>${GRAYLOG_PORT}</graylogPort>
+        <maxChunkSize>508</maxChunkSize>
+        <compressionMethod>GZIP</compressionMethod>
+        <encoder class="de.siegmar.logbackgelf.GelfEncoder">
+            <originHost>${GRAYLOG_HOST}</originHost>
+            <includeRawMessage>false</includeRawMessage>
+            <includeMarker>true</includeMarker>
+            <includeMdcData>true</includeMdcData>
+            <includeCallerData>true</includeCallerData>
+            <includeRootCauseData>true</includeRootCauseData>
+            <includeLevelName>true</includeLevelName>
+            <shortMessageLayout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>${LOG_MSG}</pattern>
+            </shortMessageLayout>
+            <fullMessageLayout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>${LOG_MSG}</pattern>
+            </fullMessageLayout>
+            <staticField>application:${APP_NAME}</staticField>
+            <staticField>environment:${GRAYLOG_ENV}</staticField>
+        </encoder>
+    </appender>
+
     <logger name="com.eprint.admin" level="DEBUG" additivity="false">
-        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="GELF"/>
         <appender-ref ref="FILE_ALL"/>
         <appender-ref ref="FILE_ERROR"/>
     </logger>
 
     <root level="${LOG_ROOT_LEVEL}">
-        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="GELF"/>
         <appender-ref ref="FILE_ALL"/>
         <appender-ref ref="FILE_ERROR"/>
     </root>

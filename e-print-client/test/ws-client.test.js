@@ -30,7 +30,7 @@ test('handles websocket connection errors without throwing and schedules reconne
 
   const client = startPrintClient({
     clientId: 'CLIENT-001',
-    serverUrl: 'ws://localhost:9090/ws/print'
+    serverUrl: 'ws://localhost:8080/e-print-server/ws/print'
   }, {
     WebSocket: FakeWebSocket,
     reconnectDelayMs: 25,
@@ -47,7 +47,7 @@ test('handles websocket connection errors without throwing and schedules reconne
     }
   });
 
-  sockets[0].emit('error', new Error('connect ECONNREFUSED 127.0.0.1:9090'));
+  sockets[0].emit('error', new Error('connect ECONNREFUSED 127.0.0.1:8080'));
   sockets[0].emit('close');
 
   assert.equal(warnings.length, 1);
@@ -80,13 +80,13 @@ test('connects with clientId query parameter', () => {
 
   startPrintClient({
     clientId: 'CLIENT-001',
-    serverUrl: 'ws://localhost:9090/ws/print'
+    serverUrl: 'ws://localhost:8080/e-print-server/ws/print'
   }, {
     WebSocket: FakeWebSocket
   });
 
   sockets[0].emit('open');
-  assert.equal(sockets[0].url, 'ws://localhost:9090/ws/print?clientId=CLIENT-001');
+  assert.equal(sockets[0].url, 'ws://localhost:8080/e-print-server/ws/print?clientId=CLIENT-001');
   assert.equal(sockets[0].sent.length, 0);
 });
 
@@ -117,7 +117,7 @@ test('reports websocket connection status changes', () => {
 
   const client = startPrintClient({
     clientId: 'CLIENT-001',
-    serverUrl: 'ws://localhost:9090/ws/print'
+    serverUrl: 'ws://localhost:8080/e-print-server/ws/print'
   }, {
     WebSocket: FakeWebSocket,
     logger: {
@@ -139,8 +139,8 @@ test('reports websocket connection status changes', () => {
 
 test('keeps existing query parameters when adding clientId', () => {
   assert.equal(
-    buildClientUrl('ws://localhost:9090/ws/print?token=abc', 'CLIENT-001'),
-    'ws://localhost:9090/ws/print?token=abc&clientId=CLIENT-001'
+    buildClientUrl('ws://localhost:8080/e-print-server/ws/print?token=abc', 'CLIENT-001'),
+    'ws://localhost:8080/e-print-server/ws/print?token=abc&clientId=CLIENT-001'
   );
 });
 
@@ -160,7 +160,7 @@ test('ignores server connected control message', () => {
 
   startPrintClient({
     clientId: 'CLIENT-001',
-    serverUrl: 'ws://localhost:9090/ws/print'
+    serverUrl: 'ws://localhost:8080/e-print-server/ws/print'
   }, {
     WebSocket: FakeWebSocket,
     runPrintTask: () => {
@@ -196,8 +196,8 @@ test('reports completed task through the HTTP result reporter', async () => {
 
   startPrintClient({
     clientId: 'CLIENT-001',
-    serverUrl: 'ws://localhost:9090/ws/print',
-    templateBaseUrl: 'http://localhost:9090/template'
+    serverUrl: 'ws://localhost:8080/e-print-server/ws/print',
+    templateBaseUrl: 'http://localhost:8080/e-print-server/minio/template'
   }, {
     WebSocket: FakeWebSocket,
     runPrintTask: async (task, config, dependencies) => dependencies.reportResult({

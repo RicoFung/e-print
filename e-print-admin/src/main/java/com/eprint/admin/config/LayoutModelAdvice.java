@@ -9,6 +9,11 @@ public class LayoutModelAdvice {
 
     @ModelAttribute("currentRequestUri")
     public String currentRequestUri(HttpServletRequest request) {
-        return request == null ? "" : request.getRequestURI();
+        if (request == null) {
+            return "";
+        }
+        String requestUri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        return contextPath.isEmpty() ? requestUri : requestUri.substring(contextPath.length());
     }
 }

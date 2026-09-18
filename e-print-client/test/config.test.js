@@ -13,7 +13,7 @@ const {
   saveConfig
 } = require('../src/lib/config');
 
-test('migrates legacy default server URLs to current port', () => {
+test('migrates legacy default server URLs to current context path', () => {
   const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-'));
   const configPath = path.join(configDir, 'config.json');
 
@@ -24,10 +24,26 @@ test('migrates legacy default server URLs to current port', () => {
 
   const config = loadConfig(configPath);
 
-  assert.equal(config.serverUrl, 'ws://localhost:9090/ws/print');
-  assert.equal(config.templateBaseUrl, 'http://localhost:9090/template');
+  assert.equal(config.serverUrl, 'ws://localhost:8080/e-print-server/ws/print');
+  assert.equal(config.templateSource, 'qiniu');
+  assert.equal(config.templateBaseUrl, 'http://localhost:8080/e-print-server/qiniu/template');
   assert.equal(config.basicUsername, 'eprint');
   assert.equal(config.basicPassword, 'eprint123');
+});
+
+test('migrates original 9090 server URLs to current port and context path', () => {
+  const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-'));
+  const configPath = path.join(configDir, 'config.json');
+
+  fs.writeFileSync(configPath, JSON.stringify({
+    serverUrl: 'ws://localhost:9090/ws/print',
+    templateBaseUrl: 'http://localhost:9090/template'
+  }), 'utf8');
+
+  const config = loadConfig(configPath);
+
+  assert.equal(config.serverUrl, 'ws://localhost:8080/e-print-server/ws/print');
+  assert.equal(config.templateBaseUrl, 'http://localhost:8080/e-print-server/qiniu/template');
 });
 
 test('keeps custom configured server URLs', () => {
@@ -42,7 +58,7 @@ test('keeps custom configured server URLs', () => {
   const config = loadConfig(configPath);
 
   assert.equal(config.serverUrl, 'ws://192.168.1.20:8080/ws/print');
-  assert.equal(config.templateBaseUrl, 'http://192.168.1.20:8080/template');
+  assert.equal(config.templateBaseUrl, 'http://192.168.1.20:8080/qiniu/template');
 });
 
 test('uses basic auth from selected environment', () => {
@@ -57,7 +73,7 @@ test('uses basic auth from selected environment', () => {
         basicPassword: 'loc-password'
       },
       uat: {
-        serverUrl: 'wss://uat-print.example.com/ws/print',
+        serverUrl: 'wss://uat-print.example.com/e-print-server/ws/print',
         basic: {
           username: 'uat-user',
           password: 'uat-password'
@@ -69,8 +85,8 @@ test('uses basic auth from selected environment', () => {
   const config = loadConfig(configPath);
 
   assert.equal(config.env, 'uat');
-  assert.equal(config.serverUrl, 'wss://uat-print.example.com/ws/print');
-  assert.equal(config.templateBaseUrl, 'https://uat-print.example.com/template');
+  assert.equal(config.serverUrl, 'wss://uat-print.example.com/e-print-server/ws/print');
+  assert.equal(config.templateBaseUrl, 'https://uat-print.example.com/e-print-server/qiniu/template');
   assert.equal(config.basicUsername, 'uat-user');
   assert.equal(config.basicPassword, 'uat-password');
 });
@@ -121,14 +137,14 @@ test('derives template API URL when server URL is overridden by environment vari
 
   fs.writeFileSync(configPath, JSON.stringify({}), 'utf8');
 
-  process.env.E_PRINT_SERVER_URL = 'wss://print.example.com/ws/print';
+  process.env.E_PRINT_SERVER_URL = 'wss://print.example.com/e-print-server/ws/print';
   delete process.env.E_PRINT_TEMPLATE_BASE_URL;
 
   try {
     const config = loadConfig(configPath);
 
-    assert.equal(config.serverUrl, 'wss://print.example.com/ws/print');
-    assert.equal(config.templateBaseUrl, 'https://print.example.com/template');
+    assert.equal(config.serverUrl, 'wss://print.example.com/e-print-server/ws/print');
+    assert.equal(config.templateBaseUrl, 'https://print.example.com/e-print-server/qiniu/template');
   } finally {
     restoreEnv('E_PRINT_SERVER_URL', previousServerUrl);
     restoreEnv('E_PRINT_TEMPLATE_BASE_URL', previousTemplateBaseUrl);
@@ -186,9 +202,33 @@ test('loads bundled project config as initial user config template', () => {
 
 test('derives template API URL from websocket URL', () => {
   assert.equal(
-    deriveTemplateBaseUrl('wss://print.example.com/ws/print'),
-    'https://print.example.com/template'
+    deriveTemplateBaseUrl('wss://print.example.com/e-print-server/ws/print'),
+    'https://print.example.com/e-print-server/qiniu/template'
   );
+  assert.equal(
+    deriveTemplateBaseUrl('wss://print.example.com/e-print-server/ws/print', 'minio'),
+    'https://print.example.com/e-print-server/minio/template'
+  );
+});
+
+test('uses template source from selected environment', () => {
+  const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-'));
+  const configPath = path.join(configDir, 'config.json');
+
+  fs.writeFileSync(configPath, JSON.stringify({
+    env: 'uat',
+    environments: {
+      uat: {
+        serverUrl: 'wss://uat-print.example.com/e-print-server/ws/print',
+        templateSource: 'minio'
+      }
+    }
+  }), 'utf8');
+
+  const config = loadConfig(configPath);
+
+  assert.equal(config.templateSource, 'minio');
+  assert.equal(config.templateBaseUrl, 'https://uat-print.example.com/e-print-server/minio/template');
 });
 
 test('saves printer configuration', () => {
@@ -196,7 +236,7 @@ test('saves printer configuration', () => {
   const configPath = path.join(configDir, 'config.json');
 
   saveConfig({
-    serverUrl: 'ws://localhost:9090/ws/print',
+    serverUrl: 'ws://localhost:8080/e-print-server/ws/print',
     printerName: 'Zebra ZD230',
     silent: false
   }, configPath);
@@ -205,6 +245,8 @@ test('saves printer configuration', () => {
 
   assert.equal(saved.printerName, 'Zebra ZD230');
   assert.equal(saved.silent, false);
+  assert.equal(saved.templateSource, 'qiniu');
+  assert.equal(saved.templateBaseUrl, 'http://localhost:8080/e-print-server/qiniu/template');
 });
 
 function restoreEnv(name, value) {

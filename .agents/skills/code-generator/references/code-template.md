@@ -25,6 +25,7 @@
 - MapStruct 负责模块内对象映射。
 - MyBatis 与 Oracle 负责持久化。
 - 管理页面使用 AdminLTE、Bootstrap Table、SweetAlert 等现有前端能力。
+- 每个可部署的 Spring Boot 应用使用项目级 context-path，统一配置为 `server.servlet.context-path: /${project.artifactId}`；例如 `e-print-admin` 的 context-path 为 `/e-print-admin`，`e-print-server` 为 `/e-print-server`。
 - 文件正文等大对象可存放在 MinIO，数据库保存元数据；保持两者职责分离。
 - 不引入与项目现有结构重复的框架或抽象层。
 
@@ -175,6 +176,8 @@ Controller 负责路由、参数绑定、`@Valid` 校验、对象映射、页面
 
 Controller 不负责 SQL 排序转换、业务唯一性和关联状态校验，不直接调用 Dao，也不手工复制 Request 字段到 Param。
 
+Controller 的 `@RequestMapping`、`@GetMapping`、`@PostMapping` 只声明应用内路由，不包含 context-path。context-path 由 Servlet 容器统一添加；禁止在 Controller 中重复写 `/e-print-admin`、`/e-print-server`，也不要再为后台应用额外添加 `/admin` 前缀。
+
 简单结果直接返回，不封装一行私有方法：
 
 ```java
@@ -259,25 +262,52 @@ Dao 不做业务判断、不调用其他 Dao、不拼接 SQL。
 
 ## 11. 路由与页面
 
-后台资源通常采用：
+### 11.1 context-path 与应用内路由
+
+必须区分：
+
+- **context-path**：应用部署前缀，来自 `server.servlet.context-path`，默认使用 `/${project.artifactId}`。
+- **应用内路由**：Controller 声明的路径，不包含 context-path。
+- **外部访问路径**：`context-path + 应用内路由`。
+
+以 `e-print-admin` 为例：
 
 ```text
-GET  /admin/<resources>
-GET  /admin/<resources>/create
-POST /admin/<resources>/create
-POST /admin/<resources>/remove
-GET  /admin/<resources>/modify
-POST /admin/<resources>/modify
-POST /admin/<resources>/disable
-POST /admin/<resources>/enable
-POST /admin/<resources>/query
-GET  /admin/<resources>/preview
+context-path        /e-print-admin
+Controller 路由     /minio/templates
+外部访问路径         /e-print-admin/minio/templates
+完整本地地址         http://localhost:8080/e-print-admin/minio/templates
 ```
+
+后台资源的应用内路由通常采用：
+
+```text
+GET  /<provider>/<resources>
+GET  /<provider>/<resources>/create
+POST /<provider>/<resources>/create
+POST /<provider>/<resources>/remove
+GET  /<provider>/<resources>/modify
+POST /<provider>/<resources>/modify
+POST /<provider>/<resources>/disable
+POST /<provider>/<resources>/enable
+GET  /<provider>/<resources>/query
+GET  /<provider>/<resources>/preview
+```
+
+例如 `@RequestMapping("/minio/templates")` 对外提供 `/e-print-admin/minio/templates`，不要写成 `@RequestMapping("/e-print-admin/minio/templates")` 或恢复旧的 `/admin/minio/templates`。
+
+### 11.2 页面和脚本 URL
 
 页面规则：
 
 - 复用现有布局、菜单和 `admin.css`，不另建重复样式体系。
+- Thymeleaf 链接、表单、静态资源和接口地址使用 `@{/...}`，由 Thymeleaf 自动添加 context-path；不要在模板中硬编码 `/e-print-admin`。
+- 公共布局提供 `<meta name="application-context-path" th:content="@{/}">`。独立 JavaScript 发起 `fetch`、跳转或拼接接口地址时，从该 meta 读取 context-path，统一处理首尾 `/`，不要假设应用部署在根路径。
+- Java Controller 的 `redirect:/...` 使用应用内路由，Spring 会在客户端重定向地址中添加 context-path；不要手工重复拼接 context-path。
+- Spring Security 的 matcher、登录页、成功跳转等配置使用应用内路由，不包含 context-path。
 - 列表页沿用 Bootstrap Table 的分页、搜索、排序和批量操作模式。
+- 列表页表格的表头、数据单元格以及单元格内的状态、链接、普通文本等非按钮内容，统一继承同一个字号并使用正常字重 `font-weight: 400`；不允许为对象名、状态标签、表头或其他列单独加粗、放大或缩小。
+- 上述表格字体规则集中维护在 `admin.css` 的 `.list-table-wrap` 作用域中，同时覆盖 Bootstrap Table 生成的 `.th-inner`；不要在各列表模板添加内联字体样式或重复的页面级规则。`.btn` 及其子元素不受该规则影响，继续使用按钮自身的字号和字重。
 - 表单错误时保留用户输入、选项数据和安全的 `returnUrl`。
 - 成功后返回规范化后的列表地址，取消按钮也使用安全地址。
 - 删除、启用、禁用等危险操作延续现有确认交互。
@@ -285,7 +315,8 @@ GET  /admin/<resources>/preview
 
 ## 12. 首页和错误页
 
-- 后台首页路由为 `/admin`，根路径和登录成功后的默认地址跳转到 `/admin`。
+- 后台应用内首页路由为 `/`，外部访问地址为 context-path 根路径；例如 `e-print-admin` 首页是 `/e-print-admin/`，不再使用 `/admin`。
+- 登录成功后的默认应用内地址为 `/`。Controller、Security 配置和服务端重定向不要包含 context-path。
 - 首页只展示快捷入口，不为装饰性统计查询 Service 或数据库。
 - 导航菜单显示“首页”。
 - 错误页至少覆盖 400、403、404、500 和通用错误模板，并复用公共结构。
@@ -330,6 +361,10 @@ spring:
 - [ ] 只有需要回显的 Controller 继承 `BaseController`，`returnUrl` 已限制路径。
 - [ ] 简单 JSON 响应没有无意义的私有包装方法。
 - [ ] 首页只保留快捷入口，错误页使用当前 Spring Boot 配置。
+- [ ] 各环境配置了 `server.servlet.context-path: /${project.artifactId}`，外部地址为 context-path 与应用内路由的组合。
+- [ ] Controller、Security 和服务端重定向只使用应用内路由；不存在旧 `/admin` 前缀或硬编码项目 context-path。
+- [ ] Thymeleaf URL 使用 `@{/...}`；独立 JavaScript 从 `application-context-path` meta 获取部署前缀。
+- [ ] 列表页表格的所有非按钮内容字号一致、字重为 `400`，且不存在列级、状态标签或对象名的字体覆盖。
 
 ### 验证
 

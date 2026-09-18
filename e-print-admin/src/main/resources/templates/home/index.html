@@ -13,19 +13,36 @@
     <div class="app-content home-content">
         <div class="container-fluid">
             <nav class="home-shortcuts" aria-label="快捷入口">
-                <a class="home-shortcut" th:href="@{/admin/template-types}">
+
+                <a class="home-shortcut" th:href="@{/qiniu/template-types}">
                     <span class="home-shortcut__icon" aria-hidden="true">
                         <svg><use href="#admin-icon-template-type"></use></svg>
                     </span>
-                    <strong>类型管理</strong>
+                    <strong>Qiniu 类型管理</strong>
                     <span class="home-shortcut__arrow" aria-hidden="true">→</span>
                 </a>
 
-                <a class="home-shortcut" th:href="@{/admin/templates}">
+                <a class="home-shortcut" th:href="@{/qiniu/templates}">
                     <span class="home-shortcut__icon" aria-hidden="true">
                         <svg><use href="#admin-icon-template"></use></svg>
                     </span>
-                    <strong>模板管理</strong>
+                    <strong>Qiniu 模板管理</strong>
+                    <span class="home-shortcut__arrow" aria-hidden="true">→</span>
+                </a>
+                
+                <a class="home-shortcut" th:href="@{/minio/template-types}">
+                    <span class="home-shortcut__icon" aria-hidden="true">
+                        <svg><use href="#admin-icon-template-type"></use></svg>
+                    </span>
+                    <strong>MinIO 类型管理</strong>
+                    <span class="home-shortcut__arrow" aria-hidden="true">→</span>
+                </a>
+
+                <a class="home-shortcut" th:href="@{/minio/templates}">
+                    <span class="home-shortcut__icon" aria-hidden="true">
+                        <svg><use href="#admin-icon-template"></use></svg>
+                    </span>
+                    <strong>MinIO 模板管理</strong>
                     <span class="home-shortcut__arrow" aria-hidden="true">→</span>
                 </a>
             </nav>

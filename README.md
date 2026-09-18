@@ -40,8 +40,21 @@ e-print
 | `e-print-client` | 本地打印桥接器，连接服务端并执行打印      |
 | `e-print-server` | 打印任务 API、WebSocket 推送、模板读取服务 |
 | `e-print-admin`  | 模板类型和 HTML 模板管理后台             |
-| `db/oracle`      | Oracle 表、序列、索引和初始化数据脚本      |
+| `db/oracle`      | Oracle 建表及模板类型初始化脚本            |
 | `minio`          | Docker Compose、bucket 初始化和示例模板   |
+
+根目录 `pom.xml` 聚合 `e-print-admin` 和 `e-print-server`。构建环境可通过 Maven Profile 指定为 `loc`、`uat` 或 `prod`，未指定时默认使用 `uat`：
+
+```bash
+mvn -Puat clean package -DskipTests
+```
+
+可执行包生成在：
+
+```text
+e-print-admin/target/e-print-admin-exec.jar
+e-print-server/target/e-print-server-exec.jar
+```
 
 ## 3. 时序图
 
@@ -51,14 +64,14 @@ sequenceDiagram
     participant Server as e-print-server
     participant DB as Oracle
     participant Client as e-print-client
-    participant MinIO as MinIO
+    participant Storage as MinIO／七牛
     participant Printer as 本地打印机
 
-    Client->>Server: WS /ws/print?clientId=CLIENT-001 + Basic Auth
+    Client->>Server: WS /e-print-server/ws/print?clientId=CLIENT-001 + Basic Auth
     Server->>Server: 注册 clientId 与 WebSocket Session
     Server-->>Client: CONNECTED 消息
 
-    Biz->>Server: POST /task + Basic Auth
+    Biz->>Server: POST /e-print-server/task + Basic Auth
     Server->>DB: 查询启用的模板元数据
     alt 指定模板不存在且 templateCode 不是 01
         Server->>DB: 查询同类型默认模板 01
@@ -72,15 +85,15 @@ sequenceDiagram
     end
     Server-->>Biz: 返回 taskId 和当前状态
 
-    Client->>Server: GET /template/{templateCode}?templateType={templateType} + Basic Auth
+    Client->>Server: GET /e-print-server/{provider}/template/{templateCode}?templateType={templateType} + Basic Auth
     Server->>DB: 查询模板元数据
-    Server->>MinIO: 按 bucketName/objectName 读取 HTML
-    MinIO-->>Server: HTML 内容
+    Server->>Storage: 按 provider、bucketName、objectName 读取 HTML
+    Storage-->>Server: HTML 内容
     Server-->>Client: JSON 响应（data.content 为 HTML）
     Client->>Client: 渲染数据、二维码、条码
     Client->>Printer: Electron 打印
     Printer-->>Client: 打印成功或失败
-    Client->>Server: POST /task/{taskId}/result + Basic Auth
+    Client->>Server: POST /e-print-server/task/{taskId}/result + Basic Auth
     Server->>Server: 状态更新为 SUCCESS 或 FAILED
     Server-->>Client: 返回更新后的任务
 ```
@@ -122,7 +135,7 @@ npm start
 | 后端框架   | Spring Boot、niko-boot                  |
 | 接口与推送 | Spring MVC、WebSocket、Spring Security   |
 | 数据访问   | MyBatis、HikariCP、Oracle                |
-| 模板存储   | MinIO                                  |
+| 模板存储   | MinIO、七牛对象存储                    |
 | 工程工具   | Maven、MapStruct、Lombok                 |
 | 可观测性   | Spring Boot Actuator、SpringDoc、Graylog |
 
@@ -130,13 +143,13 @@ npm start
 
 ```bash
 cd e-print-server
-mvn spring-boot:run
+mvn -Ploc spring-boot:run
 ```
 
 默认地址：
 
 ```text
-http://localhost:9090
+http://localhost:8080/e-print-server
 ```
 
 ### 4.3 e-print-admin
@@ -152,7 +165,7 @@ http://localhost:9090
 | 页面模板 | Thymeleaf、Bootstrap Table |
 | 安全     | Spring Security           |
 | 数据访问 | MyBatis、HikariCP、Oracle   |
-| 文件存储 | MinIO                     |
+| 文件存储 | MinIO、七牛对象存储       |
 | 工程工具 | Maven、MapStruct、Lombok    |
 | 日志     | Graylog                   |
 
@@ -160,14 +173,16 @@ http://localhost:9090
 
 ```bash
 cd e-print-admin
-mvn spring-boot:run
+mvn -Ploc spring-boot:run
 ```
 
 默认地址：
 
 ```text
-http://localhost:9091
+http://localhost:8080/e-print-admin/
 ```
+
+`/e-print-admin` 是管理后台的 context-path，MinIO 与七牛模板列表分别位于 `/e-print-admin/minio/templates` 和 `/e-print-admin/qiniu/templates`。
 
 默认账号：
 
@@ -177,7 +192,7 @@ eprint / eprint123
 
 ### 4.4 本地依赖
 
-启动业务模块前，通常需要先启动 MinIO，并按 `db/oracle/print_template.sql` 初始化 Oracle 模板表。
+启动业务模块前，按 `db/oracle/print_template.sql` 一次性创建 MinIO、七牛的模板类型表、模板表、序列和索引。脚本会初始化两套模板类型字典，但不会向 `E_PRINT_MINIO_TEMPLATE`、`E_PRINT_QINIU_TEMPLATE` 写入模板数据；模板需通过管理后台创建。使用 MinIO 时还需先启动本地 MinIO 服务。
 
 启动 MinIO：
 
