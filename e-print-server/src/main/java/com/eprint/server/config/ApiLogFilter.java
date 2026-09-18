@@ -43,7 +43,11 @@ public class ApiLogFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !enabled || request.getRequestURI().startsWith("/ws/");
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        return !enabled
+                || path.startsWith("/ws/")
+                || "/actuator/health".equals(path)
+                || "/actuator/health/".equals(path);
     }
 
     @Override

@@ -9,7 +9,27 @@
 
     <include resource="logback-base.xml"/>
 
+    <!-- 非 LOC 控制台仅输出应用及基础组件的启动/初始化日志。 -->
     <logger name="com.eprint.server.EPrintServerApplication">
         <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.springframework">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <!-- ApiLogFilter 的 INFO 是请求日志；控制台只保留其初始化 DEBUG 日志。 -->
+    <appender name="STARTUP_DEBUG_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>DEBUG</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <pattern>${LOG_MSG}</pattern>
+            <charset>${CONSOLE_LOG_CHARSET:-${native.encoding:-UTF-8}}</charset>
+        </encoder>
+    </appender>
+    <logger name="com.eprint.server.config.ApiLogFilter">
+        <appender-ref ref="STARTUP_DEBUG_STDOUT"/>
     </logger>
 </configuration>

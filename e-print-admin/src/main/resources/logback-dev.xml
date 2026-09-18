@@ -8,7 +8,11 @@
     <property name="GRAYLOG_ENV" value="DEV"/>
     <include resource="logback-base.xml"/>
 
+    <!-- 非 LOC 控制台仅输出应用及基础组件的启动/初始化日志。 -->
     <logger name="com.eprint.admin.EPrintAdminApplication">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.springframework">
         <appender-ref ref="STDOUT"/>
     </logger>
 </configuration>

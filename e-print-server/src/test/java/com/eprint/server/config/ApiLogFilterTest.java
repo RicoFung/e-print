@@ -50,6 +50,18 @@ class ApiLogFilterTest {
     }
 
     @Test
+    void skipsActuatorHealthRequestLogWithContextPath() throws Exception {
+        ApiLogFilter filter = filter();
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/e-print-server/actuator/health");
+        request.setContextPath("/e-print-server");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertThat(response.getHeader("X-Request-Id")).isNull();
+    }
+
+    @Test
     void masksSensitiveJsonValuesAndTruncatesLongBodies() {
         ApiLogFilter filter = filter();
         ReflectionTestUtils.setField(filter, "maxBodyLength", 20);
