@@ -8,4 +8,8 @@
     <property name="GRAYLOG_ENV" value="DEV"/>
 
     <include resource="logback-base.xml"/>
+
+    <logger name="com.eprint.server.EPrintServerApplication">
+        <appender-ref ref="STDOUT"/>
+    </logger>
 </configuration>

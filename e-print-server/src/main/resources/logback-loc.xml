@@ -9,13 +9,6 @@
 
     <include resource="logback-base.xml"/>
 
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>${LOG_MSG}</pattern>
-            <charset>${CONSOLE_LOG_CHARSET:-${native.encoding:-UTF-8}}</charset>
-        </encoder>
-    </appender>
-
     <logger name="com.eprint.server">
         <appender-ref ref="STDOUT"/>
     </logger>
