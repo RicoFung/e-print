@@ -195,6 +195,42 @@ test('loads bundled project config as initial user config template', () => {
     assert.equal(config.clientId, 'CLIENT-001');
     assert.equal(config.basicUsername, 'eprint');
     assert.equal(config.basicPassword, 'eprint123');
+    assert.equal(config.templateCacheDir, path.join(configDir, 'templates'));
+  } finally {
+    configureUserConfigPath(path.resolve(__dirname, '..'));
+  }
+});
+
+test('migrates a legacy user-specific template cache path to runtime user data', () => {
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-user-data-'));
+  const configPath = configureUserConfigPath(userDataDir);
+
+  fs.writeFileSync(configPath, JSON.stringify({
+    templateCacheDir: 'C:\\Users\\developer\\.e-print-client\\templates'
+  }), 'utf8');
+
+  try {
+    const config = loadConfig();
+
+    assert.equal(config.templateCacheDir, path.join(userDataDir, 'templates'));
+  } finally {
+    configureUserConfigPath(path.resolve(__dirname, '..'));
+  }
+});
+
+test('keeps an explicitly configured custom template cache path', () => {
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-user-data-'));
+  const customCacheDir = path.join(os.tmpdir(), 'shared-e-print-templates');
+  const configPath = configureUserConfigPath(userDataDir);
+
+  fs.writeFileSync(configPath, JSON.stringify({
+    templateCacheDir: customCacheDir
+  }), 'utf8');
+
+  try {
+    const config = loadConfig();
+
+    assert.equal(config.templateCacheDir, customCacheDir);
   } finally {
     configureUserConfigPath(path.resolve(__dirname, '..'));
   }
