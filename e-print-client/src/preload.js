@@ -3,6 +3,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('ePrintClient', {
+  getAppInfo: () => ipcRenderer.invoke('app:get-info'),
   getConfig: () => ipcRenderer.invoke('config:get'),
   saveConfig: (config) => ipcRenderer.invoke('config:save', config),
   getStatus: () => ipcRenderer.invoke('connection:get-status'),

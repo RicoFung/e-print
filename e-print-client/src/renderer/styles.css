@@ -92,19 +92,35 @@ select {
 
 .header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-items: end;
   gap: 10px;
   min-height: var(--status-control-height);
   margin-bottom: 8px;
 }
 
 .brand {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
   align-items: center;
+  gap: 9px;
   min-width: 0;
+}
+
+.appName {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+}
+
+.appVersion {
+  border: 1px solid var(--line);
+  padding: 2px 6px;
+  color: var(--muted);
+  background: var(--panel);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
 }
 
 .headerActions {

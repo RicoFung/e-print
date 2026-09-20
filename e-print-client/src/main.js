@@ -1,16 +1,39 @@
 ﻿'use strict';
 
+const fs = require('node:fs');
 const path = require('node:path');
-const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, Tray } = require('electron');
 const {
   configureUserConfigPath,
+  deriveWebSocketUrl,
   deriveTemplateBaseUrl,
   loadConfig,
   saveConfig,
   resolveConfigPath
 } = require('./lib/config');
 const { startPrintClient } = require('./lib/ws-client');
+const { discoverPrinters } = require('./lib/printer-discovery');
 const { createElectronPrinter } = require('./printer/electron-printer');
+const {
+  ePrintEnvironment = 'loc',
+  ePrintBasicUsername = '',
+  ePrintBasicPassword = ''
+} = require('../package.json');
+
+const packagedEnvironment = ['uat', 'prod'].includes(ePrintEnvironment)
+  ? ePrintEnvironment
+  : 'loc';
+const packagedProductName = packagedEnvironment === 'uat' ? 'E-Print-UAT' : 'E-Print';
+
+if (packagedEnvironment !== 'loc') {
+  try {
+    migrateLegacyUserData(packagedEnvironment, packagedProductName);
+  } catch (error) {
+    console.warn(`Unable to migrate legacy user data: ${error.message}`);
+  }
+  app.setName(packagedProductName);
+  app.setPath('userData', path.join(app.getPath('appData'), packagedProductName));
+}
 
 const TEST_PAGE_HTML = `<!doctype html>
 <html>
@@ -63,19 +86,37 @@ let currentConfig;
 let currentLanguage = 'en';
 let currentTheme = 'black';
 let isQuitting = false;
+let inactiveStatus;
 
-app.whenReady().then(() => {
-  configureUserConfigPath(app.getPath('userData'));
-  currentConfig = loadConfig();
-  currentLanguage = detectLanguage();
-  saveConfig(currentConfig);
-  registerIpcHandlers();
-  enableAutoLaunch();
-  applyApplicationMenu(currentLanguage);
-  createTray(currentLanguage);
-  createMainWindow();
-  restartClient(currentConfig);
-});
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!hasSingleInstanceLock) {
+  isQuitting = true;
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (app.isReady()) {
+      showMainWindow();
+    }
+  });
+
+  app.whenReady().then(() => {
+    configureUserConfigPath(app.getPath('userData'));
+    currentConfig = applyPackagedEnvironment(loadConfig());
+    currentLanguage = detectLanguage();
+    saveRuntimeConfig(currentConfig);
+    registerIpcHandlers();
+    enableAutoLaunch();
+    applyApplicationMenu(currentLanguage);
+    createTray(currentLanguage);
+    createMainWindow();
+    restartClient(currentConfig);
+  }).catch((error) => {
+    console.error(`Application startup failed: ${error.stack || error.message}`);
+    dialog.showErrorBox(`${packagedProductName} startup failed`, error.message);
+    app.quit();
+  });
+}
 
 app.on('before-quit', () => {
   isQuitting = true;
@@ -97,10 +138,10 @@ app.on('activate', () => {
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 680,
-    height: 510,
+    height: 450,
     minWidth: 680,
-    minHeight: 510,
-    title: 'E-PRINT-CLIENT',
+    minHeight: 450,
+    title: '',
     icon: path.join(__dirname, '..', 'assets', 'e-print-icon.png'),
     backgroundColor: DEFAULT_WINDOW_BACKGROUND,
     show: !shouldStartHidden(),
@@ -124,21 +165,31 @@ function createMainWindow() {
     mainWindow = null;
   });
 
+  mainWindow.on('page-title-updated', (event) => {
+    event.preventDefault();
+  });
+
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
 
 function registerIpcHandlers() {
+  ipcMain.handle('app:get-info', () => ({
+    name: packagedProductName,
+    version: app.getVersion(),
+    environment: packagedEnvironment
+  }));
+
   ipcMain.handle('config:get', () => ({
-    config: currentConfig,
+    config: createPublicConfig(currentConfig),
     configPath: resolveConfigPath()
   }));
 
   ipcMain.handle('config:save', (_event, nextConfig) => {
     currentConfig = normalizeUserConfig(nextConfig);
-    saveConfig(currentConfig);
+    saveRuntimeConfig(currentConfig);
     restartClient(currentConfig);
     return {
-      config: currentConfig,
+      config: createPublicConfig(currentConfig),
       configPath: resolveConfigPath(),
       status: getClientStatus()
     };
@@ -212,10 +263,10 @@ function updateTrayMenu(language) {
   }
 
   const labels = menuLabels[normalizeLanguage(language)];
-  tray.setToolTip(labels.trayTooltip);
+  tray.setToolTip(formatAppLabel(labels.trayTooltip));
   tray.setContextMenu(Menu.buildFromTemplate([
     {
-      label: labels.showWindow,
+      label: formatAppLabel(labels.showWindow),
       click: showMainWindow
     },
     {
@@ -266,7 +317,7 @@ function enableAutoLaunch() {
   app.setLoginItemSettings({
     openAtLogin: true,
     openAsHidden: true,
-    path: process.execPath,
+    path: process.env.PORTABLE_EXECUTABLE_FILE || process.execPath,
     args
   });
 }
@@ -324,7 +375,7 @@ function applyApplicationMenu(language) {
       label: labels.help,
       submenu: [
         {
-          label: labels.about,
+          label: formatAppLabel(labels.about),
           click: () => {
             if (mainWindow && mainWindow.webContents) {
               mainWindow.webContents.send('app:about');
@@ -370,10 +421,10 @@ const menuLabels = {
     minimize: 'Minimize',
     close: 'Close',
     help: 'Help',
-    about: 'About E-PRINT-CLIENT',
-    showWindow: 'Show E-PRINT-CLIENT',
+    about: 'About {appName}',
+    showWindow: 'Show {appName}',
     hideWindow: 'Hide window',
-    trayTooltip: 'E-PRINT-CLIENT is running'
+    trayTooltip: '{appName} is running'
   },
   'zh-CN': {
     file: '\u6587\u4ef6',
@@ -397,12 +448,16 @@ const menuLabels = {
     minimize: '\u6700\u5c0f\u5316',
     close: '\u5173\u95ed',
     help: '\u5e2e\u52a9',
-    about: '\u5173\u4e8e E-PRINT-CLIENT',
-    showWindow: '\u663e\u793a E-PRINT-CLIENT',
+    about: '\u5173\u4e8e {appName}',
+    showWindow: '\u663e\u793a {appName}',
     hideWindow: '\u9690\u85cf\u7a97\u53e3',
-    trayTooltip: 'E-PRINT-CLIENT \u6b63\u5728\u8fd0\u884c'
+    trayTooltip: '{appName} \u6b63\u5728\u8fd0\u884c'
   }
 };
+
+function formatAppLabel(label) {
+  return label.replace('{appName}', packagedProductName);
+}
 
 const themeWindowBackgrounds = {
   sky: '#eff9ff',
@@ -423,18 +478,7 @@ function getPreviewSettings() {
 }
 
 async function listPrinters() {
-  if (!mainWindow || !mainWindow.webContents || typeof mainWindow.webContents.getPrintersAsync !== 'function') {
-    return [];
-  }
-
-  const printers = await mainWindow.webContents.getPrintersAsync();
-  return printers.map((printer) => ({
-    name: printer.name,
-    displayName: printer.displayName || printer.name,
-    description: printer.description || '',
-    status: printer.status,
-    isDefault: Boolean(printer.isDefault)
-  }));
+  return discoverPrinters(mainWindow && mainWindow.webContents, { logger: console });
 }
 
 function restartClient(config) {
@@ -442,6 +486,20 @@ function restartClient(config) {
     client.stop();
   }
 
+  const missingSettings = getMissingConnectionSettings(config);
+  if (missingSettings.length) {
+    client = null;
+    inactiveStatus = {
+      state: 'idle',
+      serverUrl: config.serverUrl || '',
+      message: `Complete configuration: ${missingSettings.join(', ')}`,
+      updatedAt: new Date().toISOString()
+    };
+    sendStatus(inactiveStatus);
+    return;
+  }
+
+  inactiveStatus = null;
   client = startPrintClient(config, {
     printer: createElectronPrinter({
       getPreviewSettings
@@ -460,7 +518,7 @@ function sendStatus(status) {
 function getClientStatus() {
   return client && typeof client.getStatus === 'function'
     ? client.getStatus()
-    : {
+    : inactiveStatus || {
         state: 'idle',
         serverUrl: currentConfig ? currentConfig.serverUrl : '',
         message: 'Not connected',
@@ -473,9 +531,13 @@ function normalizeUserConfig(input) {
     ...currentConfig,
     ...input
   };
-  validateWebSocketUrl(nextConfig.serverUrl);
+  const serverAddress = typeof input.serverUrl === 'string' ? input.serverUrl.trim() : '';
+  validateServerAddress(serverAddress);
+  nextConfig.serverUrl = deriveWebSocketUrl(serverAddress);
   nextConfig.templateSource = nextConfig.templateSource === 'minio' ? 'minio' : 'qiniu';
   nextConfig.templateBaseUrl = deriveTemplateBaseUrl(nextConfig.serverUrl, nextConfig.templateSource);
+  nextConfig.basicUsername = currentConfig.basicUsername || '';
+  nextConfig.basicPassword = currentConfig.basicPassword || '';
   nextConfig.printerName = typeof nextConfig.printerName === 'string'
     ? nextConfig.printerName
     : '';
@@ -483,10 +545,82 @@ function normalizeUserConfig(input) {
   return nextConfig;
 }
 
-function validateWebSocketUrl(value) {
+function validateServerAddress(value) {
+  if (!value) {
+    return;
+  }
+
   const url = new URL(value);
   if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
-    throw new Error('WebSocket URL must start with ws:// or wss://');
+    throw new Error('Server address must start with ws:// or wss://');
   }
+}
+
+function migrateLegacyUserData(environment, productName) {
+  const appDataPath = app.getPath('appData');
+  const legacyProductName = environment === 'uat' ? 'EPrintClient-UAT' : 'EPrintClient';
+  const legacyPath = path.join(appDataPath, legacyProductName);
+  const nextPath = path.join(appDataPath, productName);
+
+  if (!fs.existsSync(legacyPath)) {
+    return;
+  }
+
+  const legacyConfigPath = path.join(legacyPath, 'config.json');
+  const nextConfigPath = path.join(nextPath, 'config.json');
+  if (fs.existsSync(legacyConfigPath) && !fs.existsSync(nextConfigPath)) {
+    fs.mkdirSync(nextPath, { recursive: true });
+    fs.copyFileSync(legacyConfigPath, nextConfigPath);
+  }
+
+  const legacyTemplatePath = path.join(legacyPath, 'templates');
+  const nextTemplatePath = path.join(nextPath, 'templates');
+  if (fs.existsSync(legacyTemplatePath) && !fs.existsSync(nextTemplatePath)) {
+    fs.mkdirSync(nextPath, { recursive: true });
+    fs.cpSync(legacyTemplatePath, nextTemplatePath, { recursive: true });
+  }
+}
+
+function saveRuntimeConfig(config) {
+  const persistedConfig = { ...config };
+  delete persistedConfig.basicUsername;
+  delete persistedConfig.basicPassword;
+  delete persistedConfig.basicPasswordEncrypted;
+  return saveConfig(persistedConfig);
+}
+
+function createPublicConfig(config) {
+  const publicConfig = { ...config };
+  delete publicConfig.basicUsername;
+  delete publicConfig.basicPassword;
+  delete publicConfig.basicPasswordEncrypted;
+  return publicConfig;
+}
+
+function applyPackagedEnvironment(config) {
+  if (packagedEnvironment === 'loc') {
+    return config;
+  }
+
+  return {
+    ...config,
+    env: packagedEnvironment,
+    basicUsername: ePrintBasicUsername,
+    basicPassword: ePrintBasicPassword
+  };
+}
+
+function getMissingConnectionSettings(config) {
+  const missing = [];
+  if (!config.serverUrl) {
+    missing.push('server address');
+  }
+  if (!config.basicUsername) {
+    missing.push('username');
+  }
+  if (!config.basicPassword) {
+    missing.push('password');
+  }
+  return missing;
 }
 

@@ -7,7 +7,9 @@ const path = require('node:path');
 const test = require('node:test');
 const {
   configureUserConfigPath,
+  deriveServerBaseUrl,
   deriveTemplateBaseUrl,
+  deriveWebSocketUrl,
   loadConfig,
   resolveConfigPath,
   saveConfig
@@ -27,8 +29,8 @@ test('migrates legacy default server URLs to current context path', () => {
   assert.equal(config.serverUrl, 'ws://localhost:8080/e-print-server/ws/print');
   assert.equal(config.templateSource, 'qiniu');
   assert.equal(config.templateBaseUrl, 'http://localhost:8080/e-print-server/qiniu/template');
-  assert.equal(config.basicUsername, 'eprint');
-  assert.equal(config.basicPassword, 'eprint123');
+  assert.equal(config.basicUsername, '');
+  assert.equal(config.basicPassword, undefined);
 });
 
 test('migrates original 9090 server URLs to current port and context path', () => {
@@ -245,6 +247,61 @@ test('derives template API URL from websocket URL', () => {
     deriveTemplateBaseUrl('wss://print.example.com/e-print-server/ws/print', 'minio'),
     'https://print.example.com/e-print-server/minio/template'
   );
+});
+
+test('derives websocket and API URLs from a server base address', () => {
+  const serverBaseUrl = 'wss://apiuat.moco.com/eprint/v1';
+
+  assert.equal(
+    deriveWebSocketUrl(serverBaseUrl),
+    'wss://apiuat.moco.com/eprint/v1/ws/print'
+  );
+  assert.equal(
+    deriveServerBaseUrl('wss://apiuat.moco.com/eprint/v1/ws/print'),
+    serverBaseUrl
+  );
+  assert.equal(
+    deriveTemplateBaseUrl(deriveWebSocketUrl(serverBaseUrl), 'qiniu'),
+    'https://apiuat.moco.com/eprint/v1/qiniu/template'
+  );
+});
+
+test('allows an empty first-run server configuration', () => {
+  const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-'));
+  const configPath = path.join(configDir, 'config.json');
+  fs.writeFileSync(configPath, '{}', 'utf8');
+
+  const config = loadConfig(configPath);
+
+  assert.equal(config.serverUrl, '');
+  assert.equal(config.templateBaseUrl, '');
+  assert.equal(config.basicUsername, '');
+  assert.equal(config.basicPassword, undefined);
+  assert.equal(config.silent, false);
+});
+
+test('migrates the legacy silent-print default to preview mode', () => {
+  const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-'));
+  const configPath = path.join(configDir, 'config.json');
+  fs.writeFileSync(configPath, JSON.stringify({ silent: true }), 'utf8');
+
+  const config = loadConfig(configPath);
+
+  assert.equal(config.configVersion, 2);
+  assert.equal(config.silent, false);
+});
+
+test('keeps an explicit print mode after the preview-default migration', () => {
+  const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e-print-client-'));
+  const configPath = path.join(configDir, 'config.json');
+  fs.writeFileSync(configPath, JSON.stringify({
+    configVersion: 2,
+    silent: true
+  }), 'utf8');
+
+  const config = loadConfig(configPath);
+
+  assert.equal(config.silent, true);
 });
 
 test('uses template source from selected environment', () => {

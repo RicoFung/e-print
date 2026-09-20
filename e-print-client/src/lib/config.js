@@ -12,15 +12,15 @@ let userConfigPath;
 let runtimeTemplateCacheDir = path.join(os.homedir(), '.e-print-client', 'templates');
 
 const DEFAULT_CONFIG = {
+  configVersion: 2,
   env: 'loc',
   clientId: 'CLIENT-001',
-  serverUrl: 'ws://localhost:8080/e-print-server/ws/print',
+  serverUrl: '',
   templateSource: DEFAULT_TEMPLATE_SOURCE,
-  templateBaseUrl: 'http://localhost:8080/e-print-server/qiniu/template',
-  basicUsername: 'eprint',
-  basicPassword: 'eprint123',
+  templateBaseUrl: '',
+  basicUsername: '',
   printerName: '',
-  silent: true,
+  silent: false,
   templateCacheDir: runtimeTemplateCacheDir
 };
 
@@ -34,10 +34,14 @@ const LEGACY_DEFAULT_CONFIGS = [
     templateBaseUrl: 'http://localhost:8080/template'
   }
 ];
+const LEGACY_MIGRATION_TARGET = {
+  serverUrl: 'ws://localhost:8080/e-print-server/ws/print',
+  templateBaseUrl: 'http://localhost:8080/e-print-server/qiniu/template'
+};
 
 function loadConfig(configPath) {
   const resolvedPath = resolveConfigPath(configPath);
-  const fileConfig = readConfig(resolvedPath) || readInitialConfig(resolvedPath);
+  const fileConfig = migrateConfig(readConfig(resolvedPath) || readInitialConfig(resolvedPath));
 
   return normalizeConfig(applyEnvOverrides(applyEnvironmentConfig(migrateLegacyDefaults({
     ...DEFAULT_CONFIG,
@@ -148,16 +152,16 @@ function migrateLegacyDefaults(config) {
   return {
     ...config,
     serverUrl: LEGACY_DEFAULT_CONFIGS.some(({ serverUrl }) => config.serverUrl === serverUrl)
-      ? DEFAULT_CONFIG.serverUrl
+      ? LEGACY_MIGRATION_TARGET.serverUrl
       : config.serverUrl,
     templateBaseUrl: LEGACY_DEFAULT_CONFIGS.some(({ templateBaseUrl }) => config.templateBaseUrl === templateBaseUrl)
-      ? DEFAULT_CONFIG.templateBaseUrl
+      ? LEGACY_MIGRATION_TARGET.templateBaseUrl
       : config.templateBaseUrl
   };
 }
 
 function normalizeConfig(config) {
-  const serverUrl = config.serverUrl || DEFAULT_CONFIG.serverUrl;
+  const serverUrl = deriveWebSocketUrl(config.serverUrl || DEFAULT_CONFIG.serverUrl);
   const templateSource = normalizeTemplateSource(config.templateSource);
   return {
     ...DEFAULT_CONFIG,
@@ -167,6 +171,43 @@ function normalizeConfig(config) {
     templateBaseUrl: normalizeTemplateBaseUrl(config.templateBaseUrl, serverUrl, templateSource),
     templateCacheDir: normalizeTemplateCacheDir(config.templateCacheDir)
   };
+}
+
+function migrateConfig(config) {
+  const migrated = { ...config };
+  if (!migrated.configVersion || migrated.configVersion < 2) {
+    migrated.silent = false;
+    migrated.configVersion = 2;
+  }
+  return migrated;
+}
+
+function deriveWebSocketUrl(serverAddress) {
+  if (!serverAddress) {
+    return '';
+  }
+
+  const url = new URL(serverAddress);
+  if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
+    throw new Error('Server address must start with ws:// or wss://');
+  }
+
+  url.pathname = `${url.pathname.replace(/\/ws\/print\/?$/, '').replace(/\/$/, '')}/ws/print`;
+  url.search = '';
+  url.hash = '';
+  return url.toString().replace(/\/$/, '');
+}
+
+function deriveServerBaseUrl(serverUrl) {
+  if (!serverUrl) {
+    return '';
+  }
+
+  const url = new URL(serverUrl);
+  url.pathname = url.pathname.replace(/\/ws\/print\/?$/, '').replace(/\/$/, '');
+  url.search = '';
+  url.hash = '';
+  return url.toString().replace(/\/$/, '');
 }
 
 function normalizeTemplateCacheDir(templateCacheDir) {
@@ -184,7 +225,11 @@ function isLegacyDefaultTemplateCacheDir(templateCacheDir) {
 }
 
 function deriveTemplateBaseUrl(serverUrl, templateSource = DEFAULT_TEMPLATE_SOURCE) {
-  const url = new URL(serverUrl || DEFAULT_CONFIG.serverUrl);
+  if (!serverUrl) {
+    return '';
+  }
+
+  const url = new URL(serverUrl);
   url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
   const contextPath = url.pathname
     .replace(/\/ws\/print\/?$/, '')
@@ -196,6 +241,10 @@ function deriveTemplateBaseUrl(serverUrl, templateSource = DEFAULT_TEMPLATE_SOUR
 }
 
 function normalizeTemplateBaseUrl(templateBaseUrl, serverUrl, templateSource) {
+  if (!serverUrl) {
+    return '';
+  }
+
   if (!templateBaseUrl) {
     return deriveTemplateBaseUrl(serverUrl, templateSource);
   }
@@ -220,7 +269,9 @@ function normalizeTemplateSource(templateSource) {
 module.exports = {
   DEFAULT_CONFIG,
   configureUserConfigPath,
+  deriveServerBaseUrl,
   deriveTemplateBaseUrl,
+  deriveWebSocketUrl,
   loadConfig,
   saveConfig,
   resolveConfigPath
