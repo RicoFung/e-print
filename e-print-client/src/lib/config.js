@@ -9,6 +9,7 @@ const PROJECT_CONFIG_PATH = path.resolve(__dirname, '..', '..', 'config.json');
 const DEFAULT_TEMPLATE_SOURCE = 'qiniu';
 const TEMPLATE_SOURCES = new Set(['qiniu', 'minio']);
 let userConfigPath;
+let runtimeTemplateCacheDir = path.join(os.homedir(), '.e-print-client', 'templates');
 
 const DEFAULT_CONFIG = {
   env: 'loc',
@@ -20,7 +21,7 @@ const DEFAULT_CONFIG = {
   basicPassword: 'eprint123',
   printerName: '',
   silent: true,
-  templateCacheDir: path.join(os.homedir(), '.e-print-client', 'templates')
+  templateCacheDir: runtimeTemplateCacheDir
 };
 
 const LEGACY_DEFAULT_CONFIGS = [
@@ -58,6 +59,7 @@ function resolveConfigPath(configPath) {
 
 function configureUserConfigPath(userDataPath) {
   userConfigPath = path.join(userDataPath, CONFIG_FILE_NAME);
+  runtimeTemplateCacheDir = path.join(userDataPath, 'templates');
   return userConfigPath;
 }
 
@@ -162,8 +164,23 @@ function normalizeConfig(config) {
     ...config,
     serverUrl,
     templateSource,
-    templateBaseUrl: normalizeTemplateBaseUrl(config.templateBaseUrl, serverUrl, templateSource)
+    templateBaseUrl: normalizeTemplateBaseUrl(config.templateBaseUrl, serverUrl, templateSource),
+    templateCacheDir: normalizeTemplateCacheDir(config.templateCacheDir)
   };
+}
+
+function normalizeTemplateCacheDir(templateCacheDir) {
+  if (!templateCacheDir || isLegacyDefaultTemplateCacheDir(templateCacheDir)) {
+    return runtimeTemplateCacheDir;
+  }
+
+  return templateCacheDir;
+}
+
+function isLegacyDefaultTemplateCacheDir(templateCacheDir) {
+  const normalizedPath = path.normalize(templateCacheDir);
+  return path.basename(normalizedPath).toLowerCase() === 'templates'
+    && path.basename(path.dirname(normalizedPath)).toLowerCase() === '.e-print-client';
 }
 
 function deriveTemplateBaseUrl(serverUrl, templateSource = DEFAULT_TEMPLATE_SOURCE) {
