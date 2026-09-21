@@ -92,12 +92,15 @@ PROD 便携版；`npm run pack:win` 和 `npm run pack:win:unsigned` 默认生成
 | --- | --- | --- |
 | App ID | `com.eprint.client.uat` | `com.eprint.client.prod` |
 | 应用名 | `E-Print-UAT` | `E-Print` |
+| 进程名 | `E-Print-UAT.exe` | `E-Print.exe` |
+| 开机启动项 | `E-Print-UAT` | `E-Print` |
 | NSIS 安装包 | `dist/uat/e-print-uat-setup-{version}.exe` | `dist/prod/e-print-setup-{version}.exe` |
 | 便携包 | `dist/uat/e-print-uat-portable-{version}.exe` | `dist/prod/e-print-portable-{version}.exe` |
 | 解包目录 | `dist/uat/win-unpacked` | `dist/prod/win-unpacked` |
 | 用户配置目录 | `%APPDATA%/E-Print-UAT` | `%APPDATA%/E-Print` |
 
 两套应用的用户配置、模板缓存、单实例锁和开机自启均相互独立，因此可以同时运行。
+客户端通过开机启动项在用户登录后常驻托盘，不注册为 Windows 服务。
 安装包内不携带运行时 `config.json`。打包时通过环境变量传入 Basic 凭据，打包器只将当前目标环境的凭据
 内置到对应安装包；缺少用户名或密码时会直接终止构建，避免生成无法连接的安装包。
 

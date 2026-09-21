@@ -14,6 +14,7 @@ const {
 const { startPrintClient } = require('./lib/ws-client');
 const { discoverPrinters } = require('./lib/printer-discovery');
 const { createElectronPrinter } = require('./printer/electron-printer');
+const { getAppIdentity } = require('./lib/app-identity');
 const {
   ePrintEnvironment = 'loc',
   ePrintBasicUsername = '',
@@ -23,7 +24,8 @@ const {
 const packagedEnvironment = ['uat', 'prod'].includes(ePrintEnvironment)
   ? ePrintEnvironment
   : 'loc';
-const packagedProductName = packagedEnvironment === 'uat' ? 'E-Print-UAT' : 'E-Print';
+const appIdentity = getAppIdentity(packagedEnvironment);
+const packagedProductName = appIdentity.productName;
 
 if (packagedEnvironment !== 'loc') {
   try {
@@ -32,6 +34,7 @@ if (packagedEnvironment !== 'loc') {
     console.warn(`Unable to migrate legacy user data: ${error.message}`);
   }
   app.setName(packagedProductName);
+  app.setAppUserModelId(appIdentity.appId);
   app.setPath('userData', path.join(app.getPath('appData'), packagedProductName));
 }
 

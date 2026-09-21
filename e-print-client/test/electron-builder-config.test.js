@@ -23,6 +23,10 @@ test('embeds generic Basic credentials for a single-environment build', () => {
     ePrintBasicUsername: 'single-user',
     ePrintBasicPassword: 'single-password'
   });
+  assert.equal(readBuildProperty('uat', 'productName'), 'E-Print-UAT');
+  assert.equal(readBuildProperty('uat', 'win.executableName'), 'E-Print-UAT');
+  assert.equal(readBuildProperty('uat', 'nsis.shortcutName'), 'E-Print-UAT');
+  assert.equal(readBuildProperty('uat', 'nsis.artifactName'), 'e-print-uat-setup-${version}.${ext}');
   assert.equal(readBuildProperty('uat', 'nsis.include'), 'build/installer-uat.nsh');
 });
 
@@ -43,6 +47,13 @@ test('selects environment-specific Basic credentials', () => {
   assert.equal(JSON.parse(uat.stdout).ePrintBasicPassword, 'uat-password');
   assert.equal(JSON.parse(prod.stdout).ePrintBasicUsername, 'prod-user');
   assert.equal(JSON.parse(prod.stdout).ePrintBasicPassword, 'prod-password');
+  assert.equal(readBuildProperty('prod', 'productName', commonEnvironment), 'E-Print');
+  assert.equal(readBuildProperty('prod', 'win.executableName', commonEnvironment), 'E-Print');
+  assert.equal(readBuildProperty('prod', 'nsis.shortcutName', commonEnvironment), 'E-Print');
+  assert.equal(
+    readBuildProperty('prod', 'nsis.artifactName', commonEnvironment),
+    'e-print-setup-${version}.${ext}'
+  );
   assert.equal(readBuildProperty('prod', 'nsis.include', commonEnvironment), 'build/installer-prod.nsh');
 });
 

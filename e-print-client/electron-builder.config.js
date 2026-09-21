@@ -1,14 +1,14 @@
 'use strict';
 
+const { getAppIdentity } = require('./src/lib/app-identity');
+
 const buildEnvironment = String(process.env.E_PRINT_BUILD_ENV || '').toLowerCase();
 
 if (!['uat', 'prod'].includes(buildEnvironment)) {
   throw new Error('E_PRINT_BUILD_ENV must be either uat or prod');
 }
 
-const productName = buildEnvironment === 'uat' ? 'E-Print-UAT' : 'E-Print';
-const executableName = buildEnvironment === 'uat' ? 'e-print-uat' : 'e-print';
-const artifactPrefix = buildEnvironment === 'uat' ? 'e-print-uat' : 'e-print';
+const appIdentity = getAppIdentity(buildEnvironment);
 const credentials = readBuildCredentials(buildEnvironment);
 
 function readBuildCredentials(environment) {
@@ -29,8 +29,8 @@ function readBuildCredentials(environment) {
 }
 
 module.exports = {
-  appId: `com.eprint.client.${buildEnvironment}`,
-  productName,
+  appId: appIdentity.appId,
+  productName: appIdentity.productName,
   extraMetadata: {
     ePrintEnvironment: buildEnvironment,
     ePrintBasicUsername: credentials.username,
@@ -47,7 +47,7 @@ module.exports = {
   asar: true,
   win: {
     target: ['nsis'],
-    executableName,
+    executableName: appIdentity.executableName,
     icon: 'assets/e-print-icon.ico'
   },
   nsis: {
@@ -55,11 +55,11 @@ module.exports = {
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
-    shortcutName: productName,
+    shortcutName: appIdentity.productName,
     include: `build/installer-${buildEnvironment}.nsh`,
-    artifactName: `${artifactPrefix}-setup-\${version}.\${ext}`
+    artifactName: `${appIdentity.artifactPrefix}-setup-\${version}.\${ext}`
   },
   portable: {
-    artifactName: `${artifactPrefix}-portable-\${version}.\${ext}`
+    artifactName: `${appIdentity.artifactPrefix}-portable-\${version}.\${ext}`
   }
 };
