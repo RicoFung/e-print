@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <included>
-    <property name="LOG_MSG" value="[%X{traceId:-}] [%X{spanId:-}] [%X{requestId:-}] [%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%logger{60}${LOG_CALLER:-}] - %msg%n"/>
+    <property name="LOG_MSG" value="[%X{traceId:-}] [%X{spanId:-}] [%X{requestId:-}] [%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%logger${LOG_CALLER:-}] - %msg%n"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
