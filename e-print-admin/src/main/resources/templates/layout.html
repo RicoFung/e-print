@@ -25,6 +25,7 @@
         })();
     </script>
     <title th:text="${title} + ' - E-PRINT-ADMIN'">E-PRINT-ADMIN</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/img/e-print-icon.svg}">
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/vendor/adminlte/css/adminlte.min.css}">
     <link rel="stylesheet" th:href="@{/vendor/bootstrap-table/bootstrap-table.min.css}">
@@ -161,7 +162,7 @@
     <aside class="app-sidebar admin-sidebar">
         <div class="sidebar-brand">
             <a class="brand-link" th:href="@{/}">
-                <img class="brand-mark" th:src="@{/img/e-print-logo.svg}" alt="" width="38" height="38">
+                <img class="brand-mark" th:src="@{/img/e-print-icon.svg}" alt="" width="38" height="38">
                 <span class="brand-text">
                     <strong>E-PRINT</strong>
                     <small>CONTROL DESK</small>

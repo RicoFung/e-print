@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 408" role="img" aria-label="Printer icon matched to reference">
+  <!-- Transparent background -->
+
+  <!-- Colors -->
+  <!-- navy: #15345F -->
+  <!-- cyan: #18BFE8 -->
+  <!-- panel: #E7EEF2 -->
+
+  <!-- Top paper housing -->
+  <path d="
+    M116 10
+    H336
+    C352 10 362 20 362 36
+    V86
+    H92
+    V36
+    C92 20 102 10 116 10
+    Z"
+    fill="#15345F"/>
+
+  <!-- Top cyan paper -->
+  <rect x="118" y="35" width="218" height="68" rx="2" fill="#18BFE8"/>
+
+  <!-- Main printer outer body with slanted shoulders -->
+  <path d="
+    M92 84
+    H372
+    L438 143
+    C444 149 447 157 447 166
+    V272
+    C447 292 433 309 414 309
+    H372
+    V252
+    C372 233 357 218 338 218
+    H110
+    C91 218 82 233 82 252
+    V309
+    H34
+    C15 309 2 294 2 275
+    V161
+    C2 151 5 144 12 137
+    L69 84
+    Z"
+    fill="#15345F"/>
+
+  <!-- Main light panel -->
+  <path d="
+    M57 132
+    H394
+    L423 157
+    V272
+    C423 279 418 284 411 284
+    H372
+    V252
+    C372 233 357 218 338 218
+    H110
+    C91 218 82 233 82 252
+    V284
+    H42
+    C35 284 30 279 30 272
+    V158
+    L50 138
+    C52 136 55 134 57 132
+    Z"
+    fill="#E7EEF2"/>
+
+  <!-- Status pill -->
+  <rect x="352" y="159" width="47" height="20" rx="10" fill="#15345F"/>
+
+  <!-- Output frame -->
+  <path d="
+    M106 218
+    H342
+    C359 218 372 231 372 248
+    V372
+    C372 387 361 398 346 398
+    H108
+    C93 398 82 387 82 372
+    V248
+    C82 231 93 218 106 218
+    Z"
+    fill="#15345F"/>
+
+  <!-- Output cyan sheet -->
+  <rect x="107" y="243" width="240" height="131" rx="5" fill="#18BFE8"/>
+
+  <!-- Printed lines -->
+  <rect x="136" y="270" width="183" height="28" rx="14" fill="#15345F"/>
+  <rect x="136" y="319" width="183" height="28" rx="14" fill="#15345F"/>
+</svg>

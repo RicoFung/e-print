@@ -45,6 +45,22 @@ class TemplateRouteMappingTest {
     }
 
     @Test
+    void adminUsesClientIconForBrandingAndBrowserTabs() throws IOException {
+        String layout = resource("templates/layout.html");
+        String login = resource("templates/login.html");
+        String error = resource("templates/error/common.html");
+        String icon = resource("static/img/e-print-icon.svg");
+
+        assertTrue(layout.contains("rel=\"icon\" type=\"image/svg+xml\" th:href=\"@{/img/e-print-icon.svg}\""));
+        assertTrue(layout.contains("class=\"brand-mark\" th:src=\"@{/img/e-print-icon.svg}\""));
+        assertTrue(login.contains("class=\"brand-mark\" th:src=\"@{/img/e-print-icon.svg}\""));
+        assertTrue(error.contains("rel=\"icon\" type=\"image/svg+xml\" th:href=\"@{/img/e-print-icon.svg}\""));
+        assertTrue(icon.contains("viewBox=\"0 0 256 256\""));
+        assertFalse(layout.contains("@{/img/e-print-logo.svg}"));
+        assertFalse(login.contains("@{/img/e-print-logo.svg}"));
+    }
+
+    @Test
     void navigationUsesUnifiedStorageIcons() throws IOException {
         String layout = resource("templates/layout.html");
 
