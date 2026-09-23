@@ -35,7 +35,7 @@ mvn -Ploc spring-boot:run
 默认访问地址：
 
 ```text
-http://localhost:8080/e-print-server
+http://localhost:8081/e-print-server
 ```
 
 默认 Basic 认证：
@@ -56,6 +56,114 @@ mvn -Ploc -DskipTests clean compile
 mvn -Puat clean package -DskipTests
 java -jar target/e-print-server-exec.jar
 ```
+
+### Nacos 配置模板
+
+各环境使用独立的 Nacos 命名空间，但 Data ID 和 Group 保持一致。不要在不同环境之间共用数据库、
+对象存储或认证凭据。
+
+| 环境 | Maven Profile | Nacos 命名空间 | OpenAPI 服务地址 | `graylog.environment` |
+| --- | --- | --- | --- | --- |
+| LOC | `loc` | `e-print-loc` | `http://localhost:8081/e-print-server` | `LOC` |
+| UAT | `uat` | `e-print-uat` | `https://apiuat.moco.com/eprint/v1` | `UAT` |
+| PROD | `prod` | `e-print-prod` | 实际生产网关地址，例如 `https://api.moco.com/eprint/v1` | `PROD` |
+
+在对应命名空间中，以 `e-print-server.yaml` 为 Data ID、`DEFAULT_GROUP` 为 Group 创建以下配置。
+模板中的 `LOC` 默认值仅供本地环境使用，标注“环境差异”的配置必须按上表调整：
+
+```yaml
+# 公共配置：三个环境保持相同的 context-path。
+server:
+  servlet:
+    context-path: /e-print-server
+  # 环境差异：LOC 默认 8081；UAT/PROD 由部署平台通过环境变量注入容器端口。
+  port: ${E_PRINT_SERVER_PORT:8081}
+
+app:
+  security:
+    basic:
+      # 敏感配置：UAT/PROD 必须通过部署 Secret 注入，不要在 Nacos 中填写明文。
+      username: ${E_PRINT_ADMIN_USERNAME:}
+      password: ${E_PRINT_ADMIN_PASSWORD:}
+  openapi:
+    # 环境差异：填写外部 HTTP(S) 访问前缀，不使用 ws:// 或 wss://。
+    # LOC:  http://localhost:8081/e-print-server
+    # UAT:  https://apiuat.moco.com/eprint/v1
+    # PROD: 实际生产网关地址，例如 https://api.moco.com/eprint/v1
+    server-url: ${E_PRINT_OPENAPI_SERVER_URL:http://localhost:${server.port}${server.servlet.context-path}}
+  api-log:
+    enabled: ${E_PRINT_API_LOG_ENABLED:true}
+    max-body-length: ${E_PRINT_API_LOG_MAX_BODY_LENGTH:8192}
+
+springdoc:
+  api-docs:
+    # 环境差异：LOC 可按需开启；UAT/PROD 默认关闭。
+    enabled: ${E_PRINT_SPRINGDOC_API_DOCS_ENABLED:false}
+  swagger-ui:
+    # 环境差异：通常与 api-docs 同时开启或关闭。
+    enabled: ${E_PRINT_SPRINGDOC_SWAGGER_UI_ENABLED:false}
+
+datasource:
+  mybatis:
+    default:
+      driver-class-name: oracle.jdbc.OracleDriver
+      # 环境差异/敏感配置：每个环境使用独立数据库和账号，通过部署 Secret 注入。
+      url: ${E_PRINT_DB_URL:}
+      username: ${E_PRINT_DB_USERNAME:}
+      password: ${E_PRINT_DB_PASSWORD:}
+      connectionTimeout: ${E_PRINT_DB_CONNECTION_TIMEOUT:30000}
+      idleTimeout: ${E_PRINT_DB_IDLE_TIMEOUT:60000}
+      minimumIdle: ${E_PRINT_DB_MINIMUM_IDLE:2}
+      maximumPoolSize: ${E_PRINT_DB_MAXIMUM_POOL_SIZE:10}
+      maxLifetime: ${E_PRINT_DB_MAX_LIFETIME:1800000}
+      mapper-location: classpath*:com/**/mapper/*.xml
+
+graylog:
+  # 环境差异：host、port 使用当前环境的 Graylog 接入配置。
+  host: ${E_PRINT_GRAYLOG_HOST:}
+  port: ${E_PRINT_GRAYLOG_PORT:}
+  # 环境差异：LOC 配 LOC、UAT 配 UAT、PROD 配 PROD。
+  environment: LOC
+
+# 可选配置：启用 MinIO 时取消注释。UAT/PROD 的凭据必须通过部署 Secret 注入。
+#minio:
+#  endpoint: ${E_PRINT_MINIO_ENDPOINT:http://127.0.0.1:9000}
+#  access-key: ${E_PRINT_MINIO_ACCESS_KEY:eprint_minio}
+#  secret-key: ${E_PRINT_MINIO_SECRET_KEY:eprint_minio_123}
+
+qiniu:
+  # 环境差异/敏感配置：各环境使用各自的 bucket、路径前缀和凭据。
+  access-key: ${E_PRINT_QINIU_ACCESS_KEY:}
+  secret-key: ${E_PRINT_QINIU_SECRET_KEY:}
+  bucket: ${E_PRINT_QINIU_BUCKET:}
+  object-prefix: ${E_PRINT_QINIU_OBJECT_PREFIX:}
+  region: ${E_PRINT_QINIU_REGION:}
+  s3-endpoint: ${E_PRINT_QINIU_S3_ENDPOINT:}
+  s3-region: ${E_PRINT_QINIU_S3_REGION:}
+
+mybatis:
+  config-location: classpath:mybatis.xml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  tracing:
+    sampling:
+      # 环境差异：LOC/UAT 可使用 1.0；PROD 根据链路量调整采样率。
+      probability: ${E_PRINT_TRACING_SAMPLING_PROBABILITY:1.0}
+
+logging:
+  config: classpath:logback-${spring.profiles.active}.xml
+  file:
+    path: ${E_PRINT_ADMIN_LOG_PATH:logs}
+  level:
+    root: ${E_PRINT_ADMIN_LOG_ROOT_LEVEL:INFO}
+```
+
+`E_PRINT_OPENAPI_SERVER_URL` 仅用于设置 SpringDoc OpenAPI 的服务地址。服务不接受浏览器前端调用，
+因此不配置 CORS。PROD 示例域名必须以实际生产网关配置为准，不能直接照抄。
 
 配置文件：
 

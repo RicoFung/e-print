@@ -58,11 +58,106 @@ mvn -Puat clean package -DskipTests
 java -jar target/e-print-admin-exec.jar
 ```
 
+### Nacos 配置模板
+
+各环境使用独立的 Nacos 命名空间，但 Data ID 和 Group 保持一致。不要在不同环境之间共用数据库、
+对象存储或管理员凭据。
+
+| 环境 | Maven Profile | Nacos 命名空间 | `graylog.environment` |
+| --- | --- | --- | --- |
+| LOC | `loc` | `e-print-loc` | `LOC` |
+| UAT | `uat` | `e-print-uat` | `UAT` |
+| PROD | `prod` | `e-print-prod` | `PROD` |
+
+在对应命名空间中，以 `e-print-admin.yaml` 为 Data ID、`DEFAULT_GROUP` 为 Group 创建以下配置。
+模板中的 `LOC`、`pos-uat` 等默认值仅用于对应环境，标注“环境差异”的配置必须按上表和实际资源调整：
+
+```yaml
+# 公共配置：三个环境保持相同的 context-path。
+server:
+  servlet:
+    context-path: /e-print-admin
+  # 环境差异：LOC 默认 8080；UAT/PROD 由部署平台通过环境变量注入容器端口。
+  port: ${E_PRINT_SERVER_PORT:8080}
+
+app:
+  security:
+    admin:
+      # 敏感配置：UAT/PROD 必须通过部署 Secret 注入，不要在 Nacos 中填写明文。
+      username: ${E_PRINT_ADMIN_USERNAME:}
+      password: ${E_PRINT_ADMIN_PASSWORD:}
+
+datasource:
+  mybatis:
+    default:
+      driver-class-name: oracle.jdbc.OracleDriver
+      # 环境差异/敏感配置：每个环境使用独立数据库和账号，通过部署 Secret 注入。
+      url: ${E_PRINT_DB_URL:}
+      username: ${E_PRINT_DB_USERNAME:}
+      password: ${E_PRINT_DB_PASSWORD:}
+      connectionTimeout: ${E_PRINT_DB_CONNECTION_TIMEOUT:30000}
+      idleTimeout: ${E_PRINT_DB_IDLE_TIMEOUT:60000}
+      minimumIdle: ${E_PRINT_DB_MINIMUM_IDLE:2}
+      maximumPoolSize: ${E_PRINT_DB_MAXIMUM_POOL_SIZE:10}
+      maxLifetime: ${E_PRINT_DB_MAX_LIFETIME:1800000}
+      mapper-location: classpath*:com/**/mapper/*.xml
+
+graylog:
+  # 环境差异：host、port 使用当前环境的 Graylog 接入配置。
+  host: ${E_PRINT_GRAYLOG_HOST:}
+  port: ${E_PRINT_GRAYLOG_PORT:}
+  # 环境差异：LOC 配 LOC、UAT 配 UAT、PROD 配 PROD。
+  environment: LOC
+
+# 可选配置：启用 MinIO 时取消注释。UAT/PROD 的凭据必须通过部署 Secret 注入。
+#minio:
+#  endpoint: ${E_PRINT_MINIO_ENDPOINT:http://127.0.0.1:9000}
+#  access-key: ${E_PRINT_MINIO_ACCESS_KEY:eprint_minio}
+#  secret-key: ${E_PRINT_MINIO_SECRET_KEY:eprint_minio_123}
+
+qiniu:
+  # 环境差异/敏感配置：各环境使用各自的 bucket、路径前缀和凭据。
+  # UAT bucket 示例为 pos-uat；PROD 必须改为实际生产 bucket，不能沿用 UAT 默认值。
+  access-key: ${E_PRINT_QINIU_ACCESS_KEY:}
+  secret-key: ${E_PRINT_QINIU_SECRET_KEY:}
+  bucket: ${E_PRINT_QINIU_BUCKET:pos-uat}
+  object-prefix: ${E_PRINT_QINIU_OBJECT_PREFIX:}
+  region: ${E_PRINT_QINIU_REGION:z2}
+  s3-endpoint: ${E_PRINT_QINIU_S3_ENDPOINT:}
+  s3-region: ${E_PRINT_QINIU_S3_REGION:}
+
+# YAML 多文档分隔符：以下仍属于同一个 e-print-admin.yaml Data ID。
+---
+app:
+  template:
+    # 环境差异：bucket 和对象前缀必须与当前环境启用的对象存储配置一致。
+    default-bucket: ${E_PRINT_TEMPLATE_BUCKET:e-print}
+    default-object-prefix: ${E_PRINT_TEMPLATE_OBJECT_PREFIX:templates/print}
+
+mybatis:
+  config-location: classpath:mybatis.xml
+
+management:
+  endpoints:
+    web:
+      # UAT/PROD 应由网关或网络策略限制管理端点访问范围。
+      exposure:
+        include: health,info,metrics
+
+logging:
+  # 根据当前 Maven Profile 加载 logback-loc/uat/prod.xml。
+  config: classpath:logback-${spring.profiles.active}.xml
+  file:
+    path: ${E_PRINT_ADMIN_LOG_PATH:logs}
+  level:
+    root: ${E_PRINT_ADMIN_LOG_ROOT_LEVEL:INFO}
+```
+
 主要环境变量：
 
 | 变量 | 说明 |
 | --- | --- |
-| `E_PRINT_ADMIN_PORT` | HTTP 端口，默认 `8080` |
+| `E_PRINT_SERVER_PORT` | HTTP 端口，默认 `8080` |
 | `E_PRINT_ADMIN_USERNAME` | 管理员用户名 |
 | `E_PRINT_ADMIN_PASSWORD` | 管理员密码 |
 | `E_PRINT_DB_URL` | Oracle JDBC 地址 |
@@ -75,7 +170,7 @@ java -jar target/e-print-admin-exec.jar
 | `E_PRINT_TEMPLATE_OBJECT_PREFIX` | 模板对象前缀，默认 `templates/print` |
 | `E_PRINT_QINIU_ACCESS_KEY` | 七牛 Access Key，仅通过部署 Secret 注入 |
 | `E_PRINT_QINIU_SECRET_KEY` | 七牛 Secret Key，仅通过部署 Secret 注入 |
-| `E_PRINT_QINIU_BUCKET` | 七牛 bucket，默认 `pos-uat` |
+| `E_PRINT_QINIU_BUCKET` | 七牛 bucket；UAT 默认 `pos-uat`，PROD 必须配置实际生产 bucket |
 | `E_PRINT_QINIU_OBJECT_PREFIX` | 七牛对象根路径，默认 `e-print`；数据库 `OBJECT_NAME` 保存包含该前缀的完整对象 Key |
 | `E_PRINT_QINIU_REGION` | 七牛区域，默认 `z2`（华南） |
 | `E_PRINT_QINIU_S3_ENDPOINT` | 七牛 S3 Endpoint，华南默认 `https://s3.cn-south-1.qiniucs.com` |

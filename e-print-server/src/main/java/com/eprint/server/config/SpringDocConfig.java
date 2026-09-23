@@ -20,15 +20,15 @@ public class SpringDocConfig {
 
     public static final String BASIC_AUTH_SCHEME = "basicAuth";
 
-    @Value("${app.base-uri}")
-    private String appBaseUri;
+    @Value("${app.openapi.server-url}")
+    private String serverUrl;
 
     @Bean
     public OpenAPI openAPI() {
         log.info("Initializing SpringDoc OpenAPI configuration");
 
         OpenAPI openApi = new OpenAPI()
-                .servers(List.of(new Server().url(appBaseUri)))
+                .servers(List.of(new Server().url(serverUrl)))
                 .info(new Info()
                         .title("E-PRINT-SERVER API")
                         .description("E-PRINT-SERVER API")
