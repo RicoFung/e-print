@@ -3,12 +3,16 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>E-PRINT-CLIENT</title>
+    <title></title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
     <main class="shell">
       <section class="header">
+        <div class="brand">
+          <strong id="appName" class="appName">E-Print</strong>
+          <span id="appVersion" class="appVersion">v—</span>
+        </div>
         <div class="headerActions">
           <div class="controlRow">
             <div class="languageField">
@@ -44,14 +48,14 @@
           </div>
 
           <form id="configForm">
-            <label for="serverUrl" data-i18n="websocketUrl">WebSocket URL</label>
-            <input id="serverUrl" name="serverUrl" type="url" placeholder="ws://localhost:8080/e-print-server/ws/print" required>
+            <label for="serverUrl" data-i18n="serverAddress">Server address</label>
+            <input id="serverUrl" name="serverUrl" type="url" placeholder="wss://api.example.com/eprint/v1">
 
             <label for="clientId" data-i18n="clientId">Client ID</label>
             <input id="clientId" name="clientId" type="text" placeholder="CLIENT-001" required>
 
-            <label for="templateSource" data-i18n="templateSource">Template source</label>
-            <select id="templateSource" name="templateSource">
+            <label for="templateSource" data-i18n="templateSource" hidden>Template source</label>
+            <select id="templateSource" name="templateSource" hidden>
               <option value="qiniu">qiniu</option>
               <option value="minio">minio</option>
             </select>

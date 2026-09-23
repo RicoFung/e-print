@@ -2,17 +2,31 @@
   "name": "e-print-client",
   "version": "1.0.0",
   "description": "Local silent printing client for e-print.",
+  "author": "E-Print Team",
   "main": "src/main.js",
   "scripts": {
     "clean:dist": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "dist:win": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable",
-    "dist:win:portable": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable",
-    "pack:win": "electron-builder --win dir",
-    "pack:win:unsigned": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win dir",
+    "clean:dist:uat": "node -e \"require('node:fs').rmSync('dist/uat', { recursive: true, force: true })\"",
+    "clean:dist:prod": "node -e \"require('node:fs').rmSync('dist/prod', { recursive: true, force: true })\"",
+    "dist:win": "npm run dist:win:prod",
+    "dist:win:portable": "npm run dist:win:prod:portable",
+    "dist:win:uat": "set E_PRINT_BUILD_ENV=uat&& set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --config electron-builder.config.js --win nsis",
+    "dist:win:prod": "set E_PRINT_BUILD_ENV=prod&& set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --config electron-builder.config.js --win nsis",
+    "dist:win:all": "npm run dist:win:uat && npm run dist:win:prod",
+    "dist:win:uat:portable": "set E_PRINT_BUILD_ENV=uat&& set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --config electron-builder.config.js --win portable",
+    "dist:win:prod:portable": "set E_PRINT_BUILD_ENV=prod&& set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --config electron-builder.config.js --win portable",
+    "pack:win": "npm run pack:win:prod",
+    "pack:win:unsigned": "npm run pack:win:prod",
+    "pack:win:uat": "set E_PRINT_BUILD_ENV=uat&& set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --config electron-builder.config.js --win dir",
+    "pack:win:prod": "set E_PRINT_BUILD_ENV=prod&& set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --config electron-builder.config.js --win dir",
     "predist:win": "npm run clean:dist",
-    "predist:win:portable": "npm run clean:dist",
+    "predist:win:uat": "npm run clean:dist:uat",
+    "predist:win:prod": "npm run clean:dist:prod",
+    "predist:win:uat:portable": "npm run clean:dist:uat",
+    "predist:win:prod:portable": "npm run clean:dist:prod",
     "prepack:win": "npm run clean:dist",
-    "prepack:win:unsigned": "npm run clean:dist",
+    "prepack:win:uat": "npm run clean:dist:uat",
+    "prepack:win:prod": "npm run clean:dist:prod",
     "start": "electron .",
     "test": "node --test"
   },
@@ -35,28 +49,5 @@
   "devDependencies": {
     "electron": "^31.7.7",
     "electron-builder": "^24.13.3"
-  },
-  "build": {
-    "appId": "com.eprint.client",
-    "productName": "EPrintClient",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "src/**/*",
-      "assets/**/*",
-      "config.json",
-      "package.json"
-    ],
-    "asar": true,
-    "win": {
-      "target": [
-        "portable"
-      ],
-      "icon": "assets/e-print-icon.ico"
-    },
-    "portable": {
-      "artifactName": "${productName}-${version}.${ext}"
-    }
   }
 }

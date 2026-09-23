@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Flat printer icon balanced spacing">
+  <defs>
+    <linearGradient id="cyan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#18BFE8"/>
+      <stop offset="100%" stop-color="#08A9D4"/>
+    </linearGradient>
+    <linearGradient id="lightPanel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#EEF3F5"/>
+      <stop offset="100%" stop-color="#D9E1E5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Transparent background -->
+
+  <!-- =========================================================
+       TOP PAPER BLOCK
+       Outer: 584 × 264
+       Inner cyan panel margin: 60 on all four sides
+       ========================================================= -->
+  <path d="
+    M262 70
+    H762
+    A42 42 0 0 1 804 112
+    V334
+    H220
+    V112
+    A42 42 0 0 1 262 70
+    Z"
+    fill="#17325A"/>
+
+  <rect x="280" y="130" width="464" height="144" fill="url(#cyan)"/>
+
+  <!-- =========================================================
+       MAIN PRINTER BODY
+       Gray panel margins from dark body:
+       left/right/top = 64
+       ========================================================= -->
+  <rect x="52" y="290" width="920" height="438" rx="48" fill="#17325A"/>
+
+  <!-- Gray panel with rounded cutout matching output frame -->
+  <path d="
+    M116 354
+    H908
+    V655
+    H818
+    V586
+    A48 48 0 0 0 770 538
+    H254
+    A48 48 0 0 0 206 586
+    V655
+    H116
+    Z"
+    fill="url(#lightPanel)"/>
+
+  <!-- =========================================================
+       OUTPUT FRAME
+       Cyan sheet margin: exactly 60 on all four sides
+       Frame: x=206..818, y=538..886
+       Sheet: x=266..758, y=598..826
+       ========================================================= -->
+  <path d="
+    M254 538
+    H770
+    A48 48 0 0 1 818 586
+    V830
+    A56 56 0 0 1 762 886
+    H262
+    A56 56 0 0 1 206 830
+    V586
+    A48 48 0 0 1 254 538
+    Z"
+    fill="#17325A"/>
+
+  <rect x="266" y="598" width="492" height="228" fill="url(#cyan)"/>
+
+  <!-- =========================================================
+       PRINTED LINES
+       Horizontal margins inside cyan sheet: 60
+       Vertical spacing:
+       top 44 / line 48 / middle 44 / line 48 / bottom 44
+       ========================================================= -->
+  <rect x="326" y="642" width="372" height="48" rx="24" fill="#17325A"/>
+  <rect x="326" y="734" width="372" height="48" rx="24" fill="#17325A"/>
+</svg>

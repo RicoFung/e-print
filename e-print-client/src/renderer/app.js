@@ -3,6 +3,8 @@
 const api = window.ePrintClient;
 
 const form = document.getElementById('configForm');
+const appName = document.getElementById('appName');
+const appVersion = document.getElementById('appVersion');
 const serverUrlInput = document.getElementById('serverUrl');
 const clientIdInput = document.getElementById('clientId');
 const templateSourceSelect = document.getElementById('templateSource');
@@ -35,7 +37,7 @@ const messages = {
     connection: 'Connection',
     connectionHint: 'Bind this device to the print server.',
     reconnect: 'Reconnect',
-    websocketUrl: 'WebSocket URL',
+    serverAddress: 'Server address',
     saveConnect: 'Save and connect',
     clientId: 'Client ID',
     templateSource: 'Template source',
@@ -83,7 +85,7 @@ const messages = {
     connection: '\u8fde\u63a5',
     connectionHint: '\u5c06\u6b64\u8bbe\u5907\u7ed1\u5b9a\u5230\u6253\u5370\u670d\u52a1\u3002',
     reconnect: '\u91cd\u65b0\u8fde\u63a5',
-    websocketUrl: 'WebSocket \u5730\u5740',
+    serverAddress: '\u670d\u52a1\u5730\u5740',
     saveConnect: '\u4fdd\u5b58\u5e76\u8fde\u63a5',
     clientId: '\u5ba2\u6237\u7aef ID',
     templateSource: '\u6a21\u677f\u6e90',
@@ -156,7 +158,11 @@ async function init() {
   applyLanguage(currentLanguage);
   api.onStatusChange(renderStatus);
 
-  const result = await api.getConfig();
+  const [result, appInfo] = await Promise.all([
+    api.getConfig(),
+    api.getAppInfo()
+  ]);
+  renderAppInfo(appInfo);
   currentConfig = result.config;
   renderConfig(result);
   await loadPrinters();
@@ -241,6 +247,12 @@ function renderTemplateBaseUrl() {
   }
 }
 
+function renderAppInfo(appInfo) {
+  const version = appInfo && appInfo.version ? appInfo.version : '-';
+  appName.textContent = appInfo && appInfo.name ? appInfo.name : 'E-Print';
+  appVersion.textContent = `v${version}`;
+}
+
 printerNameSelect.addEventListener('change', () => {
   currentConfig = {
     ...currentConfig,
@@ -292,7 +304,7 @@ async function loadPrinters() {
 }
 
 function renderConfig(result) {
-  serverUrlInput.value = result.config.serverUrl || '';
+  serverUrlInput.value = deriveServerBaseUrl(result.config.serverUrl);
   clientIdInput.value = result.config.clientId || '';
   templateSourceSelect.value = result.config.templateSource === 'minio' ? 'minio' : 'qiniu';
   silentSelect.value = result.config.silent === false ? 'false' : 'true';
@@ -366,6 +378,10 @@ function createStatusTitle(status) {
 }
 
 function deriveTemplateBaseUrl(serverUrl, templateSource) {
+  if (!serverUrl) {
+    return '';
+  }
+
   const url = new URL(serverUrl);
   url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
   const contextPath = url.pathname
@@ -373,6 +389,18 @@ function deriveTemplateBaseUrl(serverUrl, templateSource) {
     .replace(/\/$/, '');
   const source = templateSource === 'minio' ? 'minio' : 'qiniu';
   url.pathname = `${contextPath}/${source}/template`;
+  url.search = '';
+  url.hash = '';
+  return url.toString().replace(/\/$/, '');
+}
+
+function deriveServerBaseUrl(serverUrl) {
+  if (!serverUrl) {
+    return '';
+  }
+
+  const url = new URL(serverUrl);
+  url.pathname = url.pathname.replace(/\/ws\/print\/?$/, '').replace(/\/$/, '');
   url.search = '';
   url.hash = '';
   return url.toString().replace(/\/$/, '');

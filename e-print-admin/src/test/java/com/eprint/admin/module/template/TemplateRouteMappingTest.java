@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -28,18 +27,37 @@ class TemplateRouteMappingTest {
     }
 
     @Test
-    void navigationGroupsQiniuBeforeMinio() throws IOException {
+    void navigationShowsQiniuAndCommentsOutMinio() throws IOException {
         String layout = resource("templates/layout.html");
-        String normalizedLayout = layout.toLowerCase(Locale.ROOT);
-        int qiniuGroup = normalizedLayout.indexOf("<p>qiniu ");
-        int minioGroup = normalizedLayout.indexOf("<p>minio ");
 
-        assertTrue(qiniuGroup >= 0);
-        assertTrue(minioGroup > qiniuGroup);
         assertTrue(layout.contains("@{/qiniu/template-types}"));
         assertTrue(layout.contains("@{/qiniu/templates}"));
-        assertTrue(layout.contains("@{/minio/template-types}"));
-        assertTrue(layout.contains("@{/minio/templates}"));
+        assertCommentedOut(layout, "MinIO navigation hidden", "@{/minio/template-types}", "@{/minio/templates}");
+    }
+
+    @Test
+    void homeShortcutsShowQiniuAndCommentOutMinio() throws IOException {
+        String home = resource("templates/home/index.html");
+
+        assertTrue(home.contains("@{/qiniu/template-types}"));
+        assertTrue(home.contains("@{/qiniu/templates}"));
+        assertCommentedOut(home, "MinIO shortcuts hidden", "@{/minio/template-types}", "@{/minio/templates}");
+    }
+
+    @Test
+    void adminUsesClientIconForBrandingAndBrowserTabs() throws IOException {
+        String layout = resource("templates/layout.html");
+        String login = resource("templates/login.html");
+        String error = resource("templates/error/common.html");
+        String icon = resource("static/img/e-print-icon.svg");
+
+        assertTrue(layout.contains("rel=\"icon\" type=\"image/svg+xml\" th:href=\"@{/img/e-print-icon.svg}\""));
+        assertTrue(layout.contains("class=\"brand-mark\" th:src=\"@{/img/e-print-icon.svg}\""));
+        assertTrue(login.contains("class=\"brand-mark\" th:src=\"@{/img/e-print-icon.svg}\""));
+        assertTrue(error.contains("rel=\"icon\" type=\"image/svg+xml\" th:href=\"@{/img/e-print-icon.svg}\""));
+        assertTrue(icon.contains("viewBox=\"0 0 256 256\""));
+        assertFalse(layout.contains("@{/img/e-print-logo.svg}"));
+        assertFalse(login.contains("@{/img/e-print-logo.svg}"));
     }
 
     @Test
@@ -102,6 +120,18 @@ class TemplateRouteMappingTest {
     private void assertRoute(Class<?> controllerType, String route) {
         RequestMapping mapping = controllerType.getAnnotation(RequestMapping.class);
         assertArrayEquals(new String[]{route}, mapping.value());
+    }
+
+    private void assertCommentedOut(String content, String marker, String... expectedContent) {
+        int commentStart = content.indexOf("<!--/* " + marker);
+        int commentEnd = content.indexOf("*/-->", commentStart);
+
+        assertTrue(commentStart >= 0);
+        assertTrue(commentEnd > commentStart);
+        for (String expected : expectedContent) {
+            int contentPosition = content.indexOf(expected, commentStart);
+            assertTrue(contentPosition > commentStart && contentPosition < commentEnd);
+        }
     }
 
     private void assertQiniuView(String view) throws IOException {
