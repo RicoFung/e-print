@@ -142,7 +142,7 @@
             OBJECT_NAME,
             STATUS
         ) VALUES (
-            SEQ_EPRINT_MINIO_TEMPLATE.NEXTVAL,
+            SEQ_E_PRINT_MINIO_TEMPLATE.NEXTVAL,
             #{templateTypeId},
             #{templateCode},
             #{bucketName},

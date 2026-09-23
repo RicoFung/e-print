@@ -128,7 +128,7 @@
             STATUS,
             SORT_NO
         ) VALUES (
-            SEQ_EPRINT_MINIO_TMPL_TYPE.NEXTVAL,
+            SEQ_E_PRINT_MINIO_TMPL_TYPE.NEXTVAL,
             #{code},
             #{name},
             #{status},

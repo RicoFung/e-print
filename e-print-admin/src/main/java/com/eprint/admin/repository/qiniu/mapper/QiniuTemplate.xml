@@ -155,7 +155,7 @@
             OBJECT_NAME,
             STATUS
         ) VALUES (
-            SEQ_EPRINT_QINIU_TEMPLATE.NEXTVAL,
+            SEQ_E_PRINT_QINIU_TEMPLATE.NEXTVAL,
             #{templateTypeId},
             #{templateCode},
             #{bucketName},
